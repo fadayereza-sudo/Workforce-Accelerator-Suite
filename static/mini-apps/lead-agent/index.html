@@ -1286,8 +1286,7 @@
                     </div>
 
                     <div class="prospect-actions">
-                        ${p.phone ? `<a href="tel:${p.phone}" class="btn btn-primary">📞 Call</a>` : '<button class="btn btn-secondary" disabled>📞 Call</button>'}
-                        ${p.google_maps_url ? `<a href="${p.google_maps_url}" target="_blank" class="btn btn-secondary">🗺️ Maps</a>` : '<button class="btn btn-secondary" disabled>🗺️ Maps</button>'}
+                        ${p.phone ? `<a href="tel:${p.phone.replace(/[^0-9+]/g, '')}" class="btn btn-primary">📞 Call</a>` : '<button class="btn btn-secondary" disabled>📞 Call</button>'}
                         <button class="btn btn-secondary" onclick="downloadVCard('${p.id}')">👤 Add Contact</button>
                         <button class="btn btn-danger" onclick="deleteProspectConfirm('${p.id}')">🗑️ Delete</button>
                     </div>
@@ -1318,15 +1317,32 @@
         async function downloadVCard(id) {
             try {
                 const vcard = await api.getVCard(id);
-                const blob = new Blob([vcard.vcard], { type: 'text/vcard' });
+
+                // Create blob with proper MIME type
+                const blob = new Blob([vcard.vcard], { type: 'text/x-vcard;charset=utf-8' });
                 const url = window.URL.createObjectURL(blob);
+
+                // Create temporary link and trigger download
                 const a = document.createElement('a');
+                a.style.display = 'none';
                 a.href = url;
                 a.download = vcard.filename;
+                document.body.appendChild(a);
                 a.click();
-                window.URL.revokeObjectURL(url);
+
+                // Cleanup
+                setTimeout(() => {
+                    document.body.removeChild(a);
+                    window.URL.revokeObjectURL(url);
+                }, 100);
+
+                // Show success message
+                if (window.Telegram?.WebApp) {
+                    window.Telegram.WebApp.showAlert('Contact saved! Check your downloads folder.');
+                }
             } catch (error) {
-                alert('Failed to generate vCard: ' + error.message);
+                console.error('vCard download error:', error);
+                alert('Failed to download contact: ' + error.message);
             }
         }
 
