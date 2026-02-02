@@ -2,14 +2,30 @@
 Pydantic models for API requests and responses.
 """
 from .user import TelegramUser, User, UserCreate
-from .org import Organization, OrgCreate, InviteLink
+from .org import Organization, OrgCreate, InviteLink, OrgStats, OrgDetails, OrgUpdate
 from .membership import (
     MembershipRequest,
     MembershipRequestCreate,
     MembershipRequestResponse,
     MembershipApproval,
     Member,
-    BotAccess
+    BotAccess,
+    MemberBotsUpdate
+)
+from .lead_agent import (
+    ProductCreate,
+    ProductUpdate,
+    Product,
+    PainPoint,
+    ProspectCreate,
+    ProspectStatusUpdate,
+    Prospect,
+    ProspectCard,
+    SearchRequest,
+    SearchResult,
+    SearchHistory,
+    LeadAgentDashboard,
+    CurrencyUpdate
 )
 
 __all__ = [
@@ -19,10 +35,27 @@ __all__ = [
     "Organization",
     "OrgCreate",
     "InviteLink",
+    "OrgStats",
+    "OrgDetails",
+    "OrgUpdate",
     "MembershipRequest",
     "MembershipRequestCreate",
     "MembershipRequestResponse",
     "MembershipApproval",
     "Member",
-    "BotAccess"
+    "BotAccess",
+    "MemberBotsUpdate",
+    "ProductCreate",
+    "ProductUpdate",
+    "Product",
+    "PainPoint",
+    "ProspectCreate",
+    "ProspectStatusUpdate",
+    "Prospect",
+    "ProspectCard",
+    "SearchRequest",
+    "SearchResult",
+    "SearchHistory",
+    "LeadAgentDashboard",
+    "CurrencyUpdate"
 ]

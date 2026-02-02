@@ -9,7 +9,7 @@ from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pathlib import Path
 
-from api.bots import hub
+from api.bots import hub, lead_agent
 from config import settings
 
 # Create app
@@ -33,6 +33,7 @@ app.add_middleware(
 # ─────────────────────────────────────────────────────────────────────────────
 
 app.include_router(hub.router, prefix="/api/hub", tags=["Hub Bot"])
+app.include_router(lead_agent.router, prefix="/api/lead-agent", tags=["Lead Agent"])
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -78,6 +79,7 @@ async def root():
         "version": "1.0.0",
         "docs": "/docs",
         "mini_apps": {
-            "hub": "/app/hub"
+            "hub": "/app/hub",
+            "lead-agent": "/app/lead-agent"
         }
     }

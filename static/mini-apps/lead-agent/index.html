@@ -1,0 +1,1318 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>B2B Lead Agent</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        /* ═══════════════════════════════════════════════════════════════
+           DESIGN SYSTEM & CSS VARIABLES
+           ═══════════════════════════════════════════════════════════════ */
+
+        :root {
+            /* Telegram Theme Colors */
+            --tg-theme-bg-color: #ffffff;
+            --tg-theme-secondary-bg-color: #f4f4f5;
+            --tg-theme-text-color: #000000;
+            --tg-theme-hint-color: #999999;
+            --tg-theme-link-color: #2481cc;
+            --tg-theme-button-color: #2481cc;
+            --tg-theme-button-text-color: #ffffff;
+
+            /* Custom Colors */
+            --color-success: #10b981;
+            --color-warning: #f59e0b;
+            --color-error: #ef4444;
+            --color-info: #3b82f6;
+
+            /* Gradients */
+            --gradient-primary: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --gradient-success: linear-gradient(135deg, #10b981 0%, #34d399 100%);
+            --gradient-warning: linear-gradient(135deg, #f59e0b 0%, #fbbf24 100%);
+
+            /* Spacing */
+            --space-xs: 4px;
+            --space-sm: 8px;
+            --space-md: 16px;
+            --space-lg: 24px;
+            --space-xl: 32px;
+
+            /* Border Radius */
+            --radius-sm: 8px;
+            --radius-md: 12px;
+            --radius-lg: 16px;
+            --radius-full: 9999px;
+
+            /* Shadows */
+            --shadow-sm: 0 1px 3px rgba(0,0,0,0.1);
+            --shadow-md: 0 4px 6px rgba(0,0,0,0.1);
+            --shadow-lg: 0 10px 15px rgba(0,0,0,0.1);
+        }
+
+        /* ═══════════════════════════════════════════════════════════════
+           RESET & BASE STYLES
+           ═══════════════════════════════════════════════════════════════ */
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background-color: var(--tg-theme-bg-color);
+            color: var(--tg-theme-text-color);
+            line-height: 1.5;
+            -webkit-font-smoothing: antialiased;
+            overflow-x: hidden;
+        }
+
+        #app {
+            min-height: 100vh;
+            padding-bottom: 80px;
+        }
+
+        /* ═══════════════════════════════════════════════════════════════
+           PAGE NAVIGATION
+           ═══════════════════════════════════════════════════════════════ */
+
+        .page {
+            display: none;
+            animation: fadeIn 0.3s ease-in-out;
+        }
+
+        .page.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(8px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* ═══════════════════════════════════════════════════════════════
+           LAYOUT COMPONENTS
+           ═══════════════════════════════════════════════════════════════ */
+
+        .page-header {
+            padding: var(--space-lg);
+            background: var(--gradient-primary);
+            color: white;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .page-title {
+            font-size: 24px;
+            font-weight: 700;
+            margin-bottom: var(--space-xs);
+        }
+
+        .page-subtitle {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+
+        .container {
+            padding: var(--space-md);
+        }
+
+        .section {
+            margin-bottom: var(--space-xl);
+        }
+
+        .section-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: var(--space-md);
+        }
+
+        /* ═══════════════════════════════════════════════════════════════
+           CARD COMPONENTS
+           ═══════════════════════════════════════════════════════════════ */
+
+        .card {
+            background: var(--tg-theme-secondary-bg-color);
+            border-radius: var(--radius-md);
+            padding: var(--space-md);
+            margin-bottom: var(--space-md);
+        }
+
+        .card-elevated {
+            box-shadow: var(--shadow-md);
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: var(--space-md);
+        }
+
+        .card-title {
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        /* ═══════════════════════════════════════════════════════════════
+           BUTTON COMPONENTS
+           ═══════════════════════════════════════════════════════════════ */
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: var(--space-sm);
+            padding: var(--space-md) var(--space-lg);
+            border: none;
+            border-radius: var(--radius-md);
+            font-size: 15px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-decoration: none;
+        }
+
+        .btn-primary {
+            background: var(--gradient-primary);
+            color: white;
+            box-shadow: var(--shadow-md);
+        }
+
+        .btn-primary:active {
+            transform: scale(0.98);
+        }
+
+        .btn-secondary {
+            background: var(--tg-theme-secondary-bg-color);
+            color: var(--tg-theme-text-color);
+        }
+
+        .btn-success {
+            background: var(--gradient-success);
+            color: white;
+        }
+
+        .btn-danger {
+            background: var(--color-error);
+            color: white;
+        }
+
+        .btn-block {
+            width: 100%;
+        }
+
+        .btn-sm {
+            padding: var(--space-sm) var(--space-md);
+            font-size: 13px;
+        }
+
+        /* ═══════════════════════════════════════════════════════════════
+           FORM COMPONENTS
+           ═══════════════════════════════════════════════════════════════ */
+
+        .form-group {
+            margin-bottom: var(--space-md);
+        }
+
+        .input-label {
+            display: block;
+            font-size: 14px;
+            font-weight: 500;
+            margin-bottom: var(--space-sm);
+        }
+
+        .input,
+        .textarea,
+        .select {
+            width: 100%;
+            padding: var(--space-md);
+            border: 1px solid var(--tg-theme-hint-color);
+            border-radius: var(--radius-sm);
+            font-size: 15px;
+            font-family: inherit;
+            background: var(--tg-theme-bg-color);
+            color: var(--tg-theme-text-color);
+        }
+
+        .textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        .input:focus,
+        .textarea:focus,
+        .select:focus {
+            outline: none;
+            border-color: var(--tg-theme-button-color);
+        }
+
+        /* ═══════════════════════════════════════════════════════════════
+           CHIP/TAG COMPONENTS
+           ═══════════════════════════════════════════════════════════════ */
+
+        .chip {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: var(--radius-full);
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .chip-not-contacted {
+            background: #e5e7eb;
+            color: #374151;
+        }
+
+        .chip-contacted {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+
+        .chip-ongoing {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .chip-closed {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        /* ═══════════════════════════════════════════════════════════════
+           LIST COMPONENTS
+           ═══════════════════════════════════════════════════════════════ */
+
+        .list {
+            display: flex;
+            flex-direction: column;
+            gap: var(--space-sm);
+        }
+
+        .list-item {
+            display: flex;
+            align-items: center;
+            gap: var(--space-md);
+            padding: var(--space-md);
+            background: var(--tg-theme-secondary-bg-color);
+            border-radius: var(--radius-md);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .list-item:active {
+            transform: scale(0.98);
+            opacity: 0.8;
+        }
+
+        .list-item-icon {
+            font-size: 24px;
+        }
+
+        .list-item-content {
+            flex: 1;
+        }
+
+        .list-item-title {
+            font-size: 15px;
+            font-weight: 500;
+            margin-bottom: 2px;
+        }
+
+        .list-item-subtitle {
+            font-size: 13px;
+            color: var(--tg-theme-hint-color);
+        }
+
+        .list-item-action {
+            margin-left: auto;
+        }
+
+        /* ═══════════════════════════════════════════════════════════════
+           PROSPECT CARD (CUE CARD STYLE)
+           ═══════════════════════════════════════════════════════════════ */
+
+        .prospect-card {
+            background: white;
+            border-radius: var(--radius-lg);
+            padding: var(--space-lg);
+            margin-bottom: var(--space-md);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .prospect-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: start;
+            margin-bottom: var(--space-md);
+        }
+
+        .prospect-name {
+            font-size: 18px;
+            font-weight: 700;
+            flex: 1;
+        }
+
+        .prospect-summary {
+            font-size: 14px;
+            line-height: 1.6;
+            color: #4b5563;
+            margin-bottom: var(--space-md);
+            padding: var(--space-md);
+            background: #f9fafb;
+            border-radius: var(--radius-sm);
+        }
+
+        .prospect-pain-points {
+            margin-bottom: var(--space-md);
+        }
+
+        .prospect-pain-points h4 {
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: var(--space-sm);
+        }
+
+        .pain-points-list {
+            list-style: none;
+            counter-reset: item;
+        }
+
+        .pain-points-list li {
+            counter-increment: item;
+            margin-bottom: var(--space-md);
+            padding-left: 28px;
+            position: relative;
+        }
+
+        .pain-points-list li::before {
+            content: counter(item);
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 20px;
+            height: 20px;
+            background: var(--gradient-primary);
+            color: white;
+            border-radius: 50%;
+            font-size: 11px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .pain-point-title {
+            font-weight: 600;
+            font-size: 14px;
+            margin-bottom: 4px;
+        }
+
+        .pain-point-description {
+            font-size: 13px;
+            color: #6b7280;
+            line-height: 1.5;
+        }
+
+        .relevant-product {
+            display: inline-block;
+            margin-top: 4px;
+            padding: 2px 8px;
+            background: #ede9fe;
+            color: #6b21a8;
+            border-radius: var(--radius-sm);
+            font-size: 11px;
+            font-weight: 500;
+        }
+
+        .prospect-contact {
+            font-size: 13px;
+            margin-bottom: var(--space-md);
+            padding: var(--space-md);
+            background: #f9fafb;
+            border-radius: var(--radius-sm);
+        }
+
+        .prospect-contact p {
+            margin-bottom: 4px;
+        }
+
+        .prospect-actions {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: var(--space-sm);
+            margin-bottom: var(--space-md);
+        }
+
+        .prospect-status-selector {
+            display: flex;
+            align-items: center;
+            gap: var(--space-sm);
+        }
+
+        .prospect-status-selector label {
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .prospect-status-selector select {
+            flex: 1;
+        }
+
+        /* ═══════════════════════════════════════════════════════════════
+           STATS GRID
+           ═══════════════════════════════════════════════════════════════ */
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: var(--space-md);
+            margin-bottom: var(--space-lg);
+        }
+
+        .stat-card {
+            background: var(--tg-theme-secondary-bg-color);
+            border-radius: var(--radius-md);
+            padding: var(--space-md);
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 32px;
+            font-weight: 700;
+            color: var(--tg-theme-button-color);
+        }
+
+        .stat-label {
+            font-size: 13px;
+            color: var(--tg-theme-hint-color);
+            margin-top: var(--space-xs);
+        }
+
+        /* ═══════════════════════════════════════════════════════════════
+           BOTTOM NAV
+           ═══════════════════════════════════════════════════════════════ */
+
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: var(--tg-theme-bg-color);
+            border-top: 1px solid var(--tg-theme-hint-color);
+            display: flex;
+            justify-content: space-around;
+            padding: var(--space-sm) 0;
+            z-index: 1000;
+        }
+
+        .nav-item {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            padding: var(--space-sm);
+            cursor: pointer;
+            color: var(--tg-theme-hint-color);
+            transition: all 0.2s;
+        }
+
+        .nav-item.active {
+            color: var(--tg-theme-button-color);
+        }
+
+        .nav-item-icon {
+            font-size: 20px;
+        }
+
+        .nav-item-label {
+            font-size: 11px;
+            font-weight: 500;
+        }
+
+        /* ═══════════════════════════════════════════════════════════════
+           MODAL
+           ═══════════════════════════════════════════════════════════════ */
+
+        .modal-backdrop {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 2000;
+            animation: fadeIn 0.2s;
+        }
+
+        .modal-backdrop.active {
+            display: flex;
+            align-items: flex-end;
+        }
+
+        .modal-sheet {
+            background: var(--tg-theme-bg-color);
+            border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+            padding: var(--space-lg);
+            width: 100%;
+            max-height: 80vh;
+            overflow-y: auto;
+            animation: slideUp 0.3s ease-out;
+        }
+
+        @keyframes slideUp {
+            from {
+                transform: translateY(100%);
+            }
+            to {
+                transform: translateY(0);
+            }
+        }
+
+        .modal-header {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: var(--space-lg);
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: var(--space-sm);
+            margin-top: var(--space-lg);
+        }
+
+        /* ═══════════════════════════════════════════════════════════════
+           UTILITY CLASSES
+           ═══════════════════════════════════════════════════════════════ */
+
+        .empty-state {
+            text-align: center;
+            padding: var(--space-xl);
+            color: var(--tg-theme-hint-color);
+        }
+
+        .empty-state-icon {
+            font-size: 48px;
+            margin-bottom: var(--space-md);
+        }
+
+        .empty-state-title {
+            font-size: 16px;
+            font-weight: 500;
+            margin-bottom: var(--space-sm);
+        }
+
+        .loading {
+            text-align: center;
+            padding: var(--space-xl);
+        }
+
+        .loading-spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid var(--tg-theme-hint-color);
+            border-top-color: var(--tg-theme-button-color);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin: 0 auto var(--space-md);
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .text-center {
+            text-align: center;
+        }
+
+        .mt-lg {
+            margin-top: var(--space-lg);
+        }
+
+        .mb-md {
+            margin-bottom: var(--space-md);
+        }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <!-- Loading Page -->
+        <div id="page-loading" class="page active">
+            <div class="loading">
+                <div class="loading-spinner"></div>
+                <p>Loading Lead Agent...</p>
+            </div>
+        </div>
+
+        <!-- Dashboard Page -->
+        <div id="page-dashboard" class="page">
+            <div class="page-header">
+                <div class="page-title">B2B Lead Agent 🎯</div>
+                <div class="page-subtitle" id="org-name"></div>
+            </div>
+            <div class="container">
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-value" id="stat-total">0</div>
+                        <div class="stat-label">Total Leads</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="stat-products">0</div>
+                        <div class="stat-label">Products</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="stat-not-contacted">0</div>
+                        <div class="stat-label">Not Contacted</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="stat-ongoing">0</div>
+                        <div class="stat-label">Ongoing</div>
+                    </div>
+                </div>
+
+                <div class="section">
+                    <div class="section-title">Quick Actions</div>
+                    <button class="btn btn-primary btn-block mb-md" onclick="showPage('search')">
+                        🔍 Search for New Leads
+                    </button>
+                    <button class="btn btn-secondary btn-block" onclick="showPage('products')">
+                        📦 Manage Products
+                    </button>
+                </div>
+
+                <div class="section" id="recent-searches-section" style="display: none;">
+                    <div class="section-title">Recent Searches</div>
+                    <div class="list" id="recent-searches-list"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Products Page -->
+        <div id="page-products" class="page">
+            <div class="page-header">
+                <div class="page-title">Products & Services 📦</div>
+                <div class="page-subtitle">Manage your offerings</div>
+            </div>
+            <div class="container">
+                <button class="btn btn-primary btn-block mb-md" onclick="openAddProductModal()">
+                    + Add Product/Service
+                </button>
+                <div id="products-list"></div>
+            </div>
+        </div>
+
+        <!-- Search Page -->
+        <div id="page-search" class="page">
+            <div class="page-header">
+                <div class="page-title">Search for Leads 🔍</div>
+                <div class="page-subtitle">Find new business prospects</div>
+            </div>
+            <div class="container">
+                <div class="form-group">
+                    <label class="input-label">Search Query</label>
+                    <input
+                        type="text"
+                        class="input"
+                        id="search-input"
+                        placeholder="e.g., basketball clubs in dubai"
+                    />
+                </div>
+                <button class="btn btn-success btn-block" onclick="performSearch()" id="search-btn">
+                    🔍 Search
+                </button>
+
+                <div id="search-results" style="display: none;" class="mt-lg">
+                    <div class="section-title">Search Results</div>
+                    <div class="card mb-md">
+                        <div>Found <strong id="results-count">0</strong> businesses</div>
+                        <div>New prospects: <strong id="new-prospects-count">0</strong></div>
+                        <div>Duplicates skipped: <strong id="duplicates-count">0</strong></div>
+                    </div>
+                    <div id="search-results-list"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Prospects Page -->
+        <div id="page-prospects" class="page">
+            <div class="page-header">
+                <div class="page-title">Prospects 📋</div>
+                <div class="page-subtitle">Manage your leads</div>
+            </div>
+            <div class="container">
+                <div class="form-group">
+                    <label class="input-label">Filter by Status</label>
+                    <select class="select" id="filter-status" onchange="loadProspects()">
+                        <option value="">All</option>
+                        <option value="not_contacted">Not Contacted</option>
+                        <option value="contacted">Contacted</option>
+                        <option value="ongoing_conversations">Ongoing Conversations</option>
+                        <option value="closed">Closed</option>
+                    </select>
+                </div>
+                <div id="prospects-list"></div>
+            </div>
+        </div>
+
+        <!-- Prospect Detail Page -->
+        <div id="page-prospect-detail" class="page">
+            <div class="page-header">
+                <button class="btn btn-secondary btn-sm" onclick="showPage('prospects')">← Back</button>
+            </div>
+            <div class="container">
+                <div id="prospect-detail-content"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bottom Navigation -->
+    <div class="bottom-nav">
+        <div class="nav-item" onclick="showPage('dashboard')">
+            <div class="nav-item-icon">📊</div>
+            <div class="nav-item-label">Dashboard</div>
+        </div>
+        <div class="nav-item" onclick="showPage('search')">
+            <div class="nav-item-icon">🔍</div>
+            <div class="nav-item-label">Search</div>
+        </div>
+        <div class="nav-item" onclick="showPage('prospects')">
+            <div class="nav-item-icon">📋</div>
+            <div class="nav-item-label">Prospects</div>
+        </div>
+        <div class="nav-item" onclick="showPage('products')">
+            <div class="nav-item-icon">📦</div>
+            <div class="nav-item-label">Products</div>
+        </div>
+    </div>
+
+    <!-- Add/Edit Product Modal -->
+    <div id="modal-product" class="modal-backdrop">
+        <div class="modal-sheet">
+            <div class="modal-header" id="modal-product-title">Add Product</div>
+            <div class="form-group">
+                <label class="input-label">Product/Service Name</label>
+                <input type="text" class="input" id="product-name" />
+            </div>
+            <div class="form-group">
+                <label class="input-label">Description</label>
+                <textarea class="textarea" id="product-description"></textarea>
+            </div>
+            <div class="form-group">
+                <label class="input-label">Price</label>
+                <input type="number" class="input" id="product-price" step="0.01" placeholder="Optional" />
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-secondary" style="flex: 1;" onclick="closeProductModal()">Cancel</button>
+                <button class="btn btn-success" style="flex: 1;" onclick="saveProduct()" id="save-product-btn">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ═══════════════════════════════════════════════════════════════
+        // TELEGRAM SDK INTEGRATION
+        // ═══════════════════════════════════════════════════════════════
+
+        const tg = window.Telegram.WebApp;
+        tg.ready();
+        tg.expand();
+
+        // ═══════════════════════════════════════════════════════════════
+        // STATE MANAGEMENT
+        // ═══════════════════════════════════════════════════════════════
+
+        const state = {
+            orgId: null,
+            orgName: null,
+            currency: 'USD',
+            products: [],
+            prospects: [],
+            dashboard: null,
+            currentProspect: null,
+            editingProduct: null
+        };
+
+        // ═══════════════════════════════════════════════════════════════
+        // API LAYER
+        // ═══════════════════════════════════════════════════════════════
+
+        const API_BASE = '/api/lead-agent';
+
+        const api = {
+            async fetch(endpoint, options = {}) {
+                const res = await fetch(`${API_BASE}${endpoint}`, {
+                    ...options,
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Telegram-Init-Data': tg.initData,
+                        ...options.headers
+                    }
+                });
+
+                if (!res.ok) {
+                    const error = await res.json().catch(() => ({ detail: 'Request failed' }));
+                    throw new Error(error.detail || `Error ${res.status}`);
+                }
+
+                return res.json();
+            },
+
+            // Products
+            getProducts: (orgId) => api.fetch(`/products?org_id=${orgId}`),
+            createProduct: (orgId, data) => api.fetch(`/products?org_id=${orgId}`, {
+                method: 'POST',
+                body: JSON.stringify(data)
+            }),
+            updateProduct: (productId, data) => api.fetch(`/products/${productId}`, {
+                method: 'PUT',
+                body: JSON.stringify(data)
+            }),
+            deleteProduct: (productId) => api.fetch(`/products/${productId}`, { method: 'DELETE' }),
+
+            // Prospects
+            getProspects: (orgId, filters = {}) => {
+                const params = new URLSearchParams({ org_id: orgId, ...filters });
+                return api.fetch(`/prospects?${params}`);
+            },
+            searchProspects: (orgId, query) => api.fetch(`/prospects/search?org_id=${orgId}`, {
+                method: 'POST',
+                body: JSON.stringify({ query })
+            }),
+            getProspect: (id) => api.fetch(`/prospects/${id}`),
+            updateProspectStatus: (id, status) => api.fetch(`/prospects/${id}/status`, {
+                method: 'PATCH',
+                body: JSON.stringify({ status })
+            }),
+            deleteProspect: (id) => api.fetch(`/prospects/${id}`, { method: 'DELETE' }),
+            getVCard: (id) => api.fetch(`/prospects/${id}/vcard`),
+
+            // Dashboard
+            getDashboard: (orgId) => api.fetch(`/dashboard?org_id=${orgId}`)
+        };
+
+        // ═══════════════════════════════════════════════════════════════
+        // PAGE NAVIGATION
+        // ═══════════════════════════════════════════════════════════════
+
+        function showPage(pageName) {
+            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+            document.getElementById(`page-${pageName}`).classList.add('active');
+
+            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+            const navIndex = ['dashboard', 'search', 'prospects', 'products'].indexOf(pageName);
+            if (navIndex >= 0) {
+                document.querySelectorAll('.nav-item')[navIndex].classList.add('active');
+            }
+
+            // Load data when page is shown
+            if (pageName === 'dashboard') loadDashboard();
+            if (pageName === 'products') loadProducts();
+            if (pageName === 'prospects') loadProspects();
+        }
+
+        // ═══════════════════════════════════════════════════════════════
+        // INITIALIZATION
+        // ═══════════════════════════════════════════════════════════════
+
+        async function init() {
+            try {
+                // Get org from hub (assuming user already has org)
+                const hubData = await fetch('/api/hub/me', {
+                    headers: { 'X-Telegram-Init-Data': tg.initData }
+                }).then(r => r.json());
+
+                if (!hubData.memberships || hubData.memberships.length === 0) {
+                    showPage('loading');
+                    document.getElementById('page-loading').innerHTML = `
+                        <div class="empty-state">
+                            <div class="empty-state-icon">⚠️</div>
+                            <div class="empty-state-title">No Organization</div>
+                            <p>Please create or join an organization in the Hub first.</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                state.orgId = hubData.memberships[0].organizations.id;
+                state.orgName = hubData.memberships[0].organizations.name;
+
+                await loadDashboard();
+                showPage('dashboard');
+            } catch (error) {
+                console.error('Init error:', error);
+                alert('Failed to initialize: ' + error.message);
+            }
+        }
+
+        // ═══════════════════════════════════════════════════════════════
+        // DASHBOARD
+        // ═══════════════════════════════════════════════════════════════
+
+        async function loadDashboard() {
+            try {
+                const dashboard = await api.getDashboard(state.orgId);
+                state.dashboard = dashboard;
+                state.currency = dashboard.currency;
+
+                document.getElementById('org-name').textContent = state.orgName;
+                document.getElementById('stat-total').textContent = dashboard.total_prospects;
+                document.getElementById('stat-products').textContent = dashboard.products_count;
+                document.getElementById('stat-not-contacted').textContent = dashboard.by_status.not_contacted || 0;
+                document.getElementById('stat-ongoing').textContent = dashboard.by_status.ongoing_conversations || 0;
+
+                // Recent searches
+                if (dashboard.recent_searches.length > 0) {
+                    document.getElementById('recent-searches-section').style.display = 'block';
+                    const list = document.getElementById('recent-searches-list');
+                    list.innerHTML = dashboard.recent_searches.map(s => `
+                        <div class="list-item" onclick="searchFromHistory('${s.query}')">
+                            <div class="list-item-icon">🔍</div>
+                            <div class="list-item-content">
+                                <div class="list-item-title">${s.query}</div>
+                                <div class="list-item-subtitle">${s.new_prospects_count} new prospects</div>
+                            </div>
+                        </div>
+                    `).join('');
+                }
+            } catch (error) {
+                console.error('Dashboard load error:', error);
+            }
+        }
+
+        function searchFromHistory(query) {
+            document.getElementById('search-input').value = query;
+            showPage('search');
+        }
+
+        // ═══════════════════════════════════════════════════════════════
+        // PRODUCTS
+        // ═══════════════════════════════════════════════════════════════
+
+        async function loadProducts() {
+            try {
+                state.products = await api.getProducts(state.orgId);
+                renderProducts();
+            } catch (error) {
+                console.error('Products load error:', error);
+            }
+        }
+
+        function renderProducts() {
+            const list = document.getElementById('products-list');
+
+            if (state.products.length === 0) {
+                list.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">📦</div>
+                        <div class="empty-state-title">No Products Yet</div>
+                        <p>Add your products and services to get AI-powered insights for prospects.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            list.innerHTML = state.products.map(p => `
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title">${p.name}</div>
+                        <button class="btn btn-sm btn-secondary" onclick="editProduct('${p.id}')">Edit</button>
+                    </div>
+                    ${p.description ? `<p style="font-size: 14px; color: #6b7280; margin-bottom: 8px;">${p.description}</p>` : ''}
+                    ${p.price ? `<div style="font-size: 16px; font-weight: 600; color: var(--tg-theme-button-color);">${p.price} ${state.currency}</div>` : ''}
+                </div>
+            `).join('');
+        }
+
+        function openAddProductModal() {
+            state.editingProduct = null;
+            document.getElementById('modal-product-title').textContent = 'Add Product';
+            document.getElementById('product-name').value = '';
+            document.getElementById('product-description').value = '';
+            document.getElementById('product-price').value = '';
+            document.getElementById('modal-product').classList.add('active');
+        }
+
+        function editProduct(id) {
+            const product = state.products.find(p => p.id === id);
+            if (!product) return;
+
+            state.editingProduct = product;
+            document.getElementById('modal-product-title').textContent = 'Edit Product';
+            document.getElementById('product-name').value = product.name;
+            document.getElementById('product-description').value = product.description || '';
+            document.getElementById('product-price').value = product.price || '';
+            document.getElementById('modal-product').classList.add('active');
+        }
+
+        function closeProductModal() {
+            document.getElementById('modal-product').classList.remove('active');
+        }
+
+        async function saveProduct() {
+            const name = document.getElementById('product-name').value.trim();
+            if (!name) {
+                alert('Please enter a product name');
+                return;
+            }
+
+            const data = {
+                name,
+                description: document.getElementById('product-description').value.trim() || null,
+                price: document.getElementById('product-price').value ? parseFloat(document.getElementById('product-price').value) : null
+            };
+
+            try {
+                document.getElementById('save-product-btn').disabled = true;
+
+                if (state.editingProduct) {
+                    await api.updateProduct(state.editingProduct.id, data);
+                } else {
+                    await api.createProduct(state.orgId, data);
+                }
+
+                closeProductModal();
+                await loadProducts();
+            } catch (error) {
+                alert('Failed to save product: ' + error.message);
+            } finally {
+                document.getElementById('save-product-btn').disabled = false;
+            }
+        }
+
+        // ═══════════════════════════════════════════════════════════════
+        // SEARCH
+        // ═══════════════════════════════════════════════════════════════
+
+        async function performSearch() {
+            const query = document.getElementById('search-input').value.trim();
+            if (!query) {
+                alert('Please enter a search query');
+                return;
+            }
+
+            const btn = document.getElementById('search-btn');
+            btn.disabled = true;
+            btn.textContent = '🔍 Searching...';
+
+            try {
+                const result = await api.searchProspects(state.orgId, query);
+
+                document.getElementById('results-count').textContent = result.total_found;
+                document.getElementById('new-prospects-count').textContent = result.new_prospects;
+                document.getElementById('duplicates-count').textContent = result.skipped_duplicates;
+
+                const list = document.getElementById('search-results-list');
+                if (result.prospects.length === 0) {
+                    list.innerHTML = '<div class="empty-state"><div class="empty-state-icon">😕</div><p>No new prospects found</p></div>';
+                } else {
+                    list.innerHTML = result.prospects.map(p => `
+                        <div class="list-item" onclick="viewProspect('${p.id}')">
+                            <div class="list-item-icon">🏢</div>
+                            <div class="list-item-content">
+                                <div class="list-item-title">${p.business_name}</div>
+                                <div class="list-item-subtitle">${p.address || 'No address'}</div>
+                            </div>
+                            <div class="list-item-action">
+                                <span class="chip chip-not-contacted">New</span>
+                            </div>
+                        </div>
+                    `).join('');
+                }
+
+                document.getElementById('search-results').style.display = 'block';
+            } catch (error) {
+                alert('Search failed: ' + error.message);
+            } finally {
+                btn.disabled = false;
+                btn.textContent = '🔍 Search';
+            }
+        }
+
+        // ═══════════════════════════════════════════════════════════════
+        // PROSPECTS
+        // ═══════════════════════════════════════════════════════════════
+
+        async function loadProspects() {
+            const status = document.getElementById('filter-status').value;
+            try {
+                const filters = {};
+                if (status) filters.status = status;
+
+                state.prospects = await api.getProspects(state.orgId, filters);
+                renderProspects();
+            } catch (error) {
+                console.error('Prospects load error:', error);
+            }
+        }
+
+        function renderProspects() {
+            const list = document.getElementById('prospects-list');
+
+            if (state.prospects.length === 0) {
+                list.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">📋</div>
+                        <div class="empty-state-title">No Prospects Yet</div>
+                        <p>Search for new leads to get started.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            list.innerHTML = state.prospects.map(p => {
+                const statusClass = p.status.replace('_', '-');
+                const statusLabel = p.status.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+
+                return `
+                    <div class="list-item" onclick="viewProspect('${p.id}')">
+                        <div class="list-item-icon">🏢</div>
+                        <div class="list-item-content">
+                            <div class="list-item-title">${p.business_name}</div>
+                            <div class="list-item-subtitle">${p.phone || p.address || 'No contact info'}</div>
+                        </div>
+                        <div class="list-item-action">
+                            <span class="chip chip-${statusClass}">${statusLabel}</span>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        async function viewProspect(id) {
+            try {
+                const prospect = await api.getProspect(id);
+                state.currentProspect = prospect;
+                renderProspectDetail(prospect);
+                showPage('prospect-detail');
+            } catch (error) {
+                alert('Failed to load prospect: ' + error.message);
+            }
+        }
+
+        function renderProspectDetail(p) {
+            const statusClass = p.status.replace('_', '-');
+            const statusLabel = p.status.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+
+            const painPointsHtml = p.pain_points && p.pain_points.length > 0 ? `
+                <div class="prospect-pain-points">
+                    <h4>Pain Points We Can Solve</h4>
+                    <ol class="pain-points-list">
+                        ${p.pain_points.map(pp => `
+                            <li>
+                                <div class="pain-point-title">${pp.title}</div>
+                                <div class="pain-point-description">${pp.description}</div>
+                                ${pp.relevant_product ? `<span class="relevant-product">💡 ${pp.relevant_product}</span>` : ''}
+                            </li>
+                        `).join('')}
+                    </ol>
+                </div>
+            ` : '';
+
+            document.getElementById('prospect-detail-content').innerHTML = `
+                <div class="prospect-card">
+                    <div class="prospect-header">
+                        <div class="prospect-name">${p.business_name}</div>
+                        <span class="chip chip-${statusClass}">${statusLabel}</span>
+                    </div>
+
+                    ${p.summary ? `
+                        <div class="prospect-summary">${p.summary}</div>
+                    ` : '<div class="prospect-summary">AI insights are being generated...</div>'}
+
+                    ${painPointsHtml}
+
+                    <div class="prospect-contact">
+                        ${p.phone ? `<p><strong>📞 Phone:</strong> ${p.phone}</p>` : ''}
+                        ${p.email ? `<p><strong>📧 Email:</strong> ${p.email}</p>` : ''}
+                        ${p.address ? `<p><strong>📍 Address:</strong> ${p.address}</p>` : ''}
+                        ${p.website ? `<p><strong>🌐 Website:</strong> <a href="${p.website}" target="_blank">${p.website}</a></p>` : ''}
+                    </div>
+
+                    <div class="prospect-actions">
+                        ${p.phone ? `<a href="tel:${p.phone}" class="btn btn-primary">📞 Call</a>` : '<button class="btn btn-secondary" disabled>📞 Call</button>'}
+                        ${p.google_maps_url ? `<a href="${p.google_maps_url}" target="_blank" class="btn btn-secondary">🗺️ Maps</a>` : '<button class="btn btn-secondary" disabled>🗺️ Maps</button>'}
+                        <button class="btn btn-secondary" onclick="downloadVCard('${p.id}')">👤 Add Contact</button>
+                        <button class="btn btn-danger" onclick="deleteProspectConfirm('${p.id}')">🗑️ Delete</button>
+                    </div>
+
+                    <div class="prospect-status-selector">
+                        <label>Status:</label>
+                        <select class="select" onchange="updateStatus('${p.id}', this.value)">
+                            <option value="not_contacted" ${p.status === 'not_contacted' ? 'selected' : ''}>Not Contacted</option>
+                            <option value="contacted" ${p.status === 'contacted' ? 'selected' : ''}>Contacted</option>
+                            <option value="ongoing_conversations" ${p.status === 'ongoing_conversations' ? 'selected' : ''}>Ongoing Conversations</option>
+                            <option value="closed" ${p.status === 'closed' ? 'selected' : ''}>Closed</option>
+                        </select>
+                    </div>
+                </div>
+            `;
+        }
+
+        async function updateStatus(id, status) {
+            try {
+                await api.updateProspectStatus(id, status);
+                state.currentProspect.status = status;
+                renderProspectDetail(state.currentProspect);
+            } catch (error) {
+                alert('Failed to update status: ' + error.message);
+            }
+        }
+
+        async function downloadVCard(id) {
+            try {
+                const vcard = await api.getVCard(id);
+                const blob = new Blob([vcard.vcard], { type: 'text/vcard' });
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = vcard.filename;
+                a.click();
+                window.URL.revokeObjectURL(url);
+            } catch (error) {
+                alert('Failed to generate vCard: ' + error.message);
+            }
+        }
+
+        async function deleteProspectConfirm(id) {
+            if (!confirm('Are you sure you want to delete this prospect?')) return;
+
+            try {
+                await api.deleteProspect(id);
+                showPage('prospects');
+                await loadProspects();
+            } catch (error) {
+                alert('Failed to delete prospect: ' + error.message);
+            }
+        }
+
+        // ═══════════════════════════════════════════════════════════════
+        // MODAL BACKDROP CLICK
+        // ═══════════════════════════════════════════════════════════════
+
+        document.getElementById('modal-product').addEventListener('click', (e) => {
+            if (e.target.classList.contains('modal-backdrop')) {
+                closeProductModal();
+            }
+        });
+
+        // ═══════════════════════════════════════════════════════════════
+        // START APP
+        // ═══════════════════════════════════════════════════════════════
+
+        init();
+    </script>
+</body>
+</html>

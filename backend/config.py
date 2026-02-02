@@ -18,6 +18,10 @@ class Settings(BaseSettings):
     # Telegram Bots
     bot_hub_token: str = ""
 
+    # AI Services
+    gemini_api_key: str = ""  # For lead discovery with search grounding
+    openai_api_key: str = ""  # For business insights generation
+
     # App settings
     app_url: str = "http://localhost:8000"  # For generating invite links
     debug: bool = True

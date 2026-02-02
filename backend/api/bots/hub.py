@@ -16,9 +16,9 @@ from fastapi import APIRouter, Header, HTTPException, BackgroundTasks
 
 from models import (
     TelegramUser, User,
-    Organization, OrgCreate, InviteLink,
+    Organization, OrgCreate, InviteLink, OrgStats, OrgDetails, OrgUpdate,
     MembershipRequest, MembershipRequestCreate, MembershipRequestResponse,
-    MembershipApproval, Member, BotAccess
+    MembershipApproval, Member, BotAccess, MemberBotsUpdate
 )
 from services import get_supabase_admin, get_telegram_user
 from services.notifications import (
@@ -53,11 +53,14 @@ async def get_me(x_telegram_init_data: str = Header(...)) -> dict:
     tg_user = get_telegram_user(x_telegram_init_data)
     db = get_supabase_admin()
 
+    print(f"[/me] Telegram user: id={tg_user.id}, username={tg_user.username}, name={tg_user.first_name}")
+
     # Get or create user
     result = db.table("users").select("*").eq("telegram_id", tg_user.id).execute()
 
     if result.data:
         user = result.data[0]
+        print(f"[/me] Found existing user: id={user['id']}, name={user['full_name']}")
     else:
         # Create new user
         user_data = {
@@ -68,16 +71,31 @@ async def get_me(x_telegram_init_data: str = Header(...)) -> dict:
         }
         result = db.table("users").insert(user_data).execute()
         user = result.data[0]
+        print(f"[/me] Created new user: id={user['id']}, name={user['full_name']}")
 
     # Get user's memberships
     memberships = db.table("memberships").select(
         "*, organizations(*)"
     ).eq("user_id", user["id"]).execute()
 
+    print(f"[/me] User {user['id']} has {len(memberships.data)} memberships")
+    for m in memberships.data:
+        print(f"[/me]   - Membership: id={m['id']}, org={m['organizations']['name']}, role={m['role']}")
+
+    # Update last_active_at for all user's memberships (activity tracking)
+    if memberships.data:
+        now = datetime.now(timezone.utc).isoformat()
+        for m in memberships.data:
+            db.table("memberships").update({
+                "last_active_at": now
+            }).eq("id", m["id"]).execute()
+
     # Get any pending requests
     pending_requests = db.table("membership_requests").select(
         "*, organizations(name)"
     ).eq("user_id", user["id"]).eq("status", "pending").execute()
+
+    print(f"[/me] User {user['id']} has {len(pending_requests.data)} pending requests")
 
     return {
         "user": user,
@@ -170,6 +188,101 @@ async def get_organization(
         "organization": org.data,
         "membership": membership.data[0]
     }
+
+
+@router.get("/orgs/{org_id}/details")
+async def get_organization_details(
+    org_id: str,
+    x_telegram_init_data: str = Header(...)
+) -> OrgDetails:
+    """Get organization details with stats (admin only)."""
+    tg_user = get_telegram_user(x_telegram_init_data)
+    db = get_supabase_admin()
+
+    # Verify admin
+    user = db.table("users").select("id").eq("telegram_id", tg_user.id).single().execute()
+    if not user.data:
+        raise HTTPException(404, "User not found")
+
+    membership = db.table("memberships").select("role").eq(
+        "user_id", user.data["id"]
+    ).eq("org_id", org_id).single().execute()
+
+    if not membership.data or membership.data["role"] != "admin":
+        raise HTTPException(403, "Admin access required")
+
+    # Get org
+    org = db.table("organizations").select("*").eq("id", org_id).single().execute()
+    if not org.data:
+        raise HTTPException(404, "Organization not found")
+
+    # Get stats
+    members_count = db.table("memberships").select("id", count="exact").eq(
+        "org_id", org_id
+    ).execute()
+
+    pending_count = db.table("membership_requests").select("id", count="exact").eq(
+        "org_id", org_id
+    ).eq("status", "pending").execute()
+
+    # Count unique bots with access in this org
+    bots_result = db.table("bot_member_access").select(
+        "bot_id, memberships!inner(org_id)"
+    ).eq("memberships.org_id", org_id).execute()
+    unique_bots = len(set(b["bot_id"] for b in bots_result.data)) if bots_result.data else 0
+
+    stats = OrgStats(
+        member_count=members_count.count or 0,
+        pending_requests_count=pending_count.count or 0,
+        active_bots_count=unique_bots
+    )
+
+    return OrgDetails(
+        id=org.data["id"],
+        name=org.data["name"],
+        description=org.data.get("description"),
+        created_by=org.data["created_by"],
+        created_at=org.data["created_at"],
+        stats=stats
+    )
+
+
+@router.patch("/orgs/{org_id}")
+async def update_organization(
+    org_id: str,
+    data: OrgUpdate,
+    x_telegram_init_data: str = Header(...)
+) -> dict:
+    """Update organization details (admin only)."""
+    tg_user = get_telegram_user(x_telegram_init_data)
+    db = get_supabase_admin()
+
+    # Verify admin
+    user = db.table("users").select("id").eq("telegram_id", tg_user.id).single().execute()
+    if not user.data:
+        raise HTTPException(404, "User not found")
+
+    membership = db.table("memberships").select("role").eq(
+        "user_id", user.data["id"]
+    ).eq("org_id", org_id).single().execute()
+
+    if not membership.data or membership.data["role"] != "admin":
+        raise HTTPException(403, "Admin access required")
+
+    # Build update data
+    update_data = {}
+    if data.name is not None:
+        update_data["name"] = data.name
+    if data.description is not None:
+        update_data["description"] = data.description
+
+    if not update_data:
+        raise HTTPException(400, "No fields to update")
+
+    # Update org
+    result = db.table("organizations").update(update_data).eq("id", org_id).execute()
+
+    return {"status": "updated", "organization": result.data[0]}
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -564,10 +677,124 @@ async def list_members(
             telegram_username=m["users"]["telegram_username"],
             role=m["role"],
             bot_access=bot_access,
-            joined_at=m["created_at"]
+            joined_at=m["created_at"],
+            last_active_at=m.get("last_active_at")
         ))
 
     return result
+
+
+@router.delete("/orgs/{org_id}/members/{member_id}")
+async def remove_member(
+    org_id: str,
+    member_id: str,
+    x_telegram_init_data: str = Header(...)
+) -> dict:
+    """Remove a member from an organization (admin only). Cannot remove admins."""
+    tg_user = get_telegram_user(x_telegram_init_data)
+    db = get_supabase_admin()
+
+    # Verify admin
+    user = db.table("users").select("id").eq("telegram_id", tg_user.id).single().execute()
+    if not user.data:
+        raise HTTPException(404, "User not found")
+
+    admin_membership = db.table("memberships").select("role").eq(
+        "user_id", user.data["id"]
+    ).eq("org_id", org_id).single().execute()
+
+    if not admin_membership.data or admin_membership.data["role"] != "admin":
+        raise HTTPException(403, "Admin access required")
+
+    # Get the target membership
+    target = db.table("memberships").select("*, users(full_name)").eq(
+        "id", member_id
+    ).eq("org_id", org_id).single().execute()
+
+    if not target.data:
+        raise HTTPException(404, "Member not found")
+
+    # Cannot remove admins
+    if target.data["role"] == "admin":
+        raise HTTPException(400, "Cannot remove an admin member")
+
+    # Delete bot access first (cascade should handle this, but being explicit)
+    db.table("bot_member_access").delete().eq("membership_id", member_id).execute()
+
+    # Delete membership
+    db.table("memberships").delete().eq("id", member_id).execute()
+
+    return {
+        "status": "removed",
+        "member_name": target.data["users"]["full_name"]
+    }
+
+
+@router.put("/orgs/{org_id}/members/{member_id}/bots")
+async def update_member_bots(
+    org_id: str,
+    member_id: str,
+    data: MemberBotsUpdate,
+    x_telegram_init_data: str = Header(...)
+) -> dict:
+    """Update bot access for a member (admin only)."""
+    tg_user = get_telegram_user(x_telegram_init_data)
+    db = get_supabase_admin()
+
+    # Verify admin
+    user = db.table("users").select("id").eq("telegram_id", tg_user.id).single().execute()
+    if not user.data:
+        raise HTTPException(404, "User not found")
+
+    admin_membership = db.table("memberships").select("role").eq(
+        "user_id", user.data["id"]
+    ).eq("org_id", org_id).single().execute()
+
+    if not admin_membership.data or admin_membership.data["role"] != "admin":
+        raise HTTPException(403, "Admin access required")
+
+    # Verify target membership exists and belongs to this org
+    target = db.table("memberships").select("id").eq(
+        "id", member_id
+    ).eq("org_id", org_id).single().execute()
+
+    if not target.data:
+        raise HTTPException(404, "Member not found")
+
+    # Get current bot access
+    current_access = db.table("bot_member_access").select("bot_id").eq(
+        "membership_id", member_id
+    ).execute()
+    current_bot_ids = set(a["bot_id"] for a in current_access.data)
+    new_bot_ids = set(data.bot_ids)
+
+    # Remove bots no longer in the list
+    to_remove = current_bot_ids - new_bot_ids
+    if to_remove:
+        for bot_id in to_remove:
+            db.table("bot_member_access").delete().eq(
+                "membership_id", member_id
+            ).eq("bot_id", bot_id).execute()
+
+    # Add new bots
+    to_add = new_bot_ids - current_bot_ids
+    for bot_id in to_add:
+        db.table("bot_member_access").insert({
+            "membership_id": member_id,
+            "bot_id": bot_id,
+            "granted_by": user.data["id"]
+        }).execute()
+
+    # Get updated bot names
+    bot_names = []
+    if data.bot_ids:
+        bots = db.table("bot_registry").select("id, name").in_("id", data.bot_ids).execute()
+        bot_names = [b["name"] for b in bots.data]
+
+    return {
+        "status": "updated",
+        "bot_access": bot_names
+    }
 
 
 @router.get("/bots")

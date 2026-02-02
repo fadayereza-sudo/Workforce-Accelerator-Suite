@@ -1,6 +1,6 @@
 # Workforce Accelerator - Architecture Blueprint
 
-A Telegram Mini App platform using **Thin-Client, Thick-Backend** architecture. Zero build step. Zero Node.js. Maximum simplicity.
+A unified Telegram Mini App with multiple AI agents using **Thin-Client, Thick-Backend** architecture. One app. Many agents. Zero build step. Zero Node.js. Maximum simplicity.
 
 ## Core Philosophy
 
@@ -9,6 +9,8 @@ A Telegram Mini App platform using **Thin-Client, Thick-Backend** architecture. 
 | Zero Build Step | Edit a file, refresh browser, see changes |
 | Thin Client | Vanilla JS handles UI state + Telegram SDK only |
 | Thick Backend | Python/FastAPI handles all logic, AI, DB, APIs |
+| Agent Isolation | Agents in separate folders; one failure doesn't break others |
+| Single Entry Point | One bot, one mini app - agents shown based on user access |
 | LLM Context Density | Entire UI in ~3 files for full-picture prompts |
 | Rich Aesthetics | Premium CSS that rivals React apps |
 
@@ -27,12 +29,17 @@ A Telegram Mini App platform using **Thin-Client, Thick-Backend** architecture. 
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                     TELEGRAM MINI APP                        │
+│                  ONE TELEGRAM MINI APP                       │
 │                                                              │
 │   index.html ──► Contains ALL UI code                       │
 │   ├── <style>    Premium CSS (gradients, blur, typography)  │
 │   ├── <script>   Vanilla JS (UI state, fetch, Telegram SDK) │
 │   └── <body>     Semantic HTML structure                    │
+│                                                              │
+│   User identified by Telegram ID                            │
+│   ├── Fetches accessible agents from backend               │
+│   ├── Renders agent cards based on permissions             │
+│   └── Routes interactions to appropriate agent              │
 │                                                              │
 │   The JS does THREE things only:                            │
 │   1. Render UI based on state                               │
@@ -46,12 +53,20 @@ A Telegram Mini App platform using **Thin-Client, Thick-Backend** architecture. 
 │                                                              │
 │   ALL business logic lives here:                            │
 │   • User authentication (Telegram initData verification)    │
-│   • Database queries (Supabase client)                      │
-│   • AI/LLM calls (OpenAI, Anthropic, etc.)                 │
-│   • External API integrations                               │
-│   • File processing                                         │
-│   • Scheduled tasks                                         │
+│   • Agent routing and access control                        │
+│   • Database queries (Supabase - single database)          │
+│   • AI/LLM calls per agent (OpenAI, Anthropic, etc.)       │
+│   • External API integrations (social media, CRM, etc.)    │
+│   • Scheduled tasks per agent                               │
 │   • Webhook handlers                                        │
+│   • Notification dispatch to main chat                      │
+│                                                              │
+│   Agents organized by function:                             │
+│   ├── agents/social_media/   (Instagram, Twitter, etc.)    │
+│   ├── agents/sales/           (Lead gen, CRM, outreach)    │
+│   └── agents/customer_service/ (Support, ticketing)        │
+│                                                              │
+│   Each agent is isolated - failures don't cascade          │
 └─────────────────────────────────────────────────────────────┘
 ```
 
@@ -61,7 +76,7 @@ A Telegram Mini App platform using **Thin-Client, Thick-Backend** architecture. 
 workforce-accelerator/
 │
 ├── backend/                      # FastAPI application
-│   ├── main.py                   # App entry point, mounts routers
+│   ├── main.py                   # App entry point, mounts all routers
 │   ├── config.py                 # Environment variables, settings
 │   │
 │   ├── api/                      # API routes
@@ -69,25 +84,49 @@ workforce-accelerator/
 │   │   ├── auth.py               # Telegram auth verification
 │   │   ├── users.py              # User endpoints
 │   │   ├── orgs.py               # Organization endpoints
-│   │   └── bots/                 # Bot-specific endpoints
+│   │   └── bots/                 # Main bot endpoints
 │   │       ├── __init__.py
-│   │       ├── hub.py            # Hub bot API
-│   │       └── crm.py            # CRM bot API (example)
+│   │       └── hub.py            # Main org bot API
 │   │
-│   ├── services/                 # Business logic layer
+│   ├── agents/                   # Agent modules (isolated)
 │   │   ├── __init__.py
-│   │   ├── telegram.py           # Telegram bot logic
-│   │   ├── ai.py                 # LLM integration
-│   │   ├── database.py           # Supabase client wrapper
-│   │   └── notifications.py      # Push notifications
+│   │   │
+│   │   ├── social_media/         # Social media agents
+│   │   │   ├── __init__.py
+│   │   │   ├── api.py            # API endpoints
+│   │   │   ├── service.py        # Business logic
+│   │   │   ├── models.py         # Pydantic models
+│   │   │   └── tasks.py          # Background jobs
+│   │   │
+│   │   ├── sales/                # Sales agents
+│   │   │   ├── __init__.py
+│   │   │   ├── api.py            # API endpoints
+│   │   │   ├── service.py        # Business logic
+│   │   │   ├── models.py         # Pydantic models
+│   │   │   └── tasks.py          # Background jobs
+│   │   │
+│   │   └── customer_service/     # Customer service agents
+│   │       ├── __init__.py
+│   │       ├── api.py            # API endpoints
+│   │       ├── service.py        # Business logic
+│   │       ├── models.py         # Pydantic models
+│   │       └── tasks.py          # Background jobs
 │   │
-│   ├── models/                   # Pydantic models
+│   ├── services/                 # Shared services layer
+│   │   ├── __init__.py
+│   │   ├── telegram.py           # Telegram bot logic (main bot)
+│   │   ├── ai.py                 # LLM integration (shared)
+│   │   ├── database.py           # Supabase client wrapper
+│   │   └── notifications.py      # Notifications to main chat
+│   │
+│   ├── models/                   # Shared Pydantic models
 │   │   ├── __init__.py
 │   │   ├── user.py
 │   │   ├── org.py
+│   │   ├── membership.py
 │   │   └── responses.py          # API response schemas
 │   │
-│   ├── jobs/                     # Background tasks
+│   ├── jobs/                     # Shared background tasks
 │   │   ├── __init__.py
 │   │   └── scheduler.py          # APScheduler or Celery tasks
 │   │
@@ -95,22 +134,15 @@ workforce-accelerator/
 │
 ├── static/                       # Served by FastAPI at /static
 │   │
-│   ├── mini-apps/                # Each bot's Mini App
-│   │   │
-│   │   ├── hub/                  # Hub bot Mini App
-│   │   │   └── index.html        # ENTIRE app in one file
-│   │   │
-│   │   ├── crm/                  # CRM bot Mini App
-│   │   │   └── index.html        # ENTIRE app in one file
-│   │   │
-│   │   └── [bot-name]/           # Pattern for new bots
-│   │       └── index.html
+│   ├── mini-app/                 # Single Mini App
+│   │   └── index.html            # ENTIRE app in one file
+│   │                             # Shows agents based on user access
 │   │
 │   └── shared/                   # Shared assets (optional)
 │       ├── design-system.css     # If you want shared styles
 │       └── utils.js              # If you want shared utilities
 │
-├── supabase/                     # Database configuration
+├── supabase/                     # Single database configuration
 │   ├── migrations/               # SQL migration files
 │   └── seed.sql                  # Test data
 │
@@ -121,7 +153,7 @@ workforce-accelerator/
 
 ## Mini App File Structure
 
-Each Mini App is a **single index.html** file containing everything:
+The **single Mini App** is one `index.html` file containing everything. It identifies users by their Telegram ID and displays only the agents they have access to:
 
 ```html
 <!DOCTYPE html>
@@ -282,7 +314,9 @@ Each Mini App is a **single index.html** file containing everything:
 
         const state = {
             user: null,
-            data: [],
+            agents: [],        // Agents user has access to
+            currentAgent: null,
+            agentData: {},
             loading: true,
             error: null,
             currentPage: 'loading'
@@ -319,10 +353,11 @@ Each Mini App is a **single index.html** file containing everything:
 
             // Specific endpoints
             getUser: () => api.fetch('/user'),
-            getData: () => api.fetch('/data'),
-            createItem: (data) => api.fetch('/items', {
+            getAccessibleAgents: () => api.fetch('/agents/accessible'),  // Agents user can access
+            getAgentData: (agentId) => api.fetch(`/agents/${agentId}/data`),
+            sendAgentAction: (agentId, action, data) => api.fetch(`/agents/${agentId}/actions`, {
                 method: 'POST',
-                body: JSON.stringify(data)
+                body: JSON.stringify({ action, data })
             }),
         };
 
@@ -352,10 +387,23 @@ Each Mini App is a **single index.html** file containing everything:
 
         const renderMainContent = () => {
             const container = document.getElementById('page-main');
+
+            // Render agent cards based on user access
+            const agentCards = state.agents.map(agent => `
+                <div class="card agent-card" onclick="openAgent('${agent.id}')">
+                    <h3>${agent.name}</h3>
+                    <p>${agent.description}</p>
+                    <span class="badge">${agent.category}</span>
+                </div>
+            `).join('');
+
             container.innerHTML = `
-                <div class="card">
-                    <h1>Welcome, ${state.user?.name || 'User'}</h1>
-                    <p>${state.data.length} items loaded</p>
+                <div class="header">
+                    <h1>Welcome, ${state.user?.first_name || 'User'}</h1>
+                    <p>Your Workforce Accelerator Agents</p>
+                </div>
+                <div class="agent-grid">
+                    ${agentCards || '<p>No agents available</p>'}
                 </div>
             `;
         };
@@ -366,12 +414,14 @@ Each Mini App is a **single index.html** file containing everything:
 
         const init = async () => {
             try {
-                const [user, data] = await Promise.all([
+                // Fetch user info and accessible agents
+                // User identified by Telegram ID from initData
+                const [user, agents] = await Promise.all([
                     api.getUser(),
-                    api.getData()
+                    api.getAccessibleAgents()  // Returns only agents user has access to
                 ]);
 
-                setState({ user, data, loading: false });
+                setState({ user, agents, loading: false });
             } catch (error) {
                 console.error('Init failed:', error);
                 setState({ error: error.message, loading: false });
@@ -393,9 +443,13 @@ Each Mini App is a **single index.html** file containing everything:
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
 
 from api import auth, users, orgs
-from api.bots import hub, crm
+from api.bots import hub
+from agents.social_media import api as social_media_api
+from agents.sales import api as sales_api
+from agents.customer_service import api as customer_service_api
 from config import settings
 
 app = FastAPI(title="Workforce Accelerator API")
@@ -408,20 +462,33 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# API routes
+# Core API routes
 app.include_router(auth.router, prefix="/api/auth", tags=["auth"])
 app.include_router(users.router, prefix="/api/users", tags=["users"])
 app.include_router(orgs.router, prefix="/api/orgs", tags=["orgs"])
-app.include_router(hub.router, prefix="/api/bots/hub", tags=["hub-bot"])
-app.include_router(crm.router, prefix="/api/bots/crm", tags=["crm-bot"])
+app.include_router(hub.router, prefix="/api/bots/hub", tags=["main-bot"])
 
-# Serve Mini Apps (static files)
+# Agent API routes (isolated by category)
+app.include_router(social_media_api.router, prefix="/api/agents/social-media", tags=["social-media"])
+app.include_router(sales_api.router, prefix="/api/agents/sales", tags=["sales"])
+app.include_router(customer_service_api.router, prefix="/api/agents/customer-service", tags=["customer-service"])
+
+# Serve static files
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
-# Mini App routes (serve index.html for each bot)
-@app.get("/app/{bot_name}")
-async def serve_mini_app(bot_name: str):
-    return FileResponse(f"static/mini-apps/{bot_name}/index.html")
+# Single Mini App entry point
+@app.get("/app")
+async def serve_mini_app():
+    """Serves the single Mini App that displays agents based on user access"""
+    return FileResponse("static/mini-app/index.html")
+
+# Agent access endpoint
+@app.get("/api/agents/accessible")
+async def get_accessible_agents(current_user: User = Depends(get_current_user)):
+    """Returns agents the current user has access to based on their org membership"""
+    # Business logic to determine which agents user can access
+    # Based on Telegram ID, org membership, and permissions
+    pass
 ```
 
 ### auth.py - Telegram Authentication
@@ -473,13 +540,25 @@ def verify_telegram_init_data(init_data: str, bot_token: str) -> dict:
 
 ## Database Schema
 
-Same Supabase PostgreSQL schema as before - organizations, users, memberships, bot licenses. RLS policies enforce data isolation.
+Single Supabase PostgreSQL database shared by all agents. Core tables: organizations, users, memberships, agent access. RLS policies enforce data isolation between organizations.
 
 ```sql
--- Core tables remain the same
--- See original schema for: users, organizations, memberships,
--- bot_registry, org_bot_licenses, bot_member_access, notifications
+-- Core tables:
+-- • users - User profiles (linked to Telegram ID)
+-- • organizations - Organization details
+-- • memberships - User-org relationships with roles
+-- • agents - Agent registry (social_media, sales, customer_service)
+-- • org_agent_access - Which orgs have which agents enabled
+-- • agent_member_permissions - User-level agent access within orgs
+-- • notifications - Notification queue for main chat
+-- • [agent-specific tables] - Each agent can have its own tables
 ```
+
+**Key principles:**
+- One database for all agents
+- Agent-specific data in separate tables with agent_id foreign key
+- RLS policies ensure org-level data isolation
+- Agent failures isolated at application layer, not database layer
 
 ## Development Workflow
 
@@ -493,20 +572,30 @@ uvicorn main:app --reload --port 8000
 
 ### 2. Edit Mini App
 
-1. Open `static/mini-apps/[bot]/index.html`
+1. Open `static/mini-app/index.html`
 2. Edit HTML/CSS/JS
 3. Refresh browser
 4. See changes instantly
 
 **No build step. No waiting. No node_modules.**
 
-### 3. Local Tunnel for Telegram
+### 3. Edit Agent Logic
+
+1. Navigate to `backend/agents/[category]/`
+2. Edit `api.py`, `service.py`, or `models.py`
+3. FastAPI auto-reloads
+4. Test agent endpoint
+
+**Agent isolation means bugs stay contained.**
+
+### 4. Local Tunnel for Telegram
 
 ```bash
 # Use ngrok, localtunnel, or cloudflared
 ngrok http 8000
 
-# Set webhook to: https://your-tunnel.ngrok.io/webhook/[bot-name]
+# Set webhook to: https://your-tunnel.ngrok.io/webhook/hub
+# Only ONE webhook needed for main bot
 ```
 
 ## Environment Configuration
@@ -514,31 +603,43 @@ ngrok http 8000
 ```bash
 # .env
 
-# Supabase
+# Supabase (single database for all agents)
 SUPABASE_URL=https://xxx.supabase.co
 SUPABASE_KEY=eyJ...
 SUPABASE_SERVICE_KEY=eyJ...
 
-# Telegram Bots
-BOT_HUB_TOKEN=123456:ABC...
-BOT_CRM_TOKEN=789012:DEF...
+# Telegram (single main bot)
+BOT_TOKEN=123456:ABC...
+BOT_USERNAME=workforce_accelerator_bot
 
-# AI (if using)
+# AI (shared by all agents)
 OPENAI_API_KEY=sk-...
 ANTHROPIC_API_KEY=sk-ant-...
+
+# External APIs (per agent needs)
+INSTAGRAM_API_KEY=...
+TWITTER_API_KEY=...
+SALESFORCE_API_KEY=...
 
 # Redis (for background jobs)
 REDIS_URL=redis://localhost:6379
 ```
 
-## Adding a New Bot
+## Adding a New Agent
 
-1. **Create Mini App**: `static/mini-apps/[bot-name]/index.html`
-2. **Create API routes**: `backend/api/bots/[bot_name].py`
-3. **Add to main.py**: Mount the router
-4. **Create DB migration**: If bot needs custom tables
-5. **Add bot token**: To `.env`
-6. **Done** - no build, no deploy config
+1. **Create agent folder**: `backend/agents/[agent_name]/`
+2. **Create agent modules**:
+   - `api.py` - FastAPI router with endpoints
+   - `service.py` - Business logic (isolated)
+   - `models.py` - Pydantic models
+   - `tasks.py` - Background jobs (if needed)
+3. **Add to main.py**: Import and mount the agent router
+4. **Create DB migration**: If agent needs custom tables
+5. **Update Mini App**: Add agent card/UI in `static/mini-app/index.html` (optional, if needs custom UI)
+6. **Configure access**: Set up agent permissions in database
+7. **Done** - Agent is isolated, failure won't break other agents
+
+**No separate bot needed. No separate mini app. No cluttered UX.**
 
 ## Why This Architecture?
 
@@ -549,10 +650,25 @@ REDIS_URL=redis://localhost:6379
 - No "module not found" errors
 - No dependency hell
 
+### For Agent Isolation
+- Each agent in its own folder
+- Agent failures don't cascade
+- Deploy/update agents independently
+- Easy to add/remove agents
+- Clear separation of concerns
+
+### For User Experience
+- Single bot = no clutter
+- Single mini app = consistent interface
+- Agents shown based on permissions
+- Notifications all go to one chat
+- No context switching between bots
+
 ### For LLM Collaboration
 - Entire UI fits in one prompt
 - No jumping between component files
 - No import chains to trace
+- Agent code is self-contained
 - Claude sees the full picture, every time
 
 ### For Production Quality
@@ -560,6 +676,7 @@ REDIS_URL=redis://localhost:6379
 - Supabase handles scaling
 - Static files are cached efficiently
 - No JS bundle size concerns
+- Agent isolation = better reliability
 
 ### For Aesthetics
 - CSS can do everything React CSS-in-JS can
@@ -575,16 +692,34 @@ REDIS_URL=redis://localhost:6379
 | Node.js | Python-only backend simplifies deployment |
 | npm/pnpm | No package manager for frontend |
 | Webpack/Vite/etc | Zero build configuration |
-| React/Vue/Svelte | Vanilla JS is enough for Mini Apps |
+| React/Vue/Svelte | Vanilla JS is enough for Mini App |
 | TypeScript (frontend) | JSDoc comments if types needed |
+| Multiple bots | Single bot = cleaner UX, no fragmentation |
+| Multiple mini apps | Single app shows agents contextually |
+| Microservices | Monolithic Python app with isolated agents |
 | Monorepo tooling | Simple folder structure |
 | CSS-in-JS | Native CSS is powerful enough |
 
 ## Constraints & Tradeoffs
 
-1. **No component reuse across Mini Apps** - Copy-paste shared styles/utilities (or use shared/*.css)
+1. **Single Mini App grows over time** - As agents are added, the HTML file grows. Mitigate with lazy loading or conditional rendering
 2. **No static type checking in JS** - Use JSDoc + VS Code for intellisense
-3. **Large HTML files** - Acceptable for Mini Apps (typically <500 lines)
-4. **No hot module replacement** - Full page refresh (fast enough for Mini Apps)
+3. **Agents share Python process** - One agent's memory leak could affect others. Mitigate with monitoring and resource limits
+4. **No hot module replacement** - Full page refresh (fast enough for Mini App)
+5. **Agent UI all in one file** - Different agent UIs are conditionally rendered in the same HTML. Keep organized with clear sections
 
-These tradeoffs are worth it for the simplicity gained.
+These tradeoffs are worth it for the simplicity, consistency, and user experience gained.
+
+## Agent Isolation Strategy
+
+While agents share the same Python process and database, isolation is achieved through:
+
+1. **Folder structure** - Clear boundaries in codebase
+2. **Error handling** - Try-except blocks prevent cascading failures
+3. **Separate routers** - Each agent has its own FastAPI router
+4. **Permission checks** - Access control at API level
+5. **Database naming** - Agent-specific tables clearly prefixed/namespaced
+6. **Monitoring** - Per-agent metrics and logging
+7. **Background jobs** - Isolated task queues per agent (optional)
+
+This provides **logical isolation** without the overhead of microservices.

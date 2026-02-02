@@ -57,6 +57,12 @@ class Member(BaseModel):
     role: str  # 'admin', 'member'
     bot_access: List[BotAccess] = []
     joined_at: datetime
+    last_active_at: Optional[datetime] = None
 
     class Config:
         from_attributes = True
+
+
+class MemberBotsUpdate(BaseModel):
+    """Update bot access for a member."""
+    bot_ids: List[str]
