@@ -1,5 +1,9 @@
 """
-AI service for lead agent - generates business summaries and pain points using OpenAI.
+AI service for lead agent - generates business summaries and pain points using OpenAI GPT-4o.
+
+This is the second tier of our two-tier LLM pipeline:
+1. GPT-4o-mini (cheap) - Extract & summarize business info from HTML
+2. GPT-4o (smart) - Generate insights & pain points with pattern recognition
 """
 import json
 from typing import List, Optional
@@ -9,7 +13,7 @@ from models.lead_agent import PainPoint, Product
 
 
 class LeadAgentAI:
-    """AI-powered lead analysis using OpenAI GPT."""
+    """AI-powered lead analysis using OpenAI GPT-4o for stronger reasoning."""
 
     def __init__(self, api_key: str):
         """Initialize with OpenAI API key."""
@@ -20,7 +24,8 @@ class LeadAgentAI:
         business_name: str,
         business_address: Optional[str],
         business_website: Optional[str],
-        products: List[Product]
+        products: List[Product],
+        business_description: Optional[str] = None
     ) -> tuple[str, List[PainPoint]]:
         """
         Generate business summary and pain points for a prospect.
@@ -30,6 +35,7 @@ class LeadAgentAI:
             business_address: Business address (optional)
             business_website: Business website (optional)
             products: List of organization's products/services
+            business_description: Pre-extracted description from website (optional)
 
         Returns:
             tuple: (business_summary, list_of_pain_points)
@@ -44,18 +50,23 @@ class LeadAgentAI:
         else:
             products_context = "No products defined yet."
 
+        # Include business description if available (from URL scraper)
+        description_context = ""
+        if business_description:
+            description_context = f"\n- About: {business_description}"
+
         prompt = f"""You are a B2B sales intelligence assistant. Analyze this business prospect and generate insights.
 
 PROSPECT INFORMATION:
 - Business Name: {business_name}
 - Address: {business_address or 'Unknown'}
-- Website: {business_website or 'Unknown'}
+- Website: {business_website or 'Unknown'}{description_context}
 
 OUR PRODUCTS/SERVICES:
 {products_context}
 
 TASKS:
-1. Generate a brief business summary (2-3 sentences) about what this business likely does, their target market, and potential needs. Be concise and focused.
+1. Generate a brief business summary (2-3 sentences) about what this business does, their target market, and potential needs. If we have their website description, use that information. Be concise and focused.
 
 2. Identify the TOP 3 pain points this business might have that our products/services could solve. For each pain point:
    - Give it a short, clear title (max 6 words)
@@ -86,11 +97,11 @@ Respond ONLY with valid JSON in this exact format:
 
         try:
             response = await self.client.chat.completions.create(
-                model="gpt-4o-mini",  # Cost-effective for this use case
+                model="gpt-4o",  # Stronger reasoning for pattern recognition & insights
                 messages=[
                     {
                         "role": "system",
-                        "content": "You are a B2B sales intelligence assistant. Respond only with valid JSON."
+                        "content": "You are a B2B sales intelligence assistant with expertise in identifying business pain points and matching them to solutions. Respond only with valid JSON."
                     },
                     {
                         "role": "user",
@@ -99,7 +110,7 @@ Respond ONLY with valid JSON in this exact format:
                 ],
                 response_format={"type": "json_object"},
                 temperature=0.7,
-                max_tokens=500
+                max_tokens=600
             )
 
             result = json.loads(response.choices[0].message.content)

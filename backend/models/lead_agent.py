@@ -107,7 +107,8 @@ class ProspectCard(BaseModel):
     summary: Optional[str] = None
     pain_points: List[PainPoint] = []
     status: str
-    search_query: str
+    search_query: Optional[str] = None  # Optional for URL-scraped prospects
+    source: str = "gemini_search"
     created_at: datetime
 
 
@@ -118,6 +119,11 @@ class ProspectCard(BaseModel):
 class SearchRequest(BaseModel):
     """Request to search for prospects."""
     query: str = Field(..., min_length=3, max_length=200)
+
+
+class ScrapeRequest(BaseModel):
+    """Request to scrape a business from a URL."""
+    url: str = Field(..., min_length=10, max_length=500)
 
 
 class SearchResult(BaseModel):

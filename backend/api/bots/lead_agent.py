@@ -17,11 +17,12 @@ from models import (
     TelegramUser,
     ProductCreate, ProductUpdate, Product,
     ProspectCreate, ProspectStatusUpdate, Prospect, ProspectCard,
-    PainPoint, SearchRequest, SearchResult, SearchHistory,
+    PainPoint, SearchRequest, ScrapeRequest, SearchResult, SearchHistory,
     LeadAgentDashboard, CurrencyUpdate
 )
 from services import get_supabase_admin, get_telegram_user
 from services.lead_discovery import LeadDiscoveryService, ScrapedBusiness
+from services.url_scraper import URLScraperService
 from services.ai_lead_agent import LeadAgentAI
 from config import settings
 
@@ -81,8 +82,18 @@ def get_org_currency(org_settings: dict) -> str:
     return org_settings.get("lead_agent_currency", "USD")
 
 
-async def generate_ai_insights_task(prospect_id: str, org_id: str):
-    """Background task to generate AI insights for a prospect."""
+async def generate_ai_insights_task(
+    prospect_id: str,
+    org_id: str,
+    business_description: Optional[str] = None
+):
+    """
+    Background task to generate AI insights for a prospect.
+
+    Two-tier LLM pipeline:
+    - Tier 1 (GPT-4o-mini): Already extracted business_description from URL (passed in)
+    - Tier 2 (GPT-4o): Generate strategic insights & pain points with pattern recognition
+    """
     db = get_supabase_admin()
 
     try:
@@ -103,13 +114,14 @@ async def generate_ai_insights_task(prospect_id: str, org_id: str):
 
         products = [Product(**p) for p in products_result.data]
 
-        # Generate insights
+        # Generate insights using GPT-4o (with business description from GPT-4o-mini)
         ai = LeadAgentAI(settings.openai_api_key)
         summary, pain_points = await ai.generate_prospect_insights(
             business_name=prospect_data["business_name"],
             business_address=prospect_data.get("address"),
             business_website=prospect_data.get("website"),
-            products=products
+            products=products,
+            business_description=business_description
         )
 
         # Update prospect with AI-generated content
@@ -118,6 +130,8 @@ async def generate_ai_insights_task(prospect_id: str, org_id: str):
             "pain_points": [pp.dict() for pp in pain_points],
             "ai_generated_at": datetime.now(timezone.utc).isoformat()
         }).eq("id", prospect_id).execute()
+
+        print(f"[LeadAgent] AI insights generated for prospect {prospect_id}")
 
     except Exception as e:
         print(f"Error generating AI insights for prospect {prospect_id}: {e}")
@@ -150,9 +164,9 @@ async def create_product(
     data: ProductCreate = ...,
     x_telegram_init_data: str = Header(...)
 ) -> Product:
-    """Create a new product (admin only)."""
+    """Create a new product."""
     tg_user = get_telegram_user(x_telegram_init_data)
-    await verify_org_admin(tg_user.id, org_id)
+    await verify_org_member(tg_user.id, org_id)
 
     db = get_supabase_admin()
     product_data = {
@@ -173,7 +187,7 @@ async def update_product(
     data: ProductUpdate,
     x_telegram_init_data: str = Header(...)
 ) -> Product:
-    """Update a product (admin only)."""
+    """Update a product."""
     tg_user = get_telegram_user(x_telegram_init_data)
     db = get_supabase_admin()
 
@@ -185,7 +199,7 @@ async def update_product(
     if not product_result.data:
         raise HTTPException(404, "Product not found")
 
-    await verify_org_admin(tg_user.id, product_result.data["org_id"])
+    await verify_org_member(tg_user.id, product_result.data["org_id"])
 
     # Build update data
     update_data = {}
@@ -210,7 +224,7 @@ async def delete_product(
     product_id: str,
     x_telegram_init_data: str = Header(...)
 ) -> dict:
-    """Delete a product (admin only)."""
+    """Delete a product."""
     tg_user = get_telegram_user(x_telegram_init_data)
     db = get_supabase_admin()
 
@@ -222,7 +236,7 @@ async def delete_product(
     if not product_result.data:
         raise HTTPException(404, "Product not found")
 
-    await verify_org_admin(tg_user.id, product_result.data["org_id"])
+    await verify_org_member(tg_user.id, product_result.data["org_id"])
 
     db.table("lead_agent_products").delete().eq("id", product_id).execute()
 
@@ -273,7 +287,8 @@ async def list_prospects(
             summary=p.get("business_summary"),
             pain_points=pain_points,
             status=p["status"],
-            search_query=p["search_query"],
+            search_query=p.get("search_query"),
+            source=p.get("source", "gemini_search"),
             created_at=p["created_at"]
         ))
 
@@ -295,6 +310,17 @@ async def search_prospects(
     user_id, _ = await verify_org_member(tg_user.id, org_id)
 
     db = get_supabase_admin()
+
+    # Check if organization has any active products
+    products = db.table("lead_agent_products").select("id").eq(
+        "org_id", org_id
+    ).eq("is_active", True).execute()
+
+    if not products.data:
+        raise HTTPException(
+            status_code=400,
+            detail="Please add at least one product or service before searching for leads. The AI needs your products to generate relevant insights."
+        )
 
     # Initialize lead discovery service
     discovery = LeadDiscoveryService(settings.gemini_api_key)
@@ -352,6 +378,7 @@ async def search_prospects(
             pain_points=[],  # AI generation pending
             status=prospect["status"],
             search_query=prospect["search_query"],
+            source="gemini_search",
             created_at=prospect["created_at"]
         ))
 
@@ -374,6 +401,110 @@ async def search_prospects(
         new_prospects=len(new_prospects),
         skipped_duplicates=skipped_duplicates,
         prospects=new_prospects
+    )
+
+
+@router.post("/prospects/scrape")
+async def scrape_prospect(
+    org_id: str = Query(...),
+    data: ScrapeRequest = ...,
+    background_tasks: BackgroundTasks = ...,
+    x_telegram_init_data: str = Header(...)
+) -> ProspectCard:
+    """
+    Scrape a prospect from a URL.
+
+    Two-tier LLM pipeline:
+    1. GPT-4o-mini (cheap): Fetch & extract business info from HTML
+    2. GPT-4o (smart): Generate insights & pain points with pattern recognition
+
+    Returns the prospect immediately, AI insights are generated in background.
+    """
+    tg_user = get_telegram_user(x_telegram_init_data)
+    user_id, _ = await verify_org_member(tg_user.id, org_id)
+
+    db = get_supabase_admin()
+
+    # Check if organization has any active products
+    products = db.table("lead_agent_products").select("id").eq(
+        "org_id", org_id
+    ).eq("is_active", True).execute()
+
+    if not products.data:
+        raise HTTPException(
+            status_code=400,
+            detail="Please add at least one product or service before adding leads. The AI needs your products to generate relevant insights."
+        )
+
+    # Initialize URL scraper service (GPT-4o-mini)
+    scraper = URLScraperService(settings.openai_api_key)
+
+    # Scrape business info from URL
+    print(f"[LeadAgent] Scraping URL: {data.url}")
+    business = await scraper.scrape_business(data.url)
+
+    if not business:
+        raise HTTPException(
+            status_code=400,
+            detail="Could not extract business information from this URL. Please check the URL and try again."
+        )
+
+    # Check for duplicates
+    dedup_hash = business.get_dedup_hash()
+    existing = db.table("lead_agent_prospects").select("id").eq(
+        "org_id", org_id
+    ).eq("dedup_hash", dedup_hash).execute()
+
+    if existing.data:
+        raise HTTPException(
+            status_code=409,
+            detail="This business has already been added to your prospects."
+        )
+
+    # Insert new prospect
+    prospect_data = {
+        "org_id": org_id,
+        "business_name": business.business_name,
+        "phone": business.phone,
+        "email": business.email,
+        "address": business.address,
+        "website": business.website,
+        "google_maps_url": business.google_maps_url,
+        "dedup_hash": dedup_hash,
+        "search_query": None,  # No search query for URL scraping
+        "source": "url_scrape",
+        "status": "not_contacted",
+        "created_by": user_id
+    }
+
+    result = db.table("lead_agent_prospects").insert(prospect_data).execute()
+    prospect = result.data[0]
+
+    # Queue AI insights generation (Tier 2: GPT-4o)
+    # Pass the business description from GPT-4o-mini to GPT-4o for better context
+    background_tasks.add_task(
+        generate_ai_insights_task,
+        prospect["id"],
+        org_id,
+        business.description  # Pre-extracted by GPT-4o-mini
+    )
+
+    print(f"[LeadAgent] Created prospect: {business.business_name}")
+
+    return ProspectCard(
+        id=prospect["id"],
+        business_name=prospect["business_name"],
+        phone=prospect.get("phone"),
+        email=prospect.get("email"),
+        address=prospect.get("address"),
+        website=prospect.get("website"),
+        google_maps_url=prospect.get("google_maps_url"),
+        summary=None,  # AI generation pending
+        pain_points=[],  # AI generation pending
+        status=prospect["status"],
+        search_query=None,
+        source="url_scrape",
+        created_at=prospect["created_at"]
     )
 
 
@@ -413,7 +544,8 @@ async def get_prospect(
         summary=prospect.get("business_summary"),
         pain_points=pain_points,
         status=prospect["status"],
-        search_query=prospect["search_query"],
+        search_query=prospect.get("search_query"),
+        source=prospect.get("source", "gemini_search"),
         created_at=prospect["created_at"]
     )
 

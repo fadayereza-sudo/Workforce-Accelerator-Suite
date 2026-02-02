@@ -1,12 +1,13 @@
 """
-Lead discovery service using Google Gemini with Search Grounding.
+Lead discovery service using Google Gemini 2.0 Flash with Search Grounding.
 """
 import json
 import hashlib
 from typing import List, Optional
 from dataclasses import dataclass
 
-import google.generativeai as genai
+from google import genai
+from google.genai import types
 
 
 @dataclass
@@ -34,18 +35,13 @@ class LeadDiscoveryService:
     """
     Lead discovery using Google Gemini 2.0 Flash with Search Grounding.
 
-    Instead of manual web scraping, this service leverages Gemini's real-time
-    access to Google Search to find businesses, extract contact details, and
-    return structured data.
+    This service leverages Gemini's real-time access to Google Search
+    to find businesses, extract contact details, and return structured data.
     """
 
     def __init__(self, api_key: str):
         """Initialize the service with Gemini API key."""
-        genai.configure(api_key=api_key)
-        self.model = genai.GenerativeModel(
-            "gemini-2.0-flash-exp",
-            tools="google_search_retrieval"
-        )
+        self.client = genai.Client(api_key=api_key)
 
     async def search_businesses(
         self,
@@ -62,17 +58,20 @@ class LeadDiscoveryService:
         Returns:
             List of ScrapedBusiness objects with extracted contact information
         """
-        prompt = f"""Find up to {max_results} businesses matching this search query: "{query}"
+        # Use "Search for:" pattern to trigger search grounding
+        prompt = f"""Search for: {query}
 
-For each business, extract the following information:
+Find up to {max_results} real businesses matching this search query.
+
+For each business found, extract:
 - Business Name
-- Phone Number (if available)
+- Phone Number (in international format if available)
 - Email Address (if available)
-- Physical Address (if available)
+- Physical Address (complete with city and country)
 - Website URL (if available)
 - Google Maps URL (if available)
 
-Return the results as a JSON array with this exact structure:
+Return ONLY a valid JSON object with this exact structure:
 {{
     "businesses": [
         {{
@@ -86,19 +85,26 @@ Return the results as a JSON array with this exact structure:
     ]
 }}
 
-Important:
+Rules:
 - Use null for fields that are not available
-- Ensure phone numbers are in international format when possible
-- Include complete addresses with city and country
-- Return actual businesses, not directories or listing sites
-- Focus on real, operational businesses"""
+- Return ONLY real, existing businesses found in search results
+- Do not invent or fabricate any business information
+- Do not include directory sites or listing aggregators
+- Return raw JSON only, no markdown formatting"""
 
         try:
-            # Generate content with search grounding
-            response = self.model.generate_content(prompt)
+            # Generate content with Google Search grounding enabled
+            response = self.client.models.generate_content(
+                model="gemini-2.0-flash",
+                contents=prompt,
+                config=types.GenerateContentConfig(
+                    tools=[types.Tool(google_search=types.GoogleSearch())]
+                )
+            )
 
             # Parse the JSON response
             response_text = response.text.strip()
+            print(f"[LeadDiscovery] Raw response: {response_text[:500]}...")
 
             # Extract JSON from markdown code blocks if present
             if "```json" in response_text:
@@ -111,22 +117,24 @@ Important:
             # Convert to ScrapedBusiness objects
             businesses = []
             for item in data.get("businesses", [])[:max_results]:
-                businesses.append(ScrapedBusiness(
+                business = ScrapedBusiness(
                     business_name=item.get("business_name", ""),
                     phone=item.get("phone"),
                     email=item.get("email"),
                     address=item.get("address"),
                     website=item.get("website"),
                     google_maps_url=item.get("google_maps_url")
-                ))
+                )
+                if business.business_name:  # Only add if we have a name
+                    businesses.append(business)
 
+            print(f"[LeadDiscovery] Found {len(businesses)} businesses")
             return businesses
 
         except json.JSONDecodeError as e:
-            # Fallback: try to extract structured data from text
-            print(f"JSON parse error: {e}")
-            print(f"Response text: {response_text}")
+            print(f"[LeadDiscovery] JSON parse error: {e}")
+            print(f"[LeadDiscovery] Response text: {response_text}")
             return []
         except Exception as e:
-            print(f"Error during lead discovery: {e}")
+            print(f"[LeadDiscovery] Error during lead discovery: {e}")
             return []
