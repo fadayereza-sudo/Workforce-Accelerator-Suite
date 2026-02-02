@@ -749,20 +749,23 @@
             </div>
 
             <!-- Invite Link Card -->
-            <div class="card card-gradient mb-lg">
+            <div class="card card-gradient mb-lg" id="invite-card">
                 <div class="card-header">
                     <span class="card-title">Invite Team Members</span>
-                    <span class="card-badge">Share</span>
+                    <span class="card-badge" id="invite-status-badge">Share</span>
                 </div>
-                <p class="text-sm mb-md" style="opacity: 0.9;">
+                <p class="text-sm mb-md" style="opacity: 0.9;" id="invite-status-text">
                     Share this link with your team via Telegram
                 </p>
-                <div class="invite-box" style="background: rgba(255,255,255,0.15);">
+                <div class="invite-box" style="background: rgba(255,255,255,0.15);" id="invite-link-box">
                     <span class="invite-link" id="invite-link-text" style="color: white;">Loading...</span>
-                    <button class="invite-copy-btn" onclick="copyInviteLink()" style="background: white; color: #667eea;">
+                    <button class="invite-copy-btn" id="invite-copy-btn" onclick="copyInviteLink()" style="background: white; color: #667eea;">
                         Copy
                     </button>
                 </div>
+                <button class="btn btn-block hidden" id="regenerate-btn" onclick="regenerateInviteLink()" style="margin-top: 12px; background: rgba(255,255,255,0.2); color: white; border: 2px solid rgba(255,255,255,0.4);">
+                    Generate New Link
+                </button>
             </div>
 
             <!-- Tabs -->
@@ -825,6 +828,11 @@
             </div>
 
             <div class="card card-elevated">
+                <div class="input-group">
+                    <label class="input-label">Your Full Name</label>
+                    <input type="text" id="create-admin-name" class="input" placeholder="e.g., John Smith">
+                </div>
+
                 <div class="input-group">
                     <label class="input-label">Organization Name</label>
                     <input type="text" id="create-org-name" class="input" placeholder="e.g., Acme Corp">
@@ -954,11 +962,14 @@
             },
 
             getMe: () => api.fetch('/me'),
-            createOrg: (name) => api.fetch('/orgs', {
+            createOrg: (name, adminFullName) => api.fetch('/orgs', {
                 method: 'POST',
-                body: JSON.stringify({ name })
+                body: JSON.stringify({ name, admin_full_name: adminFullName })
             }),
             getInviteLink: (orgId) => api.fetch(`/orgs/${orgId}/invite-link`),
+            regenerateInviteLink: (orgId) => api.fetch(`/orgs/${orgId}/regenerate-invite`, {
+                method: 'POST'
+            }),
             getInviteInfo: (code) => api.fetch(`/invite/${code}`),
             submitJoinRequest: (inviteCode, fullName) => api.fetch('/membership-requests', {
                 method: 'POST',
@@ -987,21 +998,21 @@
            ───────────────────────────────────────────────────────────────────── */
 
         const init = async () => {
-            try {
-                // Check for invite link first
-                const startParam = getStartParam();
+            // Check for invite link FIRST (before any API calls)
+            const startParam = getStartParam();
 
+            if (startParam?.type === 'invite') {
+                // Handle invite link - user is joining via invite
+                await handleInviteLink(startParam.code);
+                return;
+            }
+
+            try {
                 // Get user data
                 const data = await api.getMe();
                 state.user = data.user;
                 state.memberships = data.memberships || [];
                 state.pendingRequests = data.pending_requests || [];
-
-                // Handle invite link
-                if (startParam?.type === 'invite') {
-                    await handleInviteLink(startParam.code);
-                    return;
-                }
 
                 // Check if user has pending requests
                 if (state.pendingRequests.length > 0) {
@@ -1051,7 +1062,12 @@
 
                 showPage('join');
             } catch (error) {
-                alert('Invalid or expired invite link');
+                // Check if it's an expiration error (410 status)
+                if (error.message.includes('expired')) {
+                    alert('This invite link has expired. Please ask the organization admin for a new link.');
+                } else {
+                    alert('Invalid invite link. Please check the link and try again.');
+                }
                 showPage('onboarding');
             }
         };
@@ -1090,16 +1106,23 @@
         };
 
         const createOrganization = async () => {
-            const nameInput = document.getElementById('create-org-name');
-            const name = nameInput.value.trim();
+            const adminNameInput = document.getElementById('create-admin-name');
+            const orgNameInput = document.getElementById('create-org-name');
+            const adminName = adminNameInput.value.trim();
+            const orgName = orgNameInput.value.trim();
 
-            if (!name) {
+            if (!adminName) {
+                alert('Please enter your full name');
+                return;
+            }
+
+            if (!orgName) {
                 alert('Please enter an organization name');
                 return;
             }
 
             try {
-                const org = await api.createOrg(name);
+                const org = await api.createOrg(orgName, adminName);
                 state.currentOrg = org;
                 state.currentMembership = { role: 'admin' };
                 await loadAdminDashboard();
@@ -1129,9 +1152,60 @@
             state.members = members;
             state.availableBots = bots;
 
-            document.getElementById('invite-link-text').textContent = inviteLink.url;
+            updateInviteLinkDisplay(inviteLink);
             renderRequests();
             renderMembers();
+        };
+
+        const updateInviteLinkDisplay = (inviteLink) => {
+            const linkText = document.getElementById('invite-link-text');
+            const statusBadge = document.getElementById('invite-status-badge');
+            const statusText = document.getElementById('invite-status-text');
+            const copyBtn = document.getElementById('invite-copy-btn');
+            const regenerateBtn = document.getElementById('regenerate-btn');
+            const card = document.getElementById('invite-card');
+
+            linkText.textContent = inviteLink.url;
+
+            if (inviteLink.is_expired) {
+                // Link is expired
+                statusBadge.textContent = 'Expired';
+                statusBadge.style.background = 'rgba(239, 68, 68, 0.3)';
+                statusText.textContent = 'This invite link has expired. Generate a new one to invite team members.';
+                copyBtn.classList.add('hidden');
+                regenerateBtn.classList.remove('hidden');
+                card.style.background = 'linear-gradient(135deg, #6b7280 0%, #4b5563 100%)';
+            } else {
+                // Link is active - show time remaining
+                const expiresAt = new Date(inviteLink.expires_at);
+                const now = new Date();
+                const hoursLeft = Math.max(0, Math.floor((expiresAt - now) / (1000 * 60 * 60)));
+                const minsLeft = Math.max(0, Math.floor(((expiresAt - now) % (1000 * 60 * 60)) / (1000 * 60)));
+
+                statusBadge.textContent = `${hoursLeft}h ${minsLeft}m left`;
+                statusBadge.style.background = 'rgba(255, 255, 255, 0.2)';
+                statusText.textContent = 'Share this link with your team via Telegram';
+                copyBtn.classList.remove('hidden');
+                regenerateBtn.classList.add('hidden');
+                card.style.background = 'var(--gradient-primary)';
+            }
+        };
+
+        const regenerateInviteLink = async () => {
+            const btn = document.getElementById('regenerate-btn');
+            btn.disabled = true;
+            btn.textContent = 'Generating...';
+
+            try {
+                const newLink = await api.regenerateInviteLink(state.currentOrg.id);
+                state.inviteLink = newLink;
+                updateInviteLinkDisplay(newLink);
+            } catch (error) {
+                alert(error.message);
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Generate New Link';
+            }
         };
 
         const switchAdminTab = (tab) => {
@@ -1147,7 +1221,7 @@
                 await navigator.clipboard.writeText(state.inviteLink.url);
 
                 // Visual feedback
-                const btn = document.querySelector('.invite-copy-btn');
+                const btn = document.getElementById('invite-copy-btn');
                 btn.textContent = 'Copied!';
                 setTimeout(() => btn.textContent = 'Copy', 2000);
             } catch {

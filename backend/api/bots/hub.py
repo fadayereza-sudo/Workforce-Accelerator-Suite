@@ -10,7 +10,7 @@ Handles:
 - Bot access management
 """
 import secrets
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from typing import List, Optional
 from fastapi import APIRouter, Header, HTTPException, BackgroundTasks
 
@@ -99,19 +99,33 @@ async def create_organization(
     tg_user = get_telegram_user(x_telegram_init_data)
     db = get_supabase_admin()
 
-    # Get user
-    user = db.table("users").select("id").eq("telegram_id", tg_user.id).single().execute()
-    if not user.data:
-        raise HTTPException(404, "User not found")
+    # Get or create user, updating their full name
+    user_result = db.table("users").select("id").eq("telegram_id", tg_user.id).execute()
 
-    user_id = user.data["id"]
+    if user_result.data:
+        # Update existing user's name
+        user_id = user_result.data[0]["id"]
+        db.table("users").update({
+            "full_name": data.admin_full_name
+        }).eq("id", user_id).execute()
+    else:
+        # Create new user with provided name
+        new_user = db.table("users").insert({
+            "telegram_id": tg_user.id,
+            "telegram_username": tg_user.username,
+            "full_name": data.admin_full_name,
+            "avatar_url": tg_user.photo_url
+        }).execute()
+        user_id = new_user.data[0]["id"]
 
-    # Create org with unique invite code
+    # Create org with unique invite code (expires in 24 hours)
     invite_code = secrets.token_urlsafe(8)
+    expires_at = datetime.now(timezone.utc) + timedelta(hours=24)
     org_data = {
         "name": data.name,
         "created_by": user_id,
         "invite_code": invite_code,
+        "invite_code_expires_at": expires_at.isoformat(),
         "settings": {}
     }
     org_result = db.table("organizations").insert(org_data).execute()
@@ -181,9 +195,13 @@ async def get_invite_link(
         raise HTTPException(403, "Admin access required")
 
     # Get org
-    org = db.table("organizations").select("name, invite_code").eq(
+    org = db.table("organizations").select("name, invite_code, invite_code_expires_at").eq(
         "id", org_id
     ).single().execute()
+
+    # Check expiration
+    expires_at = datetime.fromisoformat(org.data["invite_code_expires_at"].replace("Z", "+00:00"))
+    is_expired = datetime.now(timezone.utc) > expires_at
 
     # Generate full URL - this opens the Mini App with the invite code
     # Format: https://t.me/BotUsername/app?startapp=invite_CODE
@@ -193,7 +211,53 @@ async def get_invite_link(
     return InviteLink(
         url=url,
         code=org.data["invite_code"],
-        org_name=org.data["name"]
+        org_name=org.data["name"],
+        expires_at=expires_at,
+        is_expired=is_expired
+    )
+
+
+@router.post("/orgs/{org_id}/regenerate-invite")
+async def regenerate_invite_link(
+    org_id: str,
+    x_telegram_init_data: str = Header(...)
+) -> InviteLink:
+    """Regenerate the invite link for an organization (admin only)."""
+    tg_user = get_telegram_user(x_telegram_init_data)
+    db = get_supabase_admin()
+
+    # Verify admin
+    user = db.table("users").select("id").eq("telegram_id", tg_user.id).single().execute()
+    membership = db.table("memberships").select("role").eq(
+        "user_id", user.data["id"]
+    ).eq("org_id", org_id).single().execute()
+
+    if not membership.data or membership.data["role"] != "admin":
+        raise HTTPException(403, "Admin access required")
+
+    # Generate new invite code with 24-hour expiration
+    new_code = secrets.token_urlsafe(8)
+    expires_at = datetime.now(timezone.utc) + timedelta(hours=24)
+
+    # Update org
+    db.table("organizations").update({
+        "invite_code": new_code,
+        "invite_code_expires_at": expires_at.isoformat()
+    }).eq("id", org_id).execute()
+
+    # Get org name
+    org = db.table("organizations").select("name").eq("id", org_id).single().execute()
+
+    # Generate URL
+    bot_username = "apex_org_bot"
+    url = f"https://t.me/{bot_username}/app?startapp=invite_{new_code}"
+
+    return InviteLink(
+        url=url,
+        code=new_code,
+        org_name=org.data["name"],
+        expires_at=expires_at,
+        is_expired=False
     )
 
 
@@ -202,12 +266,17 @@ async def get_invite_info(invite_code: str) -> dict:
     """Get organization info from invite code (public endpoint)."""
     db = get_supabase_admin()
 
-    org = db.table("organizations").select("id, name").eq(
+    org = db.table("organizations").select("id, name, invite_code_expires_at").eq(
         "invite_code", invite_code
     ).execute()
 
     if not org.data:
         raise HTTPException(404, "Invalid invite code")
+
+    # Check if expired
+    expires_at = datetime.fromisoformat(org.data[0]["invite_code_expires_at"].replace("Z", "+00:00"))
+    if datetime.now(timezone.utc) > expires_at:
+        raise HTTPException(410, "This invite link has expired")
 
     return {
         "org_id": org.data[0]["id"],
@@ -254,7 +323,7 @@ async def create_membership_request(
         user = user_result.data[0]
 
     # Find org by invite code
-    org = db.table("organizations").select("id, name, created_by").eq(
+    org = db.table("organizations").select("id, name, created_by, invite_code_expires_at").eq(
         "invite_code", data.invite_code
     ).execute()
 
@@ -262,6 +331,11 @@ async def create_membership_request(
         raise HTTPException(404, "Invalid invite code")
 
     org_data = org.data[0]
+
+    # Check if invite code has expired
+    expires_at = datetime.fromisoformat(org_data["invite_code_expires_at"].replace("Z", "+00:00"))
+    if datetime.now(timezone.utc) > expires_at:
+        raise HTTPException(410, "This invite link has expired")
 
     # Check if already a member
     existing = db.table("memberships").select("id").eq(

@@ -9,6 +9,7 @@ from pydantic import BaseModel
 class OrgCreate(BaseModel):
     """Data needed to create an organization."""
     name: str
+    admin_full_name: str  # Admin's name for formality
 
 
 class Organization(BaseModel):
@@ -30,3 +31,5 @@ class InviteLink(BaseModel):
     url: str
     code: str
     org_name: str
+    expires_at: datetime
+    is_expired: bool
