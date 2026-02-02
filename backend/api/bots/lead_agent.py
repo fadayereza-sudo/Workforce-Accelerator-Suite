@@ -292,7 +292,7 @@ async def search_prospects(
     Deduplicates against existing prospects and queues AI generation.
     """
     tg_user = get_telegram_user(x_telegram_init_data)
-    user_id = await verify_org_member(tg_user.id, org_id)[0]
+    user_id, _ = await verify_org_member(tg_user.id, org_id)
 
     db = get_supabase_admin()
 
