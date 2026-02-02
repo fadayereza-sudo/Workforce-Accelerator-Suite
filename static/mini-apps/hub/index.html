@@ -1,0 +1,1353 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Workforce Hub</title>
+
+    <!-- Telegram Web App SDK -->
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+
+    <style>
+        /* ═══════════════════════════════════════════════════════════════════════
+           DESIGN SYSTEM - Premium aesthetics for Telegram Mini App
+           ═══════════════════════════════════════════════════════════════════════ */
+
+        :root {
+            /* Telegram Theme Variables (overridden by SDK) */
+            --tg-theme-bg-color: #ffffff;
+            --tg-theme-secondary-bg-color: #f4f4f5;
+            --tg-theme-text-color: #000000;
+            --tg-theme-hint-color: #999999;
+            --tg-theme-link-color: #2481cc;
+            --tg-theme-button-color: #2481cc;
+            --tg-theme-button-text-color: #ffffff;
+
+            /* Extended Palette */
+            --color-success: #10b981;
+            --color-success-light: #d1fae5;
+            --color-warning: #f59e0b;
+            --color-warning-light: #fef3c7;
+            --color-error: #ef4444;
+            --color-error-light: #fee2e2;
+
+            /* Gradients */
+            --gradient-primary: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --gradient-success: linear-gradient(135deg, #10b981 0%, #34d399 100%);
+            --gradient-warm: linear-gradient(135deg, #f59e0b 0%, #fbbf24 100%);
+
+            /* Shadows */
+            --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+            --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08);
+            --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.12);
+            --shadow-glow: 0 0 20px rgba(102, 126, 234, 0.3);
+
+            /* Typography */
+            --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+
+            /* Spacing */
+            --space-xs: 4px;
+            --space-sm: 8px;
+            --space-md: 16px;
+            --space-lg: 24px;
+            --space-xl: 32px;
+            --space-2xl: 48px;
+
+            /* Radius */
+            --radius-sm: 8px;
+            --radius-md: 12px;
+            --radius-lg: 16px;
+            --radius-full: 9999px;
+
+            /* Transitions */
+            --transition-fast: 150ms ease;
+            --transition-normal: 250ms ease;
+            --transition-smooth: 350ms cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        /* ─────────────────────────────────────────────────────────────────────
+           BASE STYLES
+           ───────────────────────────────────────────────────────────────────── */
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        html, body {
+            height: 100%;
+            overflow-x: hidden;
+        }
+
+        body {
+            font-family: var(--font-sans);
+            font-size: 16px;
+            line-height: 1.5;
+            color: var(--tg-theme-text-color);
+            background: var(--tg-theme-bg-color);
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        /* ─────────────────────────────────────────────────────────────────────
+           LAYOUT
+           ───────────────────────────────────────────────────────────────────── */
+
+        #app {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .page {
+            display: none;
+            flex: 1;
+            padding: var(--space-lg);
+            animation: fadeIn 0.3s ease;
+        }
+
+        .page.active {
+            display: flex;
+            flex-direction: column;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .page-header {
+            margin-bottom: var(--space-lg);
+        }
+
+        .page-title {
+            font-size: 28px;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+            margin-bottom: var(--space-xs);
+        }
+
+        .page-subtitle {
+            color: var(--tg-theme-hint-color);
+            font-size: 15px;
+        }
+
+        /* ─────────────────────────────────────────────────────────────────────
+           COMPONENTS: CARDS
+           ───────────────────────────────────────────────────────────────────── */
+
+        .card {
+            background: var(--tg-theme-secondary-bg-color);
+            border-radius: var(--radius-lg);
+            padding: var(--space-lg);
+            margin-bottom: var(--space-md);
+        }
+
+        .card-elevated {
+            background: var(--tg-theme-bg-color);
+            box-shadow: var(--shadow-md);
+        }
+
+        .card-gradient {
+            background: var(--gradient-primary);
+            color: white;
+        }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: var(--space-md);
+        }
+
+        .card-title {
+            font-size: 17px;
+            font-weight: 600;
+        }
+
+        .card-badge {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 4px 10px;
+            border-radius: var(--radius-full);
+            font-size: 13px;
+            font-weight: 500;
+        }
+
+        /* ─────────────────────────────────────────────────────────────────────
+           COMPONENTS: BUTTONS
+           ───────────────────────────────────────────────────────────────────── */
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: var(--space-sm);
+            padding: 14px 24px;
+            border: none;
+            border-radius: var(--radius-md);
+            font-family: inherit;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all var(--transition-fast);
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .btn:active {
+            transform: scale(0.98);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-primary {
+            background: var(--gradient-primary);
+            color: white;
+            box-shadow: var(--shadow-md);
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            box-shadow: var(--shadow-glow);
+        }
+
+        .btn-secondary {
+            background: var(--tg-theme-secondary-bg-color);
+            color: var(--tg-theme-text-color);
+        }
+
+        .btn-outline {
+            background: transparent;
+            border: 2px solid var(--tg-theme-button-color);
+            color: var(--tg-theme-button-color);
+        }
+
+        .btn-success {
+            background: var(--gradient-success);
+            color: white;
+        }
+
+        .btn-block {
+            width: 100%;
+        }
+
+        .btn-sm {
+            padding: 10px 16px;
+            font-size: 14px;
+        }
+
+        /* ─────────────────────────────────────────────────────────────────────
+           COMPONENTS: INPUTS
+           ───────────────────────────────────────────────────────────────────── */
+
+        .input-group {
+            margin-bottom: var(--space-lg);
+        }
+
+        .input-label {
+            display: block;
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--tg-theme-hint-color);
+            margin-bottom: var(--space-sm);
+        }
+
+        .input {
+            width: 100%;
+            padding: 14px 16px;
+            border: 2px solid transparent;
+            border-radius: var(--radius-md);
+            background: var(--tg-theme-secondary-bg-color);
+            font-family: inherit;
+            font-size: 16px;
+            color: var(--tg-theme-text-color);
+            transition: all var(--transition-fast);
+        }
+
+        .input:focus {
+            outline: none;
+            border-color: var(--tg-theme-button-color);
+            background: var(--tg-theme-bg-color);
+        }
+
+        .input::placeholder {
+            color: var(--tg-theme-hint-color);
+        }
+
+        /* ─────────────────────────────────────────────────────────────────────
+           COMPONENTS: LISTS
+           ───────────────────────────────────────────────────────────────────── */
+
+        .list {
+            display: flex;
+            flex-direction: column;
+            gap: var(--space-sm);
+        }
+
+        .list-item {
+            display: flex;
+            align-items: center;
+            gap: var(--space-md);
+            padding: var(--space-md);
+            background: var(--tg-theme-secondary-bg-color);
+            border-radius: var(--radius-md);
+            transition: background var(--transition-fast);
+        }
+
+        .list-item-clickable {
+            cursor: pointer;
+        }
+
+        .list-item-clickable:active {
+            background: var(--tg-theme-bg-color);
+        }
+
+        .list-item-avatar {
+            width: 44px;
+            height: 44px;
+            border-radius: var(--radius-full);
+            background: var(--gradient-primary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+            font-size: 18px;
+            flex-shrink: 0;
+        }
+
+        .list-item-content {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .list-item-title {
+            font-weight: 600;
+            margin-bottom: 2px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .list-item-subtitle {
+            font-size: 14px;
+            color: var(--tg-theme-hint-color);
+        }
+
+        .list-item-action {
+            flex-shrink: 0;
+        }
+
+        /* ─────────────────────────────────────────────────────────────────────
+           COMPONENTS: CHIPS / TAGS
+           ───────────────────────────────────────────────────────────────────── */
+
+        .chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 12px;
+            background: var(--tg-theme-secondary-bg-color);
+            border-radius: var(--radius-full);
+            font-size: 13px;
+            font-weight: 500;
+        }
+
+        .chip-success {
+            background: var(--color-success-light);
+            color: var(--color-success);
+        }
+
+        .chip-warning {
+            background: var(--color-warning-light);
+            color: var(--color-warning);
+        }
+
+        .chip-selectable {
+            cursor: pointer;
+            transition: all var(--transition-fast);
+            border: 2px solid transparent;
+        }
+
+        .chip-selectable.selected {
+            background: var(--tg-theme-button-color);
+            color: var(--tg-theme-button-text-color);
+            border-color: var(--tg-theme-button-color);
+        }
+
+        .chips-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: var(--space-sm);
+        }
+
+        /* ─────────────────────────────────────────────────────────────────────
+           COMPONENTS: INVITE LINK BOX
+           ───────────────────────────────────────────────────────────────────── */
+
+        .invite-box {
+            background: var(--tg-theme-secondary-bg-color);
+            border-radius: var(--radius-md);
+            padding: var(--space-md);
+            display: flex;
+            align-items: center;
+            gap: var(--space-md);
+        }
+
+        .invite-link {
+            flex: 1;
+            font-family: monospace;
+            font-size: 13px;
+            color: var(--tg-theme-hint-color);
+            word-break: break-all;
+        }
+
+        .invite-copy-btn {
+            background: var(--tg-theme-button-color);
+            color: var(--tg-theme-button-text-color);
+            border: none;
+            padding: 10px 16px;
+            border-radius: var(--radius-sm);
+            font-weight: 600;
+            font-size: 14px;
+            cursor: pointer;
+            flex-shrink: 0;
+        }
+
+        /* ─────────────────────────────────────────────────────────────────────
+           COMPONENTS: EMPTY STATE
+           ───────────────────────────────────────────────────────────────────── */
+
+        .empty-state {
+            text-align: center;
+            padding: var(--space-2xl) var(--space-lg);
+            color: var(--tg-theme-hint-color);
+        }
+
+        .empty-state-icon {
+            font-size: 48px;
+            margin-bottom: var(--space-md);
+            opacity: 0.5;
+        }
+
+        .empty-state-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--tg-theme-text-color);
+            margin-bottom: var(--space-sm);
+        }
+
+        /* ─────────────────────────────────────────────────────────────────────
+           COMPONENTS: LOADING
+           ───────────────────────────────────────────────────────────────────── */
+
+        .skeleton {
+            background: linear-gradient(
+                90deg,
+                var(--tg-theme-secondary-bg-color) 25%,
+                var(--tg-theme-bg-color) 50%,
+                var(--tg-theme-secondary-bg-color) 75%
+            );
+            background-size: 200% 100%;
+            animation: skeleton-shimmer 1.5s infinite;
+            border-radius: var(--radius-md);
+        }
+
+        @keyframes skeleton-shimmer {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+
+        .loading-spinner {
+            width: 24px;
+            height: 24px;
+            border: 3px solid var(--tg-theme-secondary-bg-color);
+            border-top-color: var(--tg-theme-button-color);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .loading-center {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            flex: 1;
+            gap: var(--space-md);
+        }
+
+        /* ─────────────────────────────────────────────────────────────────────
+           COMPONENTS: STATUS INDICATOR
+           ───────────────────────────────────────────────────────────────────── */
+
+        .status-pending {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            padding: var(--space-2xl);
+        }
+
+        .status-icon {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 36px;
+            margin-bottom: var(--space-lg);
+        }
+
+        .status-icon-waiting {
+            background: var(--color-warning-light);
+        }
+
+        .status-icon-success {
+            background: var(--color-success-light);
+        }
+
+        /* ─────────────────────────────────────────────────────────────────────
+           COMPONENTS: TAB BAR
+           ───────────────────────────────────────────────────────────────────── */
+
+        .tabs {
+            display: flex;
+            gap: var(--space-sm);
+            margin-bottom: var(--space-lg);
+            background: var(--tg-theme-secondary-bg-color);
+            padding: 4px;
+            border-radius: var(--radius-md);
+        }
+
+        .tab {
+            flex: 1;
+            padding: 10px;
+            border: none;
+            background: transparent;
+            color: var(--tg-theme-hint-color);
+            font-family: inherit;
+            font-size: 14px;
+            font-weight: 600;
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            transition: all var(--transition-fast);
+        }
+
+        .tab.active {
+            background: var(--tg-theme-bg-color);
+            color: var(--tg-theme-text-color);
+            box-shadow: var(--shadow-sm);
+        }
+
+        /* ─────────────────────────────────────────────────────────────────────
+           COMPONENTS: MODAL / SHEET
+           ───────────────────────────────────────────────────────────────────── */
+
+        .modal-backdrop {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.5);
+            display: none;
+            align-items: flex-end;
+            z-index: 100;
+            animation: fadeIn 0.2s ease;
+        }
+
+        .modal-backdrop.active {
+            display: flex;
+        }
+
+        .modal-sheet {
+            width: 100%;
+            max-height: 90vh;
+            background: var(--tg-theme-bg-color);
+            border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+            padding: var(--space-lg);
+            animation: slideUp 0.3s ease;
+            overflow-y: auto;
+        }
+
+        @keyframes slideUp {
+            from { transform: translateY(100%); }
+            to { transform: translateY(0); }
+        }
+
+        .modal-handle {
+            width: 36px;
+            height: 4px;
+            background: var(--tg-theme-hint-color);
+            opacity: 0.3;
+            border-radius: 2px;
+            margin: 0 auto var(--space-lg);
+        }
+
+        .modal-title {
+            font-size: 20px;
+            font-weight: 700;
+            margin-bottom: var(--space-lg);
+        }
+
+        /* ─────────────────────────────────────────────────────────────────────
+           PAGE-SPECIFIC: ONBOARDING
+           ───────────────────────────────────────────────────────────────────── */
+
+        .onboarding-hero {
+            text-align: center;
+            padding: var(--space-2xl) 0;
+        }
+
+        .onboarding-icon {
+            width: 100px;
+            height: 100px;
+            background: var(--gradient-primary);
+            border-radius: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto var(--space-lg);
+            font-size: 48px;
+            box-shadow: var(--shadow-lg);
+        }
+
+        .onboarding-title {
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: var(--space-sm);
+        }
+
+        .onboarding-subtitle {
+            color: var(--tg-theme-hint-color);
+            font-size: 16px;
+            max-width: 280px;
+            margin: 0 auto;
+        }
+
+        .onboarding-divider {
+            display: flex;
+            align-items: center;
+            gap: var(--space-md);
+            margin: var(--space-lg) 0;
+            color: var(--tg-theme-hint-color);
+            font-size: 14px;
+        }
+
+        .onboarding-divider::before,
+        .onboarding-divider::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: var(--tg-theme-hint-color);
+            opacity: 0.3;
+        }
+
+        /* ─────────────────────────────────────────────────────────────────────
+           UTILITY CLASSES
+           ───────────────────────────────────────────────────────────────────── */
+
+        .text-center { text-align: center; }
+        .text-muted { color: var(--tg-theme-hint-color); }
+        .text-success { color: var(--color-success); }
+        .text-sm { font-size: 14px; }
+        .font-semibold { font-weight: 600; }
+        .mt-auto { margin-top: auto; }
+        .mb-md { margin-bottom: var(--space-md); }
+        .mb-lg { margin-bottom: var(--space-lg); }
+        .hidden { display: none !important; }
+    </style>
+</head>
+<body>
+    <!-- ═══════════════════════════════════════════════════════════════════════
+         APPLICATION MARKUP
+         ═══════════════════════════════════════════════════════════════════════ -->
+
+    <div id="app">
+
+        <!-- ─────────────────────────────────────────────────────────────────
+             PAGE: LOADING
+             ───────────────────────────────────────────────────────────────── -->
+        <div id="page-loading" class="page active">
+            <div class="loading-center">
+                <div class="loading-spinner"></div>
+                <p class="text-muted">Loading...</p>
+            </div>
+        </div>
+
+        <!-- ─────────────────────────────────────────────────────────────────
+             PAGE: ONBOARDING (No org yet)
+             ───────────────────────────────────────────────────────────────── -->
+        <div id="page-onboarding" class="page">
+            <div class="onboarding-hero">
+                <div class="onboarding-icon">🚀</div>
+                <h1 class="onboarding-title">Workforce Hub</h1>
+                <p class="onboarding-subtitle">Manage your team and AI agents in one place</p>
+            </div>
+
+            <button class="btn btn-primary btn-block mb-md" onclick="showCreateOrgForm()">
+                Create Organization
+            </button>
+
+            <div class="onboarding-divider">or</div>
+
+            <p class="text-center text-muted text-sm mb-lg">
+                Have an invite link? Ask your admin to share it with you on Telegram.
+            </p>
+        </div>
+
+        <!-- ─────────────────────────────────────────────────────────────────
+             PAGE: JOIN ORG (via invite link)
+             ───────────────────────────────────────────────────────────────── -->
+        <div id="page-join" class="page">
+            <div class="page-header">
+                <h1 class="page-title">Join Organization</h1>
+                <p class="page-subtitle" id="join-org-name">Loading...</p>
+            </div>
+
+            <div class="card card-elevated">
+                <div class="input-group">
+                    <label class="input-label">Your Full Name</label>
+                    <input type="text" id="join-name-input" class="input" placeholder="Enter your name">
+                </div>
+
+                <p class="text-muted text-sm mb-lg">
+                    Your name will be visible to the organization admin for approval.
+                </p>
+
+                <button class="btn btn-primary btn-block" id="join-submit-btn" onclick="submitJoinRequest()">
+                    Request to Join
+                </button>
+            </div>
+        </div>
+
+        <!-- ─────────────────────────────────────────────────────────────────
+             PAGE: PENDING (Waiting for approval)
+             ───────────────────────────────────────────────────────────────── -->
+        <div id="page-pending" class="page">
+            <div class="status-pending">
+                <div class="status-icon status-icon-waiting">⏳</div>
+                <h2 class="page-title">Awaiting Approval</h2>
+                <p class="text-muted" id="pending-message">
+                    Your request to join has been sent. The admin will review it shortly.
+                </p>
+            </div>
+        </div>
+
+        <!-- ─────────────────────────────────────────────────────────────────
+             PAGE: ADMIN DASHBOARD
+             ───────────────────────────────────────────────────────────────── -->
+        <div id="page-admin" class="page">
+            <div class="page-header">
+                <h1 class="page-title" id="admin-org-name">Organization</h1>
+                <p class="page-subtitle">Admin Dashboard</p>
+            </div>
+
+            <!-- Invite Link Card -->
+            <div class="card card-gradient mb-lg">
+                <div class="card-header">
+                    <span class="card-title">Invite Team Members</span>
+                    <span class="card-badge">Share</span>
+                </div>
+                <p class="text-sm mb-md" style="opacity: 0.9;">
+                    Share this link with your team via Telegram
+                </p>
+                <div class="invite-box" style="background: rgba(255,255,255,0.15);">
+                    <span class="invite-link" id="invite-link-text" style="color: white;">Loading...</span>
+                    <button class="invite-copy-btn" onclick="copyInviteLink()" style="background: white; color: #667eea;">
+                        Copy
+                    </button>
+                </div>
+            </div>
+
+            <!-- Tabs -->
+            <div class="tabs">
+                <button class="tab active" onclick="switchAdminTab('requests')">
+                    Requests <span id="requests-count"></span>
+                </button>
+                <button class="tab" onclick="switchAdminTab('members')">
+                    Members
+                </button>
+            </div>
+
+            <!-- Pending Requests Tab -->
+            <div id="tab-requests" class="tab-content">
+                <div id="requests-list" class="list">
+                    <!-- Populated by JS -->
+                </div>
+                <div id="requests-empty" class="empty-state hidden">
+                    <div class="empty-state-icon">✨</div>
+                    <p class="empty-state-title">No pending requests</p>
+                    <p>Share your invite link to add team members</p>
+                </div>
+            </div>
+
+            <!-- Members Tab -->
+            <div id="tab-members" class="tab-content hidden">
+                <div id="members-list" class="list">
+                    <!-- Populated by JS -->
+                </div>
+            </div>
+        </div>
+
+        <!-- ─────────────────────────────────────────────────────────────────
+             PAGE: MEMBER DASHBOARD
+             ───────────────────────────────────────────────────────────────── -->
+        <div id="page-member" class="page">
+            <div class="page-header">
+                <h1 class="page-title" id="member-org-name">Organization</h1>
+                <p class="page-subtitle">Your Agents</p>
+            </div>
+
+            <div id="member-bots-list" class="list">
+                <!-- Populated by JS -->
+            </div>
+
+            <div id="member-no-bots" class="empty-state hidden">
+                <div class="empty-state-icon">🤖</div>
+                <p class="empty-state-title">No agents assigned yet</p>
+                <p>Your admin will grant you access to agents soon</p>
+            </div>
+        </div>
+
+        <!-- ─────────────────────────────────────────────────────────────────
+             PAGE: CREATE ORG FORM
+             ───────────────────────────────────────────────────────────────── -->
+        <div id="page-create-org" class="page">
+            <div class="page-header">
+                <h1 class="page-title">Create Organization</h1>
+                <p class="page-subtitle">Set up your team workspace</p>
+            </div>
+
+            <div class="card card-elevated">
+                <div class="input-group">
+                    <label class="input-label">Organization Name</label>
+                    <input type="text" id="create-org-name" class="input" placeholder="e.g., Acme Corp">
+                </div>
+
+                <button class="btn btn-primary btn-block" onclick="createOrganization()">
+                    Create Organization
+                </button>
+            </div>
+
+            <button class="btn btn-secondary btn-block mt-auto" onclick="showPage('onboarding')">
+                Back
+            </button>
+        </div>
+
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════════════════════
+         MODAL: APPROVE REQUEST
+         ═══════════════════════════════════════════════════════════════════════ -->
+    <div id="modal-approve" class="modal-backdrop">
+        <div class="modal-sheet">
+            <div class="modal-handle"></div>
+
+            <h2 class="modal-title">Approve Request</h2>
+
+            <div class="list-item mb-lg">
+                <div class="list-item-avatar" id="modal-user-avatar">?</div>
+                <div class="list-item-content">
+                    <div class="list-item-title" id="modal-user-name">User Name</div>
+                    <div class="list-item-subtitle" id="modal-user-username">@username</div>
+                </div>
+            </div>
+
+            <p class="input-label">Grant access to agents:</p>
+            <div class="chips-group mb-lg" id="modal-bots-chips">
+                <!-- Populated by JS -->
+            </div>
+
+            <div style="display: flex; gap: var(--space-sm);">
+                <button class="btn btn-secondary" style="flex: 1;" onclick="rejectRequest()">
+                    Reject
+                </button>
+                <button class="btn btn-success" style="flex: 2;" onclick="approveRequest()">
+                    Approve
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════════════════════
+         APPLICATION LOGIC
+         ═══════════════════════════════════════════════════════════════════════ -->
+    <script>
+        /* ─────────────────────────────────────────────────────────────────────
+           TELEGRAM INTEGRATION
+           ───────────────────────────────────────────────────────────────────── */
+
+        const tg = window.Telegram.WebApp;
+        tg.ready();
+        tg.expand();
+
+        // Apply Telegram theme
+        const applyTheme = () => {
+            const root = document.documentElement;
+            if (tg.themeParams) {
+                Object.entries(tg.themeParams).forEach(([key, value]) => {
+                    const cssVar = `--tg-theme-${key.replace(/_/g, '-')}`;
+                    root.style.setProperty(cssVar, value);
+                });
+            }
+        };
+        applyTheme();
+        tg.onEvent('themeChanged', applyTheme);
+
+        // Parse start parameter (for invite links)
+        const getStartParam = () => {
+            const startParam = tg.initDataUnsafe?.start_param;
+            if (startParam && startParam.startsWith('invite_')) {
+                return { type: 'invite', code: startParam.replace('invite_', '') };
+            }
+            return null;
+        };
+
+        /* ─────────────────────────────────────────────────────────────────────
+           STATE
+           ───────────────────────────────────────────────────────────────────── */
+
+        const state = {
+            user: null,
+            memberships: [],
+            pendingRequests: [],
+            currentOrg: null,
+            currentMembership: null,
+            inviteLink: null,
+            membershipRequests: [],
+            members: [],
+            availableBots: [],
+            // For approval modal
+            selectedRequest: null,
+            selectedBotIds: []
+        };
+
+        /* ─────────────────────────────────────────────────────────────────────
+           API
+           ───────────────────────────────────────────────────────────────────── */
+
+        const API_BASE = '/api/hub';
+
+        const api = {
+            async fetch(endpoint, options = {}) {
+                const res = await fetch(`${API_BASE}${endpoint}`, {
+                    ...options,
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Telegram-Init-Data': tg.initData,
+                        ...options.headers
+                    }
+                });
+
+                if (!res.ok) {
+                    const error = await res.json().catch(() => ({ detail: 'Request failed' }));
+                    throw new Error(error.detail || `Error ${res.status}`);
+                }
+
+                return res.json();
+            },
+
+            getMe: () => api.fetch('/me'),
+            createOrg: (name) => api.fetch('/orgs', {
+                method: 'POST',
+                body: JSON.stringify({ name })
+            }),
+            getInviteLink: (orgId) => api.fetch(`/orgs/${orgId}/invite-link`),
+            getInviteInfo: (code) => api.fetch(`/invite/${code}`),
+            submitJoinRequest: (inviteCode, fullName) => api.fetch('/membership-requests', {
+                method: 'POST',
+                body: JSON.stringify({ invite_code: inviteCode, full_name: fullName })
+            }),
+            getMembershipRequests: (orgId) => api.fetch(`/orgs/${orgId}/membership-requests`),
+            getMembers: (orgId) => api.fetch(`/orgs/${orgId}/members`),
+            getBots: () => api.fetch('/bots'),
+            approveRequest: (requestId, approved, botIds) => api.fetch(`/membership-requests/${requestId}/approve`, {
+                method: 'POST',
+                body: JSON.stringify({ request_id: requestId, approved, bot_ids: botIds })
+            })
+        };
+
+        /* ─────────────────────────────────────────────────────────────────────
+           PAGE NAVIGATION
+           ───────────────────────────────────────────────────────────────────── */
+
+        const showPage = (pageName) => {
+            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+            document.getElementById(`page-${pageName}`)?.classList.add('active');
+        };
+
+        /* ─────────────────────────────────────────────────────────────────────
+           INITIALIZATION
+           ───────────────────────────────────────────────────────────────────── */
+
+        const init = async () => {
+            try {
+                // Check for invite link first
+                const startParam = getStartParam();
+
+                // Get user data
+                const data = await api.getMe();
+                state.user = data.user;
+                state.memberships = data.memberships || [];
+                state.pendingRequests = data.pending_requests || [];
+
+                // Handle invite link
+                if (startParam?.type === 'invite') {
+                    await handleInviteLink(startParam.code);
+                    return;
+                }
+
+                // Check if user has pending requests
+                if (state.pendingRequests.length > 0) {
+                    const request = state.pendingRequests[0];
+                    document.getElementById('pending-message').textContent =
+                        `Your request to join "${request.organizations?.name || 'the organization'}" is being reviewed.`;
+                    showPage('pending');
+                    return;
+                }
+
+                // Check if user has memberships
+                if (state.memberships.length > 0) {
+                    const membership = state.memberships[0];
+                    state.currentOrg = membership.organizations;
+                    state.currentMembership = membership;
+
+                    if (membership.role === 'admin') {
+                        await loadAdminDashboard();
+                    } else {
+                        await loadMemberDashboard();
+                    }
+                    return;
+                }
+
+                // No membership - show onboarding
+                showPage('onboarding');
+
+            } catch (error) {
+                console.error('Init error:', error);
+                showPage('onboarding');
+            }
+        };
+
+        /* ─────────────────────────────────────────────────────────────────────
+           INVITE LINK HANDLING
+           ───────────────────────────────────────────────────────────────────── */
+
+        let currentInviteCode = null;
+
+        const handleInviteLink = async (code) => {
+            try {
+                const info = await api.getInviteInfo(code);
+                currentInviteCode = code;
+
+                document.getElementById('join-org-name').textContent = `Join "${info.org_name}"`;
+                document.getElementById('join-name-input').value = state.user?.full_name || '';
+
+                showPage('join');
+            } catch (error) {
+                alert('Invalid or expired invite link');
+                showPage('onboarding');
+            }
+        };
+
+        const submitJoinRequest = async () => {
+            const nameInput = document.getElementById('join-name-input');
+            const submitBtn = document.getElementById('join-submit-btn');
+            const name = nameInput.value.trim();
+
+            if (!name) {
+                alert('Please enter your name');
+                return;
+            }
+
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Sending...';
+
+            try {
+                const result = await api.submitJoinRequest(currentInviteCode, name);
+                document.getElementById('pending-message').textContent =
+                    `Your request to join "${result.org_name}" has been sent. The admin will review it shortly.`;
+                showPage('pending');
+            } catch (error) {
+                alert(error.message);
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Request to Join';
+            }
+        };
+
+        /* ─────────────────────────────────────────────────────────────────────
+           CREATE ORGANIZATION
+           ───────────────────────────────────────────────────────────────────── */
+
+        const showCreateOrgForm = () => {
+            showPage('create-org');
+        };
+
+        const createOrganization = async () => {
+            const nameInput = document.getElementById('create-org-name');
+            const name = nameInput.value.trim();
+
+            if (!name) {
+                alert('Please enter an organization name');
+                return;
+            }
+
+            try {
+                const org = await api.createOrg(name);
+                state.currentOrg = org;
+                state.currentMembership = { role: 'admin' };
+                await loadAdminDashboard();
+            } catch (error) {
+                alert(error.message);
+            }
+        };
+
+        /* ─────────────────────────────────────────────────────────────────────
+           ADMIN DASHBOARD
+           ───────────────────────────────────────────────────────────────────── */
+
+        const loadAdminDashboard = async () => {
+            document.getElementById('admin-org-name').textContent = state.currentOrg.name;
+            showPage('admin');
+
+            // Load data in parallel
+            const [inviteLink, requests, members, bots] = await Promise.all([
+                api.getInviteLink(state.currentOrg.id),
+                api.getMembershipRequests(state.currentOrg.id),
+                api.getMembers(state.currentOrg.id),
+                api.getBots().catch(() => [])
+            ]);
+
+            state.inviteLink = inviteLink;
+            state.membershipRequests = requests;
+            state.members = members;
+            state.availableBots = bots;
+
+            document.getElementById('invite-link-text').textContent = inviteLink.url;
+            renderRequests();
+            renderMembers();
+        };
+
+        const switchAdminTab = (tab) => {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelector(`.tab[onclick="switchAdminTab('${tab}')"]`).classList.add('active');
+
+            document.getElementById('tab-requests').classList.toggle('hidden', tab !== 'requests');
+            document.getElementById('tab-members').classList.toggle('hidden', tab !== 'members');
+        };
+
+        const copyInviteLink = async () => {
+            try {
+                await navigator.clipboard.writeText(state.inviteLink.url);
+
+                // Visual feedback
+                const btn = document.querySelector('.invite-copy-btn');
+                btn.textContent = 'Copied!';
+                setTimeout(() => btn.textContent = 'Copy', 2000);
+            } catch {
+                // Fallback for older browsers
+                alert('Link: ' + state.inviteLink.url);
+            }
+        };
+
+        const renderRequests = () => {
+            const list = document.getElementById('requests-list');
+            const empty = document.getElementById('requests-empty');
+            const countBadge = document.getElementById('requests-count');
+
+            if (state.membershipRequests.length === 0) {
+                list.classList.add('hidden');
+                empty.classList.remove('hidden');
+                countBadge.textContent = '';
+                return;
+            }
+
+            list.classList.remove('hidden');
+            empty.classList.add('hidden');
+            countBadge.textContent = `(${state.membershipRequests.length})`;
+
+            list.innerHTML = state.membershipRequests.map(req => `
+                <div class="list-item list-item-clickable" onclick="openApproveModal('${req.id}')">
+                    <div class="list-item-avatar">${req.full_name.charAt(0).toUpperCase()}</div>
+                    <div class="list-item-content">
+                        <div class="list-item-title">${escapeHtml(req.full_name)}</div>
+                        <div class="list-item-subtitle">${req.telegram_username ? '@' + req.telegram_username : 'Pending'}</div>
+                    </div>
+                    <div class="list-item-action">
+                        <span class="chip chip-warning">Review</span>
+                    </div>
+                </div>
+            `).join('');
+        };
+
+        const renderMembers = () => {
+            const list = document.getElementById('members-list');
+
+            list.innerHTML = state.members.map(member => `
+                <div class="list-item">
+                    <div class="list-item-avatar">${member.full_name.charAt(0).toUpperCase()}</div>
+                    <div class="list-item-content">
+                        <div class="list-item-title">${escapeHtml(member.full_name)}</div>
+                        <div class="list-item-subtitle">
+                            ${member.role === 'admin' ? '👑 Admin' : member.bot_access.length + ' agents'}
+                        </div>
+                    </div>
+                    ${member.role === 'admin' ? '<span class="chip">Admin</span>' : ''}
+                </div>
+            `).join('');
+        };
+
+        /* ─────────────────────────────────────────────────────────────────────
+           APPROVAL MODAL
+           ───────────────────────────────────────────────────────────────────── */
+
+        const openApproveModal = (requestId) => {
+            const request = state.membershipRequests.find(r => r.id === requestId);
+            if (!request) return;
+
+            state.selectedRequest = request;
+            state.selectedBotIds = [];
+
+            document.getElementById('modal-user-name').textContent = request.full_name;
+            document.getElementById('modal-user-username').textContent =
+                request.telegram_username ? '@' + request.telegram_username : 'No username';
+            document.getElementById('modal-user-avatar').textContent =
+                request.full_name.charAt(0).toUpperCase();
+
+            // Render bot chips
+            const chipsContainer = document.getElementById('modal-bots-chips');
+            if (state.availableBots.length > 0) {
+                chipsContainer.innerHTML = state.availableBots.map(bot => `
+                    <button class="chip chip-selectable" data-bot-id="${bot.id}" onclick="toggleBotSelection('${bot.id}')">
+                        ${escapeHtml(bot.name)}
+                    </button>
+                `).join('');
+            } else {
+                chipsContainer.innerHTML = '<p class="text-muted text-sm">No agents available yet</p>';
+            }
+
+            document.getElementById('modal-approve').classList.add('active');
+        };
+
+        const closeApproveModal = () => {
+            document.getElementById('modal-approve').classList.remove('active');
+            state.selectedRequest = null;
+            state.selectedBotIds = [];
+        };
+
+        const toggleBotSelection = (botId) => {
+            const index = state.selectedBotIds.indexOf(botId);
+            if (index > -1) {
+                state.selectedBotIds.splice(index, 1);
+            } else {
+                state.selectedBotIds.push(botId);
+            }
+
+            // Update chip visual
+            const chip = document.querySelector(`[data-bot-id="${botId}"]`);
+            chip?.classList.toggle('selected', state.selectedBotIds.includes(botId));
+        };
+
+        const approveRequest = async () => {
+            if (!state.selectedRequest) return;
+
+            try {
+                await api.approveRequest(state.selectedRequest.id, true, state.selectedBotIds);
+
+                // Remove from list and refresh
+                state.membershipRequests = state.membershipRequests.filter(
+                    r => r.id !== state.selectedRequest.id
+                );
+                closeApproveModal();
+                renderRequests();
+
+                // Refresh members
+                const members = await api.getMembers(state.currentOrg.id);
+                state.members = members;
+                renderMembers();
+
+            } catch (error) {
+                alert(error.message);
+            }
+        };
+
+        const rejectRequest = async () => {
+            if (!state.selectedRequest) return;
+
+            if (!confirm('Are you sure you want to reject this request?')) return;
+
+            try {
+                await api.approveRequest(state.selectedRequest.id, false, []);
+
+                state.membershipRequests = state.membershipRequests.filter(
+                    r => r.id !== state.selectedRequest.id
+                );
+                closeApproveModal();
+                renderRequests();
+
+            } catch (error) {
+                alert(error.message);
+            }
+        };
+
+        // Close modal on backdrop click
+        document.getElementById('modal-approve').addEventListener('click', (e) => {
+            if (e.target.classList.contains('modal-backdrop')) {
+                closeApproveModal();
+            }
+        });
+
+        /* ─────────────────────────────────────────────────────────────────────
+           MEMBER DASHBOARD
+           ───────────────────────────────────────────────────────────────────── */
+
+        const loadMemberDashboard = async () => {
+            document.getElementById('member-org-name').textContent = state.currentOrg.name;
+            showPage('member');
+
+            // Get member's bot access
+            const members = await api.getMembers(state.currentOrg.id);
+            const me = members.find(m => m.user_id === state.user.id);
+
+            if (me && me.bot_access.length > 0) {
+                document.getElementById('member-no-bots').classList.add('hidden');
+                document.getElementById('member-bots-list').innerHTML = me.bot_access.map(bot => `
+                    <div class="list-item">
+                        <div class="list-item-avatar" style="background: var(--gradient-success);">🤖</div>
+                        <div class="list-item-content">
+                            <div class="list-item-title">${escapeHtml(bot.bot_name)}</div>
+                            <div class="list-item-subtitle">Access granted</div>
+                        </div>
+                        <span class="chip chip-success">Active</span>
+                    </div>
+                `).join('');
+            } else {
+                document.getElementById('member-bots-list').classList.add('hidden');
+                document.getElementById('member-no-bots').classList.remove('hidden');
+            }
+        };
+
+        /* ─────────────────────────────────────────────────────────────────────
+           UTILITIES
+           ───────────────────────────────────────────────────────────────────── */
+
+        const escapeHtml = (text) => {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        };
+
+        /* ─────────────────────────────────────────────────────────────────────
+           START APP
+           ───────────────────────────────────────────────────────────────────── */
+
+        init();
+    </script>
+</body>
+</html>
