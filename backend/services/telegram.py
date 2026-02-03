@@ -26,6 +26,10 @@ def verify_init_data(init_data: str, bot_token: Optional[str] = None) -> dict:
     if not token:
         raise HTTPException(status_code=500, detail="Bot token not configured")
 
+    # Debug logging
+    print(f"[DEBUG] Verifying initData with token: {token[:20]}...")
+    print(f"[DEBUG] initData (first 100 chars): {init_data[:100]}...")
+
     # Parse the query string
     parsed = dict(parse_qs(init_data, keep_blank_values=True))
     # parse_qs returns lists, flatten single values
@@ -54,6 +58,10 @@ def verify_init_data(init_data: str, bot_token: Optional[str] = None) -> dict:
         msg=data_check_string.encode(),
         digestmod=hashlib.sha256
     ).hexdigest()
+
+    # Debug logging
+    print(f"[DEBUG] Received hash: {received_hash}")
+    print(f"[DEBUG] Expected hash: {expected_hash}")
 
     # Constant-time comparison
     if not hmac.compare_digest(received_hash, expected_hash):
