@@ -3,6 +3,8 @@ Workforce Accelerator - FastAPI Backend
 
 Entry point for the application.
 """
+import asyncio
+from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
@@ -11,12 +13,32 @@ from pathlib import Path
 
 from api.bots import hub, lead_agent
 from config import settings
+from services.notification_scheduler import notification_scheduler_loop
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Startup and shutdown events."""
+    # Start notification scheduler in background
+    scheduler_task = asyncio.create_task(notification_scheduler_loop(poll_interval_seconds=60))
+    print("[Startup] Notification scheduler started")
+
+    yield
+
+    # Cancel scheduler on shutdown
+    scheduler_task.cancel()
+    try:
+        await scheduler_task
+    except asyncio.CancelledError:
+        print("[Shutdown] Notification scheduler stopped")
+
 
 # Create app
 app = FastAPI(
     title="Workforce Accelerator API",
     description="Backend for Telegram Mini App platform",
-    version="1.0.0"
+    version="1.0.0",
+    lifespan=lifespan
 )
 
 # CORS - allow all for development

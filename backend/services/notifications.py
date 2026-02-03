@@ -67,3 +67,17 @@ async def notify_user_rejected(
         f"Please contact the organization admin for more information."
     )
     return await send_telegram_message(user_telegram_id, text)
+
+
+async def send_journal_reminder(
+    user_telegram_id: int,
+    business_name: str,
+    message: str
+) -> bool:
+    """Send a journal follow-up reminder to a user."""
+    text = (
+        f"<b>Follow-up Reminder</b>\n\n"
+        f"{message}\n\n"
+        f"<i>Lead: {business_name}</i>"
+    )
+    return await send_telegram_message(user_telegram_id, text)

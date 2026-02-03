@@ -28,7 +28,10 @@ from .lead_agent import (
     SearchResult,
     SearchHistory,
     LeadAgentDashboard,
-    CurrencyUpdate
+    CurrencyUpdate,
+    JournalEntryCreate,
+    JournalEntryUpdate,
+    JournalEntry
 )
 
 __all__ = [
@@ -63,5 +66,8 @@ __all__ = [
     "SearchResult",
     "SearchHistory",
     "LeadAgentDashboard",
-    "CurrencyUpdate"
+    "CurrencyUpdate",
+    "JournalEntryCreate",
+    "JournalEntryUpdate",
+    "JournalEntry"
 ]

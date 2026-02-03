@@ -193,3 +193,39 @@ class LeadAgentDashboard(BaseModel):
 class CurrencyUpdate(BaseModel):
     """Update organization's lead agent currency."""
     currency: str = Field(..., min_length=3, max_length=3)
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# JOURNAL ENTRY MODELS
+# ─────────────────────────────────────────────────────────────────────────────
+
+class JournalEntryCreate(BaseModel):
+    """Create a new journal entry."""
+    content: str = Field(..., min_length=1, max_length=2000)
+    interaction_type: str = Field(
+        default="note",
+        pattern="^(call|email|whatsapp|meeting|text|note|other)$"
+    )
+
+
+class JournalEntryUpdate(BaseModel):
+    """Update an existing journal entry."""
+    content: Optional[str] = Field(None, min_length=1, max_length=2000)
+    interaction_type: Optional[str] = Field(
+        None,
+        pattern="^(call|email|whatsapp|meeting|text|note|other)$"
+    )
+
+
+class JournalEntry(BaseModel):
+    """Full journal entry model from database."""
+    id: str
+    prospect_id: str
+    user_id: str
+    content: str
+    interaction_type: str
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        from_attributes = True

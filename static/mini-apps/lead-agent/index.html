@@ -1240,6 +1240,115 @@
         }
 
         /* ═══════════════════════════════════════════════════════════════
+           JOURNAL SECTION
+           ═══════════════════════════════════════════════════════════════ */
+
+        .journal-section {
+            margin: var(--space-lg) 0;
+        }
+
+        .journal-section .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: var(--space-md);
+        }
+
+        .journal-entries {
+            display: flex;
+            flex-direction: column;
+            gap: var(--space-sm);
+        }
+
+        .journal-entry {
+            background: #ffffff;
+            border: 1px solid var(--color-slate-200);
+            border-radius: var(--radius-md);
+            padding: var(--space-md);
+        }
+
+        .journal-entry-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: var(--space-sm);
+        }
+
+        .journal-entry-type {
+            display: inline-flex;
+            align-items: center;
+            gap: var(--space-xs);
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            color: var(--color-cyan-700);
+            background: rgba(6, 182, 212, 0.1);
+            padding: 4px 8px;
+            border-radius: var(--radius-sm);
+        }
+
+        .journal-entry-date {
+            font-size: 12px;
+            color: var(--color-slate-500);
+        }
+
+        .journal-entry-content {
+            font-size: 14px;
+            line-height: 1.5;
+            color: var(--color-slate-700);
+            white-space: pre-wrap;
+        }
+
+        .journal-entry-actions {
+            display: flex;
+            gap: var(--space-xs);
+            margin-top: var(--space-sm);
+            padding-top: var(--space-sm);
+            border-top: 1px solid var(--color-slate-100);
+        }
+
+        .journal-empty {
+            text-align: center;
+            padding: var(--space-xl);
+            color: var(--color-slate-500);
+            background: var(--color-slate-50);
+            border-radius: var(--radius-md);
+        }
+
+        .journal-empty-icon {
+            font-size: 32px;
+            margin-bottom: var(--space-sm);
+        }
+
+        /* Journal Modal */
+        .journal-type-selector {
+            display: flex;
+            flex-wrap: wrap;
+            gap: var(--space-sm);
+            margin-bottom: var(--space-md);
+        }
+
+        .journal-type-btn {
+            padding: 8px 12px;
+            border: 1px solid var(--color-slate-200);
+            border-radius: var(--radius-sm);
+            background: #ffffff;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+
+        .journal-type-btn.active {
+            border-color: var(--color-cyan-500);
+            background: rgba(6, 182, 212, 0.1);
+            color: var(--color-cyan-700);
+        }
+
+        .journal-type-btn:hover:not(.active) {
+            background: var(--color-slate-50);
+        }
+
+        /* ═══════════════════════════════════════════════════════════════
            MODAL
            ═══════════════════════════════════════════════════════════════ */
 
@@ -1635,6 +1744,32 @@
         </div>
     </div>
 
+    <!-- Journal Entry Modal -->
+    <div id="modal-journal" class="modal-backdrop">
+        <div class="modal-sheet">
+            <div class="modal-header" id="journal-modal-title">Add Entry</div>
+            <div class="form-group">
+                <label class="input-label">Type of Interaction</label>
+                <div class="journal-type-selector">
+                    <button type="button" class="journal-type-btn active" data-type="note" onclick="selectJournalType(this)">&#128221; Note</button>
+                    <button type="button" class="journal-type-btn" data-type="call" onclick="selectJournalType(this)">&#128222; Call</button>
+                    <button type="button" class="journal-type-btn" data-type="email" onclick="selectJournalType(this)">&#9993; Email</button>
+                    <button type="button" class="journal-type-btn" data-type="whatsapp" onclick="selectJournalType(this)">&#128172; WhatsApp</button>
+                    <button type="button" class="journal-type-btn" data-type="meeting" onclick="selectJournalType(this)">&#128197; Meeting</button>
+                    <button type="button" class="journal-type-btn" data-type="text" onclick="selectJournalType(this)">&#128241; Text</button>
+                </div>
+            </div>
+            <div class="form-group">
+                <label class="input-label">What happened?</label>
+                <textarea class="textarea" id="journal-content" rows="4" maxlength="2000" placeholder="E.g., Spoke over phone, they're interested in the premium package. Will send pricing by email."></textarea>
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-secondary" style="flex: 1;" onclick="closeJournalModal()">Cancel</button>
+                <button class="btn btn-primary" style="flex: 1;" id="save-journal-btn" onclick="saveJournalEntry()">Save</button>
+            </div>
+        </div>
+    </div>
+
     <script>
         // ═══════════════════════════════════════════════════════════════
         // TELEGRAM SDK INTEGRATION
@@ -1656,7 +1791,9 @@
             prospects: [],
             dashboard: null,
             currentProspect: null,
-            editingProduct: null
+            editingProduct: null,
+            journalEntries: [],
+            editingJournalEntry: null
         };
 
         // ═══════════════════════════════════════════════════════════════
@@ -1795,6 +1932,20 @@
             deleteProspect: (id) => api.fetch(`/prospects/${id}`, { method: 'DELETE' }),
             getVCard: (id) => api.fetch(`/prospects/${id}/vcard`),
             getCallScript: (id) => api.fetch(`/prospects/${id}/call-script`),
+
+            // Journal Entries
+            getJournalEntries: (prospectId) => api.fetch(`/prospects/${prospectId}/journal`),
+            createJournalEntry: (prospectId, data) => api.fetch(`/prospects/${prospectId}/journal`, {
+                method: 'POST',
+                body: JSON.stringify(data)
+            }),
+            updateJournalEntry: (prospectId, entryId, data) => api.fetch(`/prospects/${prospectId}/journal/${entryId}`, {
+                method: 'PUT',
+                body: JSON.stringify(data)
+            }),
+            deleteJournalEntry: (prospectId, entryId) => api.fetch(`/prospects/${prospectId}/journal/${entryId}`, {
+                method: 'DELETE'
+            }),
 
             // Dashboard
             getDashboard: (orgId) => api.fetch(`/dashboard?org_id=${orgId}`)
@@ -2237,6 +2388,8 @@
                 state.currentProspect = prospect;
                 renderProspectDetail(prospect);
                 showPage('prospect-detail');
+                // Load journal entries after rendering
+                loadJournalEntries(id);
             } catch (error) {
                 alert('Failed to load prospect: ' + error.message);
             }
@@ -2383,6 +2536,20 @@
                             `).join('')}
                         </div>
                     ` : ''}
+                </div>
+
+                <!-- Interaction Journal Section -->
+                <div class="journal-section">
+                    <div class="section-header">
+                        <div class="section-title" style="margin-bottom: 0;">Interaction Journal</div>
+                        <button class="btn btn-primary btn-sm" onclick="openJournalModal()">+ Add Entry</button>
+                    </div>
+                    <div id="journal-entries-list" class="journal-entries">
+                        <div class="journal-empty">
+                            <div class="journal-empty-icon">&#128221;</div>
+                            <p>Loading entries...</p>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- Call Script Section -->
@@ -2583,6 +2750,170 @@
         }
 
         // ═══════════════════════════════════════════════════════════════
+        // JOURNAL ENTRIES
+        // ═══════════════════════════════════════════════════════════════
+
+        async function loadJournalEntries(prospectId) {
+            const list = document.getElementById('journal-entries-list');
+            if (!list) return;
+
+            try {
+                const entries = await api.getJournalEntries(prospectId);
+                state.journalEntries = entries;
+
+                if (entries.length === 0) {
+                    list.innerHTML = `
+                        <div class="journal-empty">
+                            <div class="journal-empty-icon">&#128221;</div>
+                            <p>No entries yet</p>
+                            <p style="font-size: 12px; margin-top: 4px;">Add your first interaction note</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                list.innerHTML = entries.map(entry => renderJournalEntry(entry)).join('');
+            } catch (error) {
+                console.error('Failed to load journal entries:', error);
+                list.innerHTML = '<p class="error" style="color: var(--color-error); text-align: center; padding: var(--space-md);">Failed to load entries</p>';
+            }
+        }
+
+        function renderJournalEntry(entry) {
+            const typeIcons = {
+                call: '&#128222;',
+                email: '&#9993;',
+                whatsapp: '&#128172;',
+                meeting: '&#128197;',
+                text: '&#128241;',
+                note: '&#128221;',
+                other: '&#128196;'
+            };
+
+            const icon = typeIcons[entry.interaction_type] || typeIcons.note;
+            const date = new Date(entry.created_at).toLocaleDateString('en-US', {
+                month: 'short',
+                day: 'numeric',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+
+            return `
+                <div class="journal-entry" data-entry-id="${entry.id}">
+                    <div class="journal-entry-header">
+                        <span class="journal-entry-type">${icon} ${entry.interaction_type}</span>
+                        <span class="journal-entry-date">${date}</span>
+                    </div>
+                    <div class="journal-entry-content">${escapeHtml(entry.content)}</div>
+                    <div class="journal-entry-actions">
+                        <button class="btn btn-ghost btn-sm" onclick="editJournalEntry('${entry.id}')">Edit</button>
+                        <button class="btn btn-ghost btn-sm" style="color: var(--color-error);" onclick="deleteJournalEntry('${entry.id}')">Delete</button>
+                    </div>
+                </div>
+            `;
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function openJournalModal(entry = null) {
+            state.editingJournalEntry = entry;
+
+            // Reset form
+            document.getElementById('journal-content').value = entry?.content || '';
+
+            // Reset type buttons
+            document.querySelectorAll('.journal-type-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.type === (entry?.interaction_type || 'note'));
+            });
+
+            // Update modal title
+            document.getElementById('journal-modal-title').textContent = entry ? 'Edit Entry' : 'Add Entry';
+
+            document.getElementById('modal-journal').classList.add('active');
+        }
+
+        function closeJournalModal() {
+            document.getElementById('modal-journal').classList.remove('active');
+            state.editingJournalEntry = null;
+        }
+
+        function selectJournalType(btn) {
+            document.querySelectorAll('.journal-type-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+        }
+
+        async function saveJournalEntry() {
+            const content = document.getElementById('journal-content').value.trim();
+            if (!content) {
+                alert('Please enter some content');
+                return;
+            }
+
+            const activeTypeBtn = document.querySelector('.journal-type-btn.active');
+            const interactionType = activeTypeBtn?.dataset.type || 'note';
+
+            const btn = document.getElementById('save-journal-btn');
+            btn.disabled = true;
+            btn.textContent = 'Saving...';
+
+            try {
+                const prospectId = state.currentProspect.id;
+
+                if (state.editingJournalEntry) {
+                    await api.updateJournalEntry(prospectId, state.editingJournalEntry.id, {
+                        content,
+                        interaction_type: interactionType
+                    });
+                } else {
+                    await api.createJournalEntry(prospectId, {
+                        content,
+                        interaction_type: interactionType
+                    });
+                }
+
+                closeJournalModal();
+                await loadJournalEntries(prospectId);
+
+                // Haptic feedback
+                if (window.Telegram?.WebApp?.HapticFeedback) {
+                    window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
+                }
+            } catch (error) {
+                alert('Failed to save entry: ' + error.message);
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Save';
+            }
+        }
+
+        async function editJournalEntry(entryId) {
+            const entry = state.journalEntries.find(e => e.id === entryId);
+            if (entry) {
+                openJournalModal(entry);
+            }
+        }
+
+        async function deleteJournalEntry(entryId) {
+            if (!confirm('Delete this entry?')) return;
+
+            try {
+                await api.deleteJournalEntry(state.currentProspect.id, entryId);
+                await loadJournalEntries(state.currentProspect.id);
+
+                if (window.Telegram?.WebApp?.HapticFeedback) {
+                    window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
+                }
+            } catch (error) {
+                alert('Failed to delete entry: ' + error.message);
+            }
+        }
+
+        // ═══════════════════════════════════════════════════════════════
         // CALL SCRIPT TOGGLE
         // ═══════════════════════════════════════════════════════════════
 
@@ -2699,6 +3030,12 @@
         document.getElementById('modal-manual-entry').addEventListener('click', (e) => {
             if (e.target.classList.contains('modal-backdrop')) {
                 closeManualEntryModal();
+            }
+        });
+
+        document.getElementById('modal-journal').addEventListener('click', (e) => {
+            if (e.target.classList.contains('modal-backdrop')) {
+                closeJournalModal();
             }
         });
 

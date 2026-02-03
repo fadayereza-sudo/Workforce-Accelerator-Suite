@@ -18,7 +18,8 @@ from models import (
     ProductCreate, ProductUpdate, Product,
     ProspectCreate, ProspectManualCreate, ProspectStatusUpdate, ProspectContactUpdate, Prospect, ProspectCard,
     PainPoint, SearchRequest, ScrapeRequest, SearchResult, SearchHistory,
-    LeadAgentDashboard, CurrencyUpdate
+    LeadAgentDashboard, CurrencyUpdate,
+    JournalEntryCreate, JournalEntryUpdate, JournalEntry
 )
 from services import get_supabase_admin, get_telegram_user
 from services.lead_discovery import LeadDiscoveryService, ScrapedBusiness
@@ -901,6 +902,172 @@ async def get_prospect_vcard(
         "vcard": vcard_data,
         "filename": f"{prospect['business_name'].replace(' ', '_')}.vcf"
     }
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# JOURNAL ENTRY ENDPOINTS
+# ─────────────────────────────────────────────────────────────────────────────
+
+@router.get("/prospects/{prospect_id}/journal")
+async def list_journal_entries(
+    prospect_id: str,
+    x_telegram_init_data: str = Header(...)
+) -> List[JournalEntry]:
+    """List all journal entries for a prospect (sorted by newest first)."""
+    tg_user = get_telegram_user(x_telegram_init_data)
+    db = get_supabase_admin()
+
+    # Get prospect to verify org membership
+    prospect = db.table("lead_agent_prospects").select("org_id").eq(
+        "id", prospect_id
+    ).single().execute()
+
+    if not prospect.data:
+        raise HTTPException(404, "Prospect not found")
+
+    await verify_org_member(tg_user.id, prospect.data["org_id"])
+
+    # Fetch entries
+    result = db.table("lead_agent_journal_entries").select("*").eq(
+        "prospect_id", prospect_id
+    ).order("created_at", desc=True).execute()
+
+    return [JournalEntry(**e) for e in result.data]
+
+
+@router.post("/prospects/{prospect_id}/journal")
+async def create_journal_entry(
+    prospect_id: str,
+    data: JournalEntryCreate,
+    background_tasks: BackgroundTasks,
+    x_telegram_init_data: str = Header(...)
+) -> JournalEntry:
+    """Create a new journal entry and trigger AI notification scheduling."""
+    tg_user = get_telegram_user(x_telegram_init_data)
+    db = get_supabase_admin()
+
+    # Get prospect to verify org membership
+    prospect = db.table("lead_agent_prospects").select("*").eq(
+        "id", prospect_id
+    ).single().execute()
+
+    if not prospect.data:
+        raise HTTPException(404, "Prospect not found")
+
+    user_id, _ = await verify_org_member(tg_user.id, prospect.data["org_id"])
+
+    # Insert entry
+    entry_data = {
+        "prospect_id": prospect_id,
+        "user_id": user_id,
+        "content": data.content,
+        "interaction_type": data.interaction_type
+    }
+
+    result = db.table("lead_agent_journal_entries").insert(entry_data).execute()
+    entry = result.data[0]
+
+    # Queue AI notification scheduling in background
+    from services.timekeeping_agent import process_timekeeping_agent
+    background_tasks.add_task(
+        process_timekeeping_agent,
+        prospect_id=prospect_id,
+        user_id=user_id,
+        entry_id=entry["id"]
+    )
+
+    return JournalEntry(**entry)
+
+
+@router.put("/prospects/{prospect_id}/journal/{entry_id}")
+async def update_journal_entry(
+    prospect_id: str,
+    entry_id: str,
+    data: JournalEntryUpdate,
+    background_tasks: BackgroundTasks,
+    x_telegram_init_data: str = Header(...)
+) -> JournalEntry:
+    """Update a journal entry and re-trigger AI notification scheduling."""
+    tg_user = get_telegram_user(x_telegram_init_data)
+    db = get_supabase_admin()
+
+    # Get entry to verify existence
+    entry_result = db.table("lead_agent_journal_entries").select("*").eq(
+        "id", entry_id
+    ).eq("prospect_id", prospect_id).single().execute()
+
+    if not entry_result.data:
+        raise HTTPException(404, "Journal entry not found")
+
+    # Get prospect for org verification
+    prospect = db.table("lead_agent_prospects").select("org_id").eq(
+        "id", prospect_id
+    ).single().execute()
+
+    user_id, _ = await verify_org_member(tg_user.id, prospect.data["org_id"])
+
+    # Only the creator can edit their entries
+    if entry_result.data["user_id"] != user_id:
+        raise HTTPException(403, "You can only edit your own entries")
+
+    # Build update dict
+    update_data = {}
+    if data.content is not None:
+        update_data["content"] = data.content
+    if data.interaction_type is not None:
+        update_data["interaction_type"] = data.interaction_type
+
+    if not update_data:
+        return JournalEntry(**entry_result.data)
+
+    result = db.table("lead_agent_journal_entries").update(update_data).eq(
+        "id", entry_id
+    ).execute()
+
+    # Re-trigger AI notification scheduling
+    from services.timekeeping_agent import process_timekeeping_agent
+    background_tasks.add_task(
+        process_timekeeping_agent,
+        prospect_id=prospect_id,
+        user_id=user_id,
+        entry_id=entry_id
+    )
+
+    return JournalEntry(**result.data[0])
+
+
+@router.delete("/prospects/{prospect_id}/journal/{entry_id}")
+async def delete_journal_entry(
+    prospect_id: str,
+    entry_id: str,
+    x_telegram_init_data: str = Header(...)
+) -> dict:
+    """Delete a journal entry."""
+    tg_user = get_telegram_user(x_telegram_init_data)
+    db = get_supabase_admin()
+
+    # Get entry to verify existence
+    entry_result = db.table("lead_agent_journal_entries").select("user_id").eq(
+        "id", entry_id
+    ).eq("prospect_id", prospect_id).single().execute()
+
+    if not entry_result.data:
+        raise HTTPException(404, "Journal entry not found")
+
+    # Get prospect for org verification
+    prospect = db.table("lead_agent_prospects").select("org_id").eq(
+        "id", prospect_id
+    ).single().execute()
+
+    user_id, _ = await verify_org_member(tg_user.id, prospect.data["org_id"])
+
+    # Only the creator can delete their entries
+    if entry_result.data["user_id"] != user_id:
+        raise HTTPException(403, "You can only delete your own entries")
+
+    db.table("lead_agent_journal_entries").delete().eq("id", entry_id).execute()
+
+    return {"status": "deleted"}
 
 
 # ─────────────────────────────────────────────────────────────────────────────
