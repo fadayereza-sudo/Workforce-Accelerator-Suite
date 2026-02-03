@@ -446,6 +446,22 @@
             margin-bottom: 4px;
         }
 
+        .contact-field {
+            margin-bottom: var(--space-sm);
+        }
+
+        .contact-field label {
+            display: block;
+            margin-bottom: 4px;
+            font-size: 13px;
+        }
+
+        .contact-field input {
+            width: 100%;
+            padding: 8px 12px;
+            font-size: 14px;
+        }
+
         .prospect-actions {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -921,6 +937,10 @@
                 method: 'PATCH',
                 body: JSON.stringify({ status })
             }),
+            updateProspectContact: (id, phone, email) => api.fetch(`/prospects/${id}/contact`, {
+                method: 'PATCH',
+                body: JSON.stringify({ phone, email })
+            }),
             deleteProspect: (id) => api.fetch(`/prospects/${id}`, { method: 'DELETE' }),
             getVCard: (id) => api.fetch(`/prospects/${id}/vcard`),
 
@@ -960,6 +980,8 @@
                     headers: { 'X-Telegram-Init-Data': tg.initData }
                 }).then(r => r.json());
 
+                console.log('[Lead Agent] Hub data received:', hubData);
+
                 if (!hubData.memberships || hubData.memberships.length === 0) {
                     showPage('loading');
                     document.getElementById('page-loading').innerHTML = `
@@ -972,14 +994,32 @@
                     return;
                 }
 
-                state.orgId = hubData.memberships[0].organizations.id;
-                state.orgName = hubData.memberships[0].organizations.name;
+                console.log('[Lead Agent] First membership:', hubData.memberships[0]);
+
+                // Safely extract org data
+                const membership = hubData.memberships[0];
+                if (!membership.organizations) {
+                    throw new Error('Organization data not found in membership. Please contact support.');
+                }
+
+                state.orgId = membership.organizations.id;
+                state.orgName = membership.organizations.name;
+
+                console.log('[Lead Agent] Org loaded:', state.orgId, state.orgName);
 
                 await loadDashboard();
                 showPage('dashboard');
             } catch (error) {
                 console.error('Init error:', error);
-                alert('Failed to initialize: ' + error.message);
+                showPage('loading');
+                document.getElementById('page-loading').innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">❌</div>
+                        <div class="empty-state-title">Failed to Load</div>
+                        <p>${error.message}</p>
+                        <p style="font-size: 12px; margin-top: 8px; color: #999;">Check console for details</p>
+                    </div>
+                `;
             }
         }
 
@@ -1279,15 +1319,22 @@
                     ${painPointsHtml}
 
                     <div class="prospect-contact">
-                        ${p.phone ? `<p><strong>📞 Phone:</strong> ${p.phone}</p>` : ''}
-                        ${p.email ? `<p><strong>📧 Email:</strong> ${p.email}</p>` : ''}
+                        <div class="contact-field">
+                            <label><strong>📞 Phone:</strong></label>
+                            <input type="tel" id="contact-phone" class="input" value="${p.phone || ''}" placeholder="Add phone number">
+                        </div>
+                        <div class="contact-field">
+                            <label><strong>📧 Email:</strong></label>
+                            <input type="email" id="contact-email" class="input" value="${p.email || ''}" placeholder="Add email address">
+                        </div>
                         ${p.address ? `<p><strong>📍 Address:</strong> ${p.address}</p>` : ''}
-                        ${p.website ? `<p><strong>🌐 Website:</strong> <a href="${p.website}" target="_blank">${p.website}</a></p>` : ''}
+                        <button class="btn btn-primary" onclick="saveContact('${p.id}')">💾 Save Contact Info</button>
                     </div>
 
                     <div class="prospect-actions">
                         ${p.phone ? `<a href="tel:${p.phone.replace(/[^0-9+]/g, '')}" class="btn btn-primary">📞 Call</a>` : '<button class="btn btn-secondary" disabled>📞 Call</button>'}
-                        <button class="btn btn-secondary" onclick="downloadVCard('${p.id}')">👤 Add Contact</button>
+                        <button class="btn btn-secondary" onclick="downloadVCard('${p.id}')">👤 Add to Phone</button>
+                        ${p.website ? `<a href="${p.website}" target="_blank" class="btn btn-secondary">🌐 Visit Website</a>` : ''}
                         <button class="btn btn-danger" onclick="deleteProspectConfirm('${p.id}')">🗑️ Delete</button>
                     </div>
 
@@ -1314,35 +1361,62 @@
             }
         }
 
+        async function saveContact(id) {
+            try {
+                const phone = document.getElementById('contact-phone').value.trim();
+                const email = document.getElementById('contact-email').value.trim();
+
+                const updatedProspect = await api.updateProspectContact(id, phone || null, email || null);
+
+                // Update state
+                state.currentProspect.phone = updatedProspect.phone;
+                state.currentProspect.email = updatedProspect.email;
+
+                // Re-render to update call button
+                renderProspectDetail(state.currentProspect);
+
+                if (window.Telegram?.WebApp) {
+                    window.Telegram.WebApp.showAlert('Contact information saved!');
+                } else {
+                    alert('Contact information saved!');
+                }
+            } catch (error) {
+                alert('Failed to save contact: ' + error.message);
+            }
+        }
+
         async function downloadVCard(id) {
             try {
                 const vcard = await api.getVCard(id);
 
-                // Create blob with proper MIME type
-                const blob = new Blob([vcard.vcard], { type: 'text/x-vcard;charset=utf-8' });
-                const url = window.URL.createObjectURL(blob);
+                // Create blob for vCard
+                const blob = new Blob([vcard.vcard], { type: 'text/vcard;charset=utf-8' });
+                const url = URL.createObjectURL(blob);
 
-                // Create temporary link and trigger download
+                // Create temporary link element
                 const a = document.createElement('a');
                 a.style.display = 'none';
                 a.href = url;
                 a.download = vcard.filename;
                 document.body.appendChild(a);
+
+                // Trigger the download/open
                 a.click();
 
                 // Cleanup
                 setTimeout(() => {
                     document.body.removeChild(a);
-                    window.URL.revokeObjectURL(url);
+                    URL.revokeObjectURL(url);
                 }, 100);
 
                 // Show success message
                 if (window.Telegram?.WebApp) {
-                    window.Telegram.WebApp.showAlert('Contact saved! Check your downloads folder.');
+                    window.Telegram.WebApp.showAlert('Contact file downloaded! Open it to add to your contacts.');
                 }
+
             } catch (error) {
-                console.error('vCard download error:', error);
-                alert('Failed to download contact: ' + error.message);
+                console.error('vCard error:', error);
+                alert('Failed to create contact: ' + error.message);
             }
         }
 
