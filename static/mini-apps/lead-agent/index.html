@@ -855,6 +855,40 @@
         </div>
     </div>
 
+    <!-- Manual Lead Entry Modal -->
+    <div id="modal-manual-entry" class="modal-backdrop">
+        <div class="modal-sheet">
+            <div class="modal-header">📝 Add Lead Manually</div>
+            <div style="padding: 0 var(--space-md) var(--space-md); color: #6b7280; font-size: 14px; line-height: 1.6; margin-bottom: var(--space-md);">
+                <p>The website couldn't be scraped automatically. Please enter the business information manually.</p>
+            </div>
+            <div class="form-group">
+                <label class="input-label">Business Name *</label>
+                <input type="text" class="input" id="manual-business-name" maxlength="200" placeholder="e.g., Acme Corporation" />
+            </div>
+            <div class="form-group">
+                <label class="input-label">Business Description</label>
+                <textarea class="textarea" id="manual-description" maxlength="2000" rows="3" placeholder="What does this business do?"></textarea>
+            </div>
+            <div class="form-group">
+                <label class="input-label">Website</label>
+                <input type="url" class="input" id="manual-website" maxlength="500" placeholder="https://example.com" />
+            </div>
+            <div class="form-group">
+                <label class="input-label">Phone (optional)</label>
+                <input type="tel" class="input" id="manual-phone" maxlength="50" placeholder="+1 234 567 8900" />
+            </div>
+            <div class="form-group">
+                <label class="input-label">Email (optional)</label>
+                <input type="email" class="input" id="manual-email" maxlength="200" placeholder="contact@example.com" />
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-secondary" style="flex: 1;" onclick="closeManualEntryModal()">Cancel</button>
+                <button class="btn btn-success" style="flex: 1;" onclick="saveManualLead()" id="save-manual-btn">Save Lead</button>
+            </div>
+        </div>
+    </div>
+
     <script>
         // ═══════════════════════════════════════════════════════════════
         // TELEGRAM SDK INTEGRATION
@@ -931,6 +965,10 @@
             scrapeProspect: (orgId, url) => api.fetch(`/prospects/scrape?org_id=${orgId}`, {
                 method: 'POST',
                 body: JSON.stringify({ url })
+            }),
+            createManualProspect: (orgId, data) => api.fetch(`/prospects/manual?org_id=${orgId}`, {
+                method: 'POST',
+                body: JSON.stringify(data)
             }),
             getProspect: (id) => api.fetch(`/prospects/${id}`),
             updateProspectStatus: (id, status) => api.fetch(`/prospects/${id}/status`, {
@@ -1212,10 +1250,85 @@
                 document.getElementById('url-input').value = '';
 
             } catch (error) {
-                alert('Failed to add lead: ' + error.message);
+                // Show manual entry modal instead of alert
+                openManualEntryModal(url, error.message);
             } finally {
                 btn.disabled = false;
                 btn.textContent = '➕ Add Lead';
+            }
+        }
+
+        // ═══════════════════════════════════════════════════════════════
+        // MANUAL LEAD ENTRY
+        // ═══════════════════════════════════════════════════════════════
+
+        function openManualEntryModal(failedUrl = '', errorMessage = '') {
+            // Clear form
+            document.getElementById('manual-business-name').value = '';
+            document.getElementById('manual-description').value = '';
+            document.getElementById('manual-website').value = failedUrl || '';
+            document.getElementById('manual-phone').value = '';
+            document.getElementById('manual-email').value = '';
+
+            // Show modal
+            document.getElementById('modal-manual-entry').classList.add('active');
+        }
+
+        function closeManualEntryModal() {
+            document.getElementById('modal-manual-entry').classList.remove('active');
+        }
+
+        async function saveManualLead() {
+            const businessName = document.getElementById('manual-business-name').value.trim();
+            if (!businessName) {
+                alert('Please enter the business name');
+                return;
+            }
+
+            const data = {
+                business_name: businessName,
+                description: document.getElementById('manual-description').value.trim() || null,
+                website: document.getElementById('manual-website').value.trim() || null,
+                phone: document.getElementById('manual-phone').value.trim() || null,
+                email: document.getElementById('manual-email').value.trim() || null
+            };
+
+            const btn = document.getElementById('save-manual-btn');
+            btn.disabled = true;
+            btn.textContent = '⏳ Saving...';
+
+            try {
+                const prospect = await api.createManualProspect(state.orgId, data);
+
+                closeManualEntryModal();
+
+                // Show success result
+                const resultContent = document.getElementById('scrape-result-content');
+                resultContent.innerHTML = `
+                    <div class="card card-elevated" style="border-left: 4px solid var(--color-success);">
+                        <div class="card-header">
+                            <div class="card-title">✅ ${prospect.business_name}</div>
+                            <span class="chip chip-not-contacted">New</span>
+                        </div>
+                        <p style="font-size: 14px; color: #6b7280; margin-bottom: 12px;">
+                            ${prospect.address || prospect.website || 'Lead added successfully'}
+                        </p>
+                        <div style="display: flex; gap: 8px;">
+                            <button class="btn btn-primary btn-sm" onclick="viewProspect('${prospect.id}')">View Details</button>
+                            <button class="btn btn-secondary btn-sm" onclick="clearAndAddAnother()">Add Another</button>
+                        </div>
+                    </div>
+                `;
+                document.getElementById('scrape-result').style.display = 'block';
+
+                // Clear URL input
+                document.getElementById('url-input').value = '';
+
+            } catch (error) {
+                alert('Failed to save lead: ' + error.message);
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Save Lead';
             }
         }
 
@@ -1458,6 +1571,12 @@
         document.getElementById('modal-no-products').addEventListener('click', (e) => {
             if (e.target.classList.contains('modal-backdrop')) {
                 closeNoProductsModal();
+            }
+        });
+
+        document.getElementById('modal-manual-entry').addEventListener('click', (e) => {
+            if (e.target.classList.contains('modal-backdrop')) {
+                closeManualEntryModal();
             }
         });
 

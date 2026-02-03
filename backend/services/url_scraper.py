@@ -7,11 +7,19 @@ This is the first tier of our two-tier LLM pipeline:
 """
 import json
 import hashlib
-from typing import Optional
+from typing import Optional, Tuple
 from dataclasses import dataclass
 
 import httpx
 from openai import AsyncOpenAI
+
+
+class ScraperError(Exception):
+    """Custom exception for scraper errors with user-friendly messages."""
+    def __init__(self, message: str, technical_detail: str = None):
+        self.message = message
+        self.technical_detail = technical_detail
+        super().__init__(message)
 
 
 @dataclass
@@ -19,8 +27,6 @@ class ExtractedBusiness:
     """Business information extracted from a website."""
     business_name: str
     description: Optional[str]
-    phone: Optional[str]
-    email: Optional[str]
     address: Optional[str]
     website: str
     google_maps_url: Optional[str]
@@ -48,7 +54,7 @@ class URLScraperService:
         """Initialize the service with OpenAI API key."""
         self.client = AsyncOpenAI(api_key=api_key)
 
-    async def scrape_business(self, url: str) -> Optional[ExtractedBusiness]:
+    async def scrape_business(self, url: str) -> ExtractedBusiness:
         """
         Scrape business information from a URL.
 
@@ -56,7 +62,10 @@ class URLScraperService:
             url: The website URL to scrape
 
         Returns:
-            ExtractedBusiness object or None if extraction fails
+            ExtractedBusiness object
+
+        Raises:
+            ScraperError: If scraping or extraction fails
         """
         # Normalize URL
         if not url.startswith(('http://', 'https://')):
@@ -64,15 +73,18 @@ class URLScraperService:
 
         # Step 1: Fetch HTML content
         html_content = await self._fetch_html(url)
-        if not html_content:
-            return None
 
         # Step 2: Extract business info using GPT-4o-mini
         business = await self._extract_with_openai(url, html_content)
         return business
 
-    async def _fetch_html(self, url: str) -> Optional[str]:
-        """Fetch HTML content from URL."""
+    async def _fetch_html(self, url: str) -> str:
+        """
+        Fetch HTML content from URL.
+
+        Raises:
+            ScraperError: If fetching fails
+        """
         try:
             async with httpx.AsyncClient(
                 timeout=30.0,
@@ -87,24 +99,83 @@ class URLScraperService:
                 # Get text content, limit to first 50KB to avoid huge pages
                 content = response.text[:50000]
                 print(f"[URLScraper] Fetched {len(content)} chars from {url}")
+
+                # Check if we got meaningful content
+                if len(content.strip()) < 100:
+                    raise ScraperError(
+                        "The website returned insufficient content. It may require JavaScript or have blocked access.",
+                        f"Content length: {len(content)}"
+                    )
+
                 return content
 
         except httpx.HTTPStatusError as e:
-            print(f"[URLScraper] HTTP error fetching {url}: {e.response.status_code}")
-            return None
+            status_code = e.response.status_code
+            print(f"[URLScraper] HTTP error fetching {url}: {status_code}")
+
+            # Provide user-friendly error messages based on status code
+            if status_code == 403:
+                raise ScraperError(
+                    "This website is blocking automated access (Cloudflare protection detected). Please add this lead manually with the business information you have.",
+                    f"HTTP 403 from {url}"
+                )
+            elif status_code == 404:
+                raise ScraperError(
+                    "Page not found. Please check the URL and try again.",
+                    f"HTTP 404 from {url}"
+                )
+            elif status_code == 500:
+                raise ScraperError(
+                    "The website's server returned an error. Please try again later.",
+                    f"HTTP 500 from {url}"
+                )
+            elif status_code == 429:
+                raise ScraperError(
+                    "Rate limit exceeded. The website is temporarily blocking requests. Please try again later.",
+                    f"HTTP 429 from {url}"
+                )
+            else:
+                raise ScraperError(
+                    f"Unable to access the website (HTTP {status_code}). Please check the URL and try again.",
+                    f"HTTP {status_code} from {url}"
+                )
+
+        except httpx.TimeoutException as e:
+            print(f"[URLScraper] Timeout fetching {url}: {e}")
+            raise ScraperError(
+                "The website took too long to respond. Please try again or check if the URL is correct.",
+                f"Timeout connecting to {url}"
+            )
+
         except httpx.RequestError as e:
             print(f"[URLScraper] Request error fetching {url}: {e}")
-            return None
+            raise ScraperError(
+                "Unable to connect to the website. Please check the URL and your internet connection.",
+                f"Connection error: {str(e)}"
+            )
+
+        except ScraperError:
+            # Re-raise ScraperError as-is
+            raise
+
         except Exception as e:
-            print(f"[URLScraper] Error fetching {url}: {e}")
-            return None
+            print(f"[URLScraper] Unexpected error fetching {url}: {e}")
+            raise ScraperError(
+                "An unexpected error occurred while fetching the website. Please try again.",
+                f"Unexpected error: {str(e)}"
+            )
 
     async def _extract_with_openai(
         self,
         url: str,
         html_content: str
-    ) -> Optional[ExtractedBusiness]:
-        """Extract business information from HTML using GPT-4o-mini."""
+    ) -> ExtractedBusiness:
+        """
+        Extract business information from HTML using GPT-4o-mini.
+
+        Raises:
+            ScraperError: If extraction fails
+        """
 
         # Clean up HTML to reduce tokens
         import re
@@ -113,6 +184,13 @@ class URLScraperService:
         cleaned = re.sub(r'<[^>]+>', ' ', cleaned)  # Remove HTML tags
         cleaned = re.sub(r'\s+', ' ', cleaned)  # Collapse whitespace
         cleaned = cleaned[:20000]  # Limit to 20K chars
+
+        # Check if cleaned content is meaningful
+        if len(cleaned.strip()) < 50:
+            raise ScraperError(
+                "Unable to extract meaningful content from the page. The website might be JavaScript-heavy or blocked.",
+                f"Cleaned content too short: {len(cleaned)} chars"
+            )
 
         prompt = f"""You are extracting business information from a website.
 
@@ -127,8 +205,6 @@ Return ONLY valid JSON in this exact format:
 {{
     "business_name": "The company/business name",
     "description": "A 2-3 sentence description of what the business does, their services, and target market",
-    "phone": "Phone number in international format if found, or null",
-    "email": "Contact email if found, or null",
     "address": "Physical address if found, or null",
     "google_maps_url": "Google Maps link if found on page, or null"
 }}
@@ -137,7 +213,7 @@ Rules:
 - Extract the actual business name, not the website domain
 - For description, summarize what the business does based on the content
 - Use null for any field you cannot find
-- Phone should be in international format if possible (e.g., +1 234 567 8900)
+- For ADDRESS: Look for physical addresses, office locations, or mailing addresses
 - Return raw JSON only, no markdown formatting"""
 
         try:
@@ -158,12 +234,18 @@ Rules:
 
             data = json.loads(response_text)
 
+            # Validate that we got at least a business name
+            business_name = data.get("business_name", "").strip()
+            if not business_name or business_name == "Unknown Business":
+                raise ScraperError(
+                    "Could not identify the business name from the website content. The page might not contain sufficient business information.",
+                    f"No valid business_name in response"
+                )
+
             # Build ExtractedBusiness
             business = ExtractedBusiness(
-                business_name=data.get("business_name", "Unknown Business"),
+                business_name=business_name,
                 description=data.get("description"),
-                phone=data.get("phone"),
-                email=data.get("email"),
                 address=data.get("address"),
                 website=url,
                 google_maps_url=data.get("google_maps_url")
@@ -174,8 +256,19 @@ Rules:
 
         except json.JSONDecodeError as e:
             print(f"[URLScraper] JSON parse error: {e}")
-            print(f"[URLScraper] Response text: {response_text}")
-            return None
+            print(f"[URLScraper] Response text: {response_text if 'response_text' in locals() else 'N/A'}")
+            raise ScraperError(
+                "Failed to parse business information from the website. The AI returned invalid data.",
+                f"JSON decode error: {str(e)}"
+            )
+
+        except ScraperError:
+            # Re-raise ScraperError as-is
+            raise
+
         except Exception as e:
             print(f"[URLScraper] Error during extraction: {e}")
-            return None
+            raise ScraperError(
+                "An error occurred while analyzing the website content. Please try again.",
+                f"Extraction error: {str(e)}"
+            )

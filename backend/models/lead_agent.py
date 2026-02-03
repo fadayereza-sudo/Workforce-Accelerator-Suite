@@ -64,12 +64,29 @@ class ProspectCreate(BaseModel):
     source: str = "gemini_search"
 
 
+class ProspectManualCreate(BaseModel):
+    """Manually create a prospect (user input)."""
+    business_name: str = Field(..., min_length=1, max_length=200)
+    phone: Optional[str] = Field(None, max_length=50)
+    email: Optional[str] = Field(None, max_length=200)
+    address: Optional[str] = Field(None, max_length=500)
+    website: Optional[str] = Field(None, max_length=500)
+    google_maps_url: Optional[str] = Field(None, max_length=500)
+    description: Optional[str] = Field(None, max_length=2000)
+
+
 class ProspectStatusUpdate(BaseModel):
     """Update prospect status."""
     status: str = Field(
         ...,
         pattern="^(not_contacted|contacted|ongoing_conversations|closed)$"
     )
+
+
+class ProspectContactUpdate(BaseModel):
+    """Update prospect contact information."""
+    phone: Optional[str] = Field(None, max_length=50)
+    email: Optional[str] = Field(None, max_length=200)
 
 
 class Prospect(BaseModel):

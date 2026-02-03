@@ -16,13 +16,13 @@ from fastapi import APIRouter, Header, HTTPException, BackgroundTasks, Query
 from models import (
     TelegramUser,
     ProductCreate, ProductUpdate, Product,
-    ProspectCreate, ProspectStatusUpdate, Prospect, ProspectCard,
+    ProspectCreate, ProspectManualCreate, ProspectStatusUpdate, ProspectContactUpdate, Prospect, ProspectCard,
     PainPoint, SearchRequest, ScrapeRequest, SearchResult, SearchHistory,
     LeadAgentDashboard, CurrencyUpdate
 )
 from services import get_supabase_admin, get_telegram_user
 from services.lead_discovery import LeadDiscoveryService, ScrapedBusiness
-from services.url_scraper import URLScraperService
+from services.url_scraper import URLScraperService, ScraperError
 from services.ai_lead_agent import LeadAgentAI
 from config import settings
 
@@ -441,12 +441,13 @@ async def scrape_prospect(
 
     # Scrape business info from URL
     print(f"[LeadAgent] Scraping URL: {data.url}")
-    business = await scraper.scrape_business(data.url)
-
-    if not business:
+    try:
+        business = await scraper.scrape_business(data.url)
+    except ScraperError as e:
+        print(f"[LeadAgent] Scraper error: {e.technical_detail}")
         raise HTTPException(
             status_code=400,
-            detail="Could not extract business information from this URL. Please check the URL and try again."
+            detail=e.message
         )
 
     # Check for duplicates
@@ -461,12 +462,12 @@ async def scrape_prospect(
             detail="This business has already been added to your prospects."
         )
 
-    # Insert new prospect
+    # Insert new prospect (phone/email are added manually by user)
     prospect_data = {
         "org_id": org_id,
         "business_name": business.business_name,
-        "phone": business.phone,
-        "email": business.email,
+        "phone": None,  # User adds manually
+        "email": None,  # User adds manually
         "address": business.address,
         "website": business.website,
         "google_maps_url": business.google_maps_url,
@@ -504,6 +505,98 @@ async def scrape_prospect(
         status=prospect["status"],
         search_query=None,
         source="url_scrape",
+        created_at=prospect["created_at"]
+    )
+
+
+@router.post("/prospects/manual")
+async def create_prospect_manually(
+    org_id: str = Query(...),
+    data: ProspectManualCreate = ...,
+    background_tasks: BackgroundTasks = ...,
+    x_telegram_init_data: str = Header(...)
+) -> ProspectCard:
+    """
+    Manually create a prospect (for sites that block scraping).
+
+    This is a fallback when automated scraping fails. AI insights are still
+    generated in the background based on the provided information.
+    """
+    tg_user = get_telegram_user(x_telegram_init_data)
+    user_id, _ = await verify_org_member(tg_user.id, org_id)
+
+    db = get_supabase_admin()
+
+    # Check if organization has any active products
+    products = db.table("lead_agent_products").select("id").eq(
+        "org_id", org_id
+    ).eq("is_active", True).execute()
+
+    if not products.data:
+        raise HTTPException(
+            status_code=400,
+            detail="Please add at least one product or service before adding leads. The AI needs your products to generate relevant insights."
+        )
+
+    # Generate dedup hash (business name + website)
+    import hashlib
+    website = data.website or ""
+    dedup_key = f"{data.business_name.lower().strip()}:{website.lower().strip()}"
+    dedup_hash = hashlib.sha256(dedup_key.encode()).hexdigest()[:32]
+
+    # Check for duplicates
+    existing = db.table("lead_agent_prospects").select("id").eq(
+        "org_id", org_id
+    ).eq("dedup_hash", dedup_hash).execute()
+
+    if existing.data:
+        raise HTTPException(
+            status_code=409,
+            detail="This business has already been added to your prospects."
+        )
+
+    # Insert new prospect
+    prospect_data = {
+        "org_id": org_id,
+        "business_name": data.business_name,
+        "phone": data.phone,
+        "email": data.email,
+        "address": data.address,
+        "website": data.website,
+        "google_maps_url": data.google_maps_url,
+        "dedup_hash": dedup_hash,
+        "search_query": None,  # No search query for manual entry
+        "source": "manual",
+        "status": "not_contacted",
+        "created_by": user_id
+    }
+
+    result = db.table("lead_agent_prospects").insert(prospect_data).execute()
+    prospect = result.data[0]
+
+    # Queue AI insights generation (with user-provided description if available)
+    background_tasks.add_task(
+        generate_ai_insights_task,
+        prospect["id"],
+        org_id,
+        data.description  # Pass user-provided description to AI
+    )
+
+    print(f"[LeadAgent] Manually created prospect: {data.business_name}")
+
+    return ProspectCard(
+        id=prospect["id"],
+        business_name=prospect["business_name"],
+        phone=prospect.get("phone"),
+        email=prospect.get("email"),
+        address=prospect.get("address"),
+        website=prospect.get("website"),
+        google_maps_url=prospect.get("google_maps_url"),
+        summary=None,  # AI generation pending
+        pain_points=[],  # AI generation pending
+        status=prospect["status"],
+        search_query=None,
+        source="manual",
         created_at=prospect["created_at"]
     )
 
@@ -577,6 +670,57 @@ async def update_prospect_status(
     }).eq("id", prospect_id).execute()
 
     return Prospect(**result.data[0])
+
+
+@router.patch("/prospects/{prospect_id}/contact")
+async def update_prospect_contact(
+    prospect_id: str,
+    data: ProspectContactUpdate,
+    x_telegram_init_data: str = Header(...)
+) -> ProspectCard:
+    """Update the contact information of a prospect."""
+    tg_user = get_telegram_user(x_telegram_init_data)
+    db = get_supabase_admin()
+
+    # Get prospect
+    prospect_result = db.table("lead_agent_prospects").select("*").eq(
+        "id", prospect_id
+    ).single().execute()
+
+    if not prospect_result.data:
+        raise HTTPException(404, "Prospect not found")
+
+    # Verify org membership
+    await verify_org_member(tg_user.id, prospect_result.data["org_id"])
+
+    # Build update dict
+    update_data = {}
+    if data.phone is not None:
+        update_data["phone"] = data.phone
+    if data.email is not None:
+        update_data["email"] = data.email
+
+    # Update contact info
+    result = db.table("lead_agent_prospects").update(update_data).eq(
+        "id", prospect_id
+    ).execute()
+
+    prospect = result.data[0]
+    return ProspectCard(
+        id=prospect["id"],
+        business_name=prospect["business_name"],
+        phone=prospect.get("phone"),
+        email=prospect.get("email"),
+        address=prospect.get("address"),
+        website=prospect.get("website"),
+        google_maps_url=prospect.get("google_maps_url"),
+        summary=prospect.get("business_summary"),
+        pain_points=prospect.get("pain_points", []),
+        status=prospect["status"],
+        search_query=prospect.get("search_query"),
+        source=prospect.get("source", "url_scrape"),
+        created_at=prospect["created_at"]
+    )
 
 
 @router.delete("/prospects/{prospect_id}")
