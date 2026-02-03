@@ -1,0 +1,2 @@
+# Root requirements - includes backend dependencies for Railway deployment
+-r backend/requirements.txt
