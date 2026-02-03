@@ -8,28 +8,49 @@
     <style>
         /* ═══════════════════════════════════════════════════════════════
            DESIGN SYSTEM & CSS VARIABLES
+           High-tech, forward-thinking, structured color scheme
            ═══════════════════════════════════════════════════════════════ */
 
         :root {
-            /* Telegram Theme Colors */
+            /* Core Palette - Deep tech blues with cyan accents */
+            --color-slate-900: #0f172a;
+            --color-slate-800: #1e293b;
+            --color-slate-700: #334155;
+            --color-slate-600: #475569;
+            --color-slate-500: #64748b;
+            --color-slate-400: #94a3b8;
+            --color-slate-300: #cbd5e1;
+            --color-slate-200: #e2e8f0;
+            --color-slate-100: #f1f5f9;
+            --color-slate-50: #f8fafc;
+
+            /* Accent - Cyan for tech feel */
+            --color-cyan-500: #06b6d4;
+            --color-cyan-400: #22d3ee;
+            --color-cyan-600: #0891b2;
+            --color-cyan-700: #0e7490;
+
+            /* Semantic Colors */
+            --color-success: #10b981;
+            --color-success-light: #d1fae5;
+            --color-warning: #f59e0b;
+            --color-warning-light: #fef3c7;
+            --color-error: #ef4444;
+            --color-error-light: #fee2e2;
+
+            /* Theme mappings */
             --tg-theme-bg-color: #ffffff;
-            --tg-theme-secondary-bg-color: #f4f4f5;
-            --tg-theme-text-color: #000000;
-            --tg-theme-hint-color: #999999;
-            --tg-theme-link-color: #2481cc;
-            --tg-theme-button-color: #2481cc;
+            --tg-theme-secondary-bg-color: var(--color-slate-50);
+            --tg-theme-text-color: var(--color-slate-900);
+            --tg-theme-hint-color: var(--color-slate-500);
+            --tg-theme-link-color: var(--color-cyan-600);
+            --tg-theme-button-color: var(--color-cyan-500);
             --tg-theme-button-text-color: #ffffff;
 
-            /* Custom Colors */
-            --color-success: #10b981;
-            --color-warning: #f59e0b;
-            --color-error: #ef4444;
-            --color-info: #3b82f6;
-
             /* Gradients */
-            --gradient-primary: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            --gradient-success: linear-gradient(135deg, #10b981 0%, #34d399 100%);
-            --gradient-warning: linear-gradient(135deg, #f59e0b 0%, #fbbf24 100%);
+            --gradient-primary: linear-gradient(135deg, var(--color-slate-800) 0%, var(--color-slate-900) 100%);
+            --gradient-accent: linear-gradient(135deg, var(--color-cyan-500) 0%, var(--color-cyan-600) 100%);
+            --gradient-surface: linear-gradient(180deg, var(--color-slate-50) 0%, #ffffff 100%);
 
             /* Spacing */
             --space-xs: 4px;
@@ -39,15 +60,16 @@
             --space-xl: 32px;
 
             /* Border Radius */
-            --radius-sm: 8px;
-            --radius-md: 12px;
-            --radius-lg: 16px;
+            --radius-sm: 6px;
+            --radius-md: 10px;
+            --radius-lg: 14px;
             --radius-full: 9999px;
 
-            /* Shadows */
-            --shadow-sm: 0 1px 3px rgba(0,0,0,0.1);
-            --shadow-md: 0 4px 6px rgba(0,0,0,0.1);
-            --shadow-lg: 0 10px 15px rgba(0,0,0,0.1);
+            /* Shadows - subtle, layered */
+            --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.06);
+            --shadow-md: 0 4px 12px rgba(15, 23, 42, 0.08);
+            --shadow-lg: 0 12px 24px rgba(15, 23, 42, 0.12);
+            --shadow-glow: 0 0 20px rgba(6, 182, 212, 0.15);
         }
 
         /* ═══════════════════════════════════════════════════════════════
@@ -109,17 +131,20 @@
             position: sticky;
             top: 0;
             z-index: 100;
+            border-bottom: 1px solid rgba(6, 182, 212, 0.2);
         }
 
         .page-title {
-            font-size: 24px;
-            font-weight: 700;
+            font-size: 20px;
+            font-weight: 600;
             margin-bottom: var(--space-xs);
+            letter-spacing: -0.02em;
         }
 
         .page-subtitle {
-            font-size: 14px;
-            opacity: 0.9;
+            font-size: 13px;
+            opacity: 0.7;
+            font-weight: 400;
         }
 
         .container {
@@ -131,9 +156,12 @@
         }
 
         .section-title {
-            font-size: 18px;
+            font-size: 13px;
             font-weight: 600;
             margin-bottom: var(--space-md);
+            color: var(--color-slate-500);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
         }
 
         /* ═══════════════════════════════════════════════════════════════
@@ -141,14 +169,16 @@
            ═══════════════════════════════════════════════════════════════ */
 
         .card {
-            background: var(--tg-theme-secondary-bg-color);
+            background: #ffffff;
             border-radius: var(--radius-md);
             padding: var(--space-md);
             margin-bottom: var(--space-md);
+            border: 1px solid var(--color-slate-200);
         }
 
         .card-elevated {
             box-shadow: var(--shadow-md);
+            border: none;
         }
 
         .card-header {
@@ -159,8 +189,9 @@
         }
 
         .card-title {
-            font-size: 16px;
+            font-size: 15px;
             font-weight: 600;
+            color: var(--color-slate-800);
         }
 
         /* ═══════════════════════════════════════════════════════════════
@@ -172,39 +203,70 @@
             align-items: center;
             justify-content: center;
             gap: var(--space-sm);
-            padding: var(--space-md) var(--space-lg);
+            padding: 12px 20px;
             border: none;
-            border-radius: var(--radius-md);
-            font-size: 15px;
+            border-radius: var(--radius-sm);
+            font-size: 14px;
             font-weight: 500;
             cursor: pointer;
-            transition: all 0.2s;
+            transition: all 0.15s ease;
             text-decoration: none;
         }
 
         .btn-primary {
-            background: var(--gradient-primary);
+            background: var(--color-cyan-500);
             color: white;
-            box-shadow: var(--shadow-md);
+        }
+
+        .btn-primary:hover {
+            background: var(--color-cyan-600);
         }
 
         .btn-primary:active {
             transform: scale(0.98);
+            background: var(--color-cyan-700);
         }
 
         .btn-secondary {
-            background: var(--tg-theme-secondary-bg-color);
-            color: var(--tg-theme-text-color);
+            background: var(--color-slate-100);
+            color: var(--color-slate-700);
+            border: 1px solid var(--color-slate-200);
+        }
+
+        .btn-secondary:hover {
+            background: var(--color-slate-200);
+        }
+
+        .btn-secondary:active {
+            transform: scale(0.98);
         }
 
         .btn-success {
-            background: var(--gradient-success);
+            background: var(--color-success);
             color: white;
         }
 
+        .btn-success:hover {
+            background: #059669;
+        }
+
         .btn-danger {
-            background: var(--color-error);
-            color: white;
+            background: transparent;
+            color: var(--color-error);
+            border: 1px solid var(--color-error);
+        }
+
+        .btn-danger:hover {
+            background: var(--color-error-light);
+        }
+
+        .btn-ghost {
+            background: transparent;
+            color: var(--color-slate-600);
+        }
+
+        .btn-ghost:hover {
+            background: var(--color-slate-100);
         }
 
         .btn-block {
@@ -212,8 +274,13 @@
         }
 
         .btn-sm {
-            padding: var(--space-sm) var(--space-md);
+            padding: 8px 14px;
             font-size: 13px;
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
         }
 
         /* ═══════════════════════════════════════════════════════════════
@@ -226,22 +293,24 @@
 
         .input-label {
             display: block;
-            font-size: 14px;
+            font-size: 13px;
             font-weight: 500;
             margin-bottom: var(--space-sm);
+            color: var(--color-slate-700);
         }
 
         .input,
         .textarea,
         .select {
             width: 100%;
-            padding: var(--space-md);
-            border: 1px solid var(--tg-theme-hint-color);
+            padding: 12px 14px;
+            border: 1px solid var(--color-slate-300);
             border-radius: var(--radius-sm);
-            font-size: 15px;
+            font-size: 14px;
             font-family: inherit;
-            background: var(--tg-theme-bg-color);
-            color: var(--tg-theme-text-color);
+            background: #ffffff;
+            color: var(--color-slate-900);
+            transition: border-color 0.15s ease, box-shadow 0.15s ease;
         }
 
         .textarea {
@@ -253,7 +322,13 @@
         .textarea:focus,
         .select:focus {
             outline: none;
-            border-color: var(--tg-theme-button-color);
+            border-color: var(--color-cyan-500);
+            box-shadow: 0 0 0 3px rgba(6, 182, 212, 0.1);
+        }
+
+        .input::placeholder,
+        .textarea::placeholder {
+            color: var(--color-slate-400);
         }
 
         /* ═══════════════════════════════════════════════════════════════
@@ -262,30 +337,32 @@
 
         .chip {
             display: inline-block;
-            padding: 4px 12px;
-            border-radius: var(--radius-full);
-            font-size: 12px;
-            font-weight: 500;
+            padding: 4px 10px;
+            border-radius: var(--radius-sm);
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
         }
 
         .chip-not-contacted {
-            background: #e5e7eb;
-            color: #374151;
+            background: var(--color-slate-100);
+            color: var(--color-slate-600);
         }
 
         .chip-contacted {
-            background: #dbeafe;
-            color: #1e40af;
+            background: rgba(6, 182, 212, 0.1);
+            color: var(--color-cyan-700);
         }
 
         .chip-ongoing {
-            background: #fef3c7;
-            color: #92400e;
+            background: var(--color-warning-light);
+            color: #b45309;
         }
 
         .chip-closed {
-            background: #d1fae5;
-            color: #065f46;
+            background: var(--color-success-light);
+            color: #047857;
         }
 
         /* ═══════════════════════════════════════════════════════════════
@@ -303,83 +380,118 @@
             align-items: center;
             gap: var(--space-md);
             padding: var(--space-md);
-            background: var(--tg-theme-secondary-bg-color);
+            background: #ffffff;
+            border: 1px solid var(--color-slate-200);
             border-radius: var(--radius-md);
             cursor: pointer;
-            transition: all 0.2s;
+            transition: all 0.15s ease;
+        }
+
+        .list-item:hover {
+            border-color: var(--color-slate-300);
+            box-shadow: var(--shadow-sm);
         }
 
         .list-item:active {
-            transform: scale(0.98);
-            opacity: 0.8;
+            transform: scale(0.99);
         }
 
         .list-item-icon {
-            font-size: 24px;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--color-slate-100);
+            border-radius: var(--radius-sm);
+            color: var(--color-slate-600);
+            font-size: 14px;
+            font-weight: 600;
         }
 
         .list-item-content {
             flex: 1;
+            min-width: 0;
         }
 
         .list-item-title {
-            font-size: 15px;
+            font-size: 14px;
             font-weight: 500;
             margin-bottom: 2px;
+            color: var(--color-slate-800);
         }
 
         .list-item-subtitle {
-            font-size: 13px;
-            color: var(--tg-theme-hint-color);
+            font-size: 12px;
+            color: var(--color-slate-500);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
 
         .list-item-action {
             margin-left: auto;
+            flex-shrink: 0;
         }
 
         /* ═══════════════════════════════════════════════════════════════
-           PROSPECT CARD (CUE CARD STYLE)
+           PROSPECT CARD
            ═══════════════════════════════════════════════════════════════ */
 
         .prospect-card {
-            background: white;
+            background: #ffffff;
             border-radius: var(--radius-lg);
-            padding: var(--space-lg);
             margin-bottom: var(--space-md);
-            box-shadow: var(--shadow-lg);
+            border: 1px solid var(--color-slate-200);
+            overflow: hidden;
+        }
+
+        .prospect-card-header {
+            padding: var(--space-lg);
+            border-bottom: 1px solid var(--color-slate-100);
+        }
+
+        .prospect-card-body {
+            padding: var(--space-lg);
         }
 
         .prospect-header {
             display: flex;
             justify-content: space-between;
-            align-items: start;
-            margin-bottom: var(--space-md);
+            align-items: flex-start;
+            gap: var(--space-md);
         }
 
         .prospect-name {
             font-size: 18px;
-            font-weight: 700;
+            font-weight: 600;
+            color: var(--color-slate-900);
             flex: 1;
+            line-height: 1.3;
         }
 
         .prospect-summary {
             font-size: 14px;
             line-height: 1.6;
-            color: #4b5563;
-            margin-bottom: var(--space-md);
+            color: var(--color-slate-600);
+            margin-bottom: var(--space-lg);
             padding: var(--space-md);
-            background: #f9fafb;
+            background: var(--color-slate-50);
             border-radius: var(--radius-sm);
+            border-left: 3px solid var(--color-cyan-500);
         }
 
         .prospect-pain-points {
-            margin-bottom: var(--space-md);
+            margin-bottom: var(--space-lg);
         }
 
         .prospect-pain-points h4 {
-            font-size: 14px;
+            font-size: 13px;
             font-weight: 600;
-            margin-bottom: var(--space-sm);
+            margin-bottom: var(--space-md);
+            color: var(--color-slate-500);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
         }
 
         .pain-points-list {
@@ -390,7 +502,7 @@
         .pain-points-list li {
             counter-increment: item;
             margin-bottom: var(--space-md);
-            padding-left: 28px;
+            padding-left: 32px;
             position: relative;
         }
 
@@ -398,12 +510,12 @@
             content: counter(item);
             position: absolute;
             left: 0;
-            top: 0;
-            width: 20px;
-            height: 20px;
-            background: var(--gradient-primary);
+            top: 2px;
+            width: 22px;
+            height: 22px;
+            background: var(--color-slate-800);
             color: white;
-            border-radius: 50%;
+            border-radius: var(--radius-sm);
             font-size: 11px;
             font-weight: 600;
             display: flex;
@@ -415,82 +527,431 @@
             font-weight: 600;
             font-size: 14px;
             margin-bottom: 4px;
+            color: var(--color-slate-800);
         }
 
         .pain-point-description {
             font-size: 13px;
-            color: #6b7280;
+            color: var(--color-slate-600);
             line-height: 1.5;
         }
 
         .relevant-product {
             display: inline-block;
-            margin-top: 4px;
-            padding: 2px 8px;
-            background: #ede9fe;
-            color: #6b21a8;
+            margin-top: 6px;
+            padding: 3px 8px;
+            background: rgba(6, 182, 212, 0.1);
+            color: var(--color-cyan-700);
             border-radius: var(--radius-sm);
             font-size: 11px;
             font-weight: 500;
         }
 
-        .prospect-contact {
-            font-size: 13px;
-            margin-bottom: var(--space-md);
-            padding: var(--space-md);
-            background: #f9fafb;
-            border-radius: var(--radius-sm);
+        /* ═══════════════════════════════════════════════════════════════
+           PROSPECT DETAIL PAGE (Redesigned)
+           ═══════════════════════════════════════════════════════════════ */
+
+        .prospect-detail-header {
+            background: var(--gradient-primary);
+            padding: var(--space-lg);
+            color: white;
+            margin: calc(-1 * var(--space-md));
+            margin-bottom: var(--space-lg);
         }
 
-        .prospect-contact p {
-            margin-bottom: 4px;
+        .prospect-detail-name {
+            font-size: 22px;
+            font-weight: 700;
+            margin-bottom: var(--space-xs);
+            line-height: 1.2;
         }
 
-        .contact-field {
-            margin-bottom: var(--space-sm);
-        }
-
-        .contact-field label {
-            display: block;
-            margin-bottom: 4px;
-            font-size: 13px;
-        }
-
-        .contact-field input {
-            width: 100%;
-            padding: 8px 12px;
-            font-size: 14px;
-        }
-
-        .prospect-actions {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: var(--space-sm);
-            margin-bottom: var(--space-md);
-        }
-
-        .prospect-status-selector {
+        .prospect-detail-meta {
             display: flex;
             align-items: center;
             gap: var(--space-sm);
+            flex-wrap: wrap;
+            font-size: 13px;
+            opacity: 0.8;
         }
 
-        .prospect-status-selector label {
-            font-size: 14px;
+        .prospect-detail-source {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        /* Quick Actions Bar */
+        .quick-actions-bar {
+            display: flex;
+            gap: var(--space-sm);
+            margin-bottom: var(--space-lg);
+            padding-bottom: var(--space-lg);
+            border-bottom: 1px solid var(--color-slate-200);
+        }
+
+        .quick-action-btn {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 6px;
+            padding: var(--space-md);
+            background: var(--color-slate-50);
+            border: 1px solid var(--color-slate-200);
+            border-radius: var(--radius-md);
+            cursor: pointer;
+            transition: all 0.15s ease;
+            text-decoration: none;
+            color: var(--color-slate-700);
+        }
+
+        .quick-action-btn:hover {
+            background: var(--color-slate-100);
+            border-color: var(--color-slate-300);
+        }
+
+        .quick-action-btn:active {
+            transform: scale(0.98);
+        }
+
+        .quick-action-btn.primary {
+            background: var(--color-cyan-500);
+            border-color: var(--color-cyan-500);
+            color: white;
+        }
+
+        .quick-action-btn.primary:hover {
+            background: var(--color-cyan-600);
+        }
+
+        .quick-action-btn:disabled,
+        .quick-action-btn.disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+            pointer-events: none;
+        }
+
+        .quick-action-icon {
+            font-size: 20px;
+        }
+
+        .quick-action-label {
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.02em;
+        }
+
+        /* Status Selector Pills */
+        .status-selector-section {
+            margin-bottom: var(--space-lg);
+        }
+
+        .status-selector-label {
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--color-slate-500);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: var(--space-sm);
+            display: block;
+        }
+
+        .status-pills {
+            display: flex;
+            gap: var(--space-xs);
+            flex-wrap: wrap;
+        }
+
+        .status-pill {
+            padding: 8px 14px;
+            border-radius: var(--radius-full);
+            font-size: 12px;
             font-weight: 500;
+            border: 1px solid var(--color-slate-200);
+            background: white;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            color: var(--color-slate-600);
         }
 
-        .prospect-status-selector select {
+        .status-pill:hover {
+            border-color: var(--color-slate-300);
+            background: var(--color-slate-50);
+        }
+
+        .status-pill.active {
+            border-color: var(--color-cyan-500);
+            background: rgba(6, 182, 212, 0.1);
+            color: var(--color-cyan-700);
+        }
+
+        /* Contact Info Card */
+        .contact-info-card {
+            background: var(--color-slate-50);
+            border-radius: var(--radius-md);
+            padding: var(--space-md);
+            margin-bottom: var(--space-lg);
+        }
+
+        .contact-info-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: var(--space-md);
+        }
+
+        .contact-info-title {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--color-slate-500);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .contact-info-grid {
+            display: grid;
+            gap: var(--space-md);
+        }
+
+        .contact-info-item {
+            display: flex;
+            align-items: flex-start;
+            gap: var(--space-sm);
+        }
+
+        .contact-info-icon {
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: white;
+            border-radius: var(--radius-sm);
+            color: var(--color-slate-500);
+            flex-shrink: 0;
+            font-size: 14px;
+        }
+
+        .contact-info-content {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .contact-info-label {
+            font-size: 11px;
+            color: var(--color-slate-500);
+            margin-bottom: 2px;
+        }
+
+        .contact-info-value {
+            font-size: 14px;
+            color: var(--color-slate-800);
+            word-break: break-word;
+        }
+
+        .contact-info-value a {
+            color: var(--color-cyan-600);
+            text-decoration: none;
+        }
+
+        .contact-info-value a:hover {
+            text-decoration: underline;
+        }
+
+        .contact-info-empty {
+            color: var(--color-slate-400);
+            font-style: italic;
+        }
+
+        /* Edit Contact Inline */
+        .edit-contact-toggle {
+            font-size: 12px;
+            color: var(--color-cyan-600);
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 4px 8px;
+            border-radius: var(--radius-sm);
+        }
+
+        .edit-contact-toggle:hover {
+            background: rgba(6, 182, 212, 0.1);
+        }
+
+        .contact-edit-form {
+            display: none;
+            margin-top: var(--space-md);
+            padding-top: var(--space-md);
+            border-top: 1px solid var(--color-slate-200);
+        }
+
+        .contact-edit-form.visible {
+            display: block;
+        }
+
+        .contact-edit-row {
+            display: flex;
+            gap: var(--space-sm);
+            margin-bottom: var(--space-sm);
+        }
+
+        .contact-edit-row input {
+            flex: 1;
+            padding: 10px 12px;
+            border: 1px solid var(--color-slate-300);
+            border-radius: var(--radius-sm);
+            font-size: 14px;
+            background: white;
+        }
+
+        .contact-edit-row input:focus {
+            outline: none;
+            border-color: var(--color-cyan-500);
+        }
+
+        .contact-edit-actions {
+            display: flex;
+            gap: var(--space-sm);
+            justify-content: flex-end;
+        }
+
+        /* AI Insights Section */
+        .ai-insights-section {
+            margin-bottom: var(--space-lg);
+        }
+
+        .ai-insights-section .section-title {
+            margin-bottom: var(--space-md);
+        }
+
+        .ai-summary-box {
+            padding: var(--space-md);
+            background: linear-gradient(135deg, var(--color-slate-800) 0%, var(--color-slate-900) 100%);
+            border-radius: var(--radius-md);
+            color: white;
+            font-size: 14px;
+            line-height: 1.6;
+            margin-bottom: var(--space-md);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .ai-summary-box::before {
+            content: '"';
+            position: absolute;
+            top: -10px;
+            left: 10px;
+            font-size: 80px;
+            opacity: 0.1;
+            font-family: Georgia, serif;
+        }
+
+        .ai-summary-text {
+            position: relative;
+            z-index: 1;
+        }
+
+        .ai-generating {
+            color: var(--color-slate-400);
+            font-style: italic;
+            text-align: center;
+            padding: var(--space-lg);
+            background: var(--color-slate-50);
+            border-radius: var(--radius-md);
+        }
+
+        /* Opportunities (Pain Points) */
+        .opportunities-list {
+            display: flex;
+            flex-direction: column;
+            gap: var(--space-sm);
+        }
+
+        .opportunity-card {
+            background: white;
+            border: 1px solid var(--color-slate-200);
+            border-radius: var(--radius-md);
+            padding: var(--space-md);
+            display: flex;
+            gap: var(--space-md);
+        }
+
+        .opportunity-number {
+            width: 28px;
+            height: 28px;
+            background: var(--color-slate-800);
+            color: white;
+            border-radius: var(--radius-sm);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 13px;
+            font-weight: 600;
+            flex-shrink: 0;
+        }
+
+        .opportunity-content {
             flex: 1;
         }
 
+        .opportunity-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--color-slate-800);
+            margin-bottom: 4px;
+        }
+
+        .opportunity-description {
+            font-size: 13px;
+            color: var(--color-slate-600);
+            line-height: 1.5;
+        }
+
+        .opportunity-product {
+            display: inline-block;
+            margin-top: 8px;
+            padding: 3px 10px;
+            background: rgba(6, 182, 212, 0.1);
+            color: var(--color-cyan-700);
+            border-radius: var(--radius-full);
+            font-size: 11px;
+            font-weight: 500;
+        }
+
+        /* Danger Zone */
+        .danger-zone {
+            margin-top: var(--space-xl);
+            padding-top: var(--space-lg);
+            border-top: 1px solid var(--color-slate-200);
+        }
+
+        .danger-zone-btn {
+            width: 100%;
+            padding: 12px;
+            background: white;
+            border: 1px solid var(--color-error);
+            color: var(--color-error);
+            border-radius: var(--radius-md);
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+
+        .danger-zone-btn:hover {
+            background: var(--color-error-light);
+        }
+
         /* ═══════════════════════════════════════════════════════════════
-           CALL SCRIPT (CUE CARD STYLE)
+           CALL SCRIPT SECTION
            ═══════════════════════════════════════════════════════════════ */
 
         .call-script-section {
             margin-top: var(--space-lg);
-            margin-bottom: var(--space-md);
+            border-top: 1px solid var(--color-slate-200);
+            padding-top: var(--space-lg);
         }
 
         .call-script-container {
@@ -500,47 +961,71 @@
         }
 
         .cue-card {
-            background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+            background: #ffffff;
             border-radius: var(--radius-md);
+            padding: 0;
+            border: 1px solid var(--color-slate-200);
+            overflow: hidden;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .cue-card-question-section {
+            background: var(--color-slate-800);
             padding: var(--space-md);
-            box-shadow: var(--shadow-md);
-            border-left: 4px solid #f59e0b;
             position: relative;
         }
 
         .cue-card-number {
             position: absolute;
-            top: -8px;
-            left: -8px;
-            width: 28px;
-            height: 28px;
-            background: #f59e0b;
+            top: var(--space-md);
+            right: var(--space-md);
+            width: 24px;
+            height: 24px;
+            background: rgba(255, 255, 255, 0.2);
             color: white;
-            border-radius: 50%;
+            border-radius: var(--radius-sm);
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 14px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .cue-card-label {
+            font-size: 10px;
             font-weight: 700;
-            box-shadow: var(--shadow-sm);
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            margin-bottom: 6px;
+            display: block;
+        }
+
+        .cue-card-label-ask {
+            color: var(--color-cyan-400);
+        }
+
+        .cue-card-label-response {
+            color: var(--color-slate-400);
         }
 
         .cue-card-question {
             font-size: 16px;
-            font-weight: 600;
-            color: #92400e;
-            margin-bottom: var(--space-sm);
+            font-weight: 500;
+            color: #ffffff;
             line-height: 1.4;
-            padding-left: var(--space-md);
+            padding-right: 36px;
+        }
+
+        .cue-card-answer-section {
+            padding: var(--space-md);
+            background: var(--color-slate-50);
+            border-top: 3px solid var(--color-cyan-500);
         }
 
         .cue-card-answer {
             font-size: 14px;
-            color: #78350f;
-            line-height: 1.5;
-            padding-left: var(--space-md);
-            border-left: 2px solid rgba(146, 64, 14, 0.3);
-            margin-left: var(--space-md);
+            color: var(--color-slate-700);
+            line-height: 1.6;
         }
 
         /* Call Script Reveal Toggle */
@@ -549,20 +1034,19 @@
             align-items: center;
             gap: var(--space-sm);
             width: 100%;
-            padding: var(--space-md);
-            background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+            padding: 14px var(--space-md);
+            background: var(--color-slate-800);
             border: none;
             border-radius: var(--radius-md);
-            font-size: 15px;
-            font-weight: 600;
-            color: #92400e;
+            font-size: 14px;
+            font-weight: 500;
+            color: white;
             cursor: pointer;
-            transition: all 0.3s ease;
-            box-shadow: var(--shadow-sm);
+            transition: all 0.15s ease;
         }
 
         .script-reveal-toggle:hover {
-            box-shadow: var(--shadow-md);
+            background: var(--color-slate-700);
         }
 
         .script-reveal-toggle.open {
@@ -570,7 +1054,8 @@
         }
 
         .script-reveal-icon {
-            font-size: 18px;
+            font-size: 16px;
+            opacity: 0.8;
         }
 
         .script-reveal-text {
@@ -579,8 +1064,9 @@
         }
 
         .script-reveal-arrow {
-            transition: transform 0.3s ease;
-            font-size: 12px;
+            transition: transform 0.2s ease;
+            font-size: 10px;
+            opacity: 0.6;
         }
 
         .script-reveal-toggle.open .script-reveal-arrow {
@@ -589,10 +1075,12 @@
 
         .call-script-content-wrapper {
             display: none;
-            background: #fffbeb;
+            background: var(--color-slate-50);
+            border: 1px solid var(--color-slate-200);
+            border-top: none;
             border-radius: 0 0 var(--radius-md) var(--radius-md);
             padding: var(--space-md);
-            animation: slideDown 0.3s ease-out;
+            animation: slideDown 0.2s ease-out;
         }
 
         .call-script-content-wrapper.open {
@@ -602,7 +1090,7 @@
         @keyframes slideDown {
             from {
                 opacity: 0;
-                transform: translateY(-10px);
+                transform: translateY(-8px);
             }
             to {
                 opacity: 1;
@@ -619,20 +1107,26 @@
             display: flex;
             align-items: center;
             gap: var(--space-sm);
-            padding: var(--space-sm) var(--space-md);
-            background: #e0f2fe;
+            padding: 10px var(--space-md);
+            background: var(--color-slate-100);
             border: none;
             border-radius: var(--radius-sm);
             font-size: 13px;
             font-weight: 500;
-            color: #0369a1;
+            color: var(--color-slate-600);
             cursor: pointer;
             width: 100%;
             text-align: left;
+            transition: background 0.15s ease;
+        }
+
+        .tips-toggle:hover {
+            background: var(--color-slate-200);
         }
 
         .tips-toggle-icon {
             transition: transform 0.2s;
+            font-size: 10px;
         }
 
         .tips-toggle.open .tips-toggle-icon {
@@ -642,11 +1136,11 @@
         .tips-content {
             display: none;
             padding: var(--space-md);
-            background: #f0f9ff;
+            background: var(--color-slate-100);
             border-radius: 0 0 var(--radius-sm) var(--radius-sm);
-            font-size: 14px;
+            font-size: 13px;
             line-height: 1.7;
-            color: #0c4a6e;
+            color: var(--color-slate-700);
         }
 
         .tips-content.open {
@@ -668,27 +1162,32 @@
         .stats-grid {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
-            gap: var(--space-md);
+            gap: var(--space-sm);
             margin-bottom: var(--space-lg);
         }
 
         .stat-card {
-            background: var(--tg-theme-secondary-bg-color);
+            background: #ffffff;
+            border: 1px solid var(--color-slate-200);
             border-radius: var(--radius-md);
             padding: var(--space-md);
             text-align: center;
         }
 
         .stat-value {
-            font-size: 32px;
+            font-size: 28px;
             font-weight: 700;
-            color: var(--tg-theme-button-color);
+            color: var(--color-slate-800);
+            letter-spacing: -0.02em;
         }
 
         .stat-label {
-            font-size: 13px;
-            color: var(--tg-theme-hint-color);
+            font-size: 11px;
+            color: var(--color-slate-500);
             margin-top: var(--space-xs);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            font-weight: 500;
         }
 
         /* ═══════════════════════════════════════════════════════════════
@@ -700,11 +1199,11 @@
             bottom: 0;
             left: 0;
             right: 0;
-            background: var(--tg-theme-bg-color);
-            border-top: 1px solid var(--tg-theme-hint-color);
+            background: #ffffff;
+            border-top: 1px solid var(--color-slate-200);
             display: flex;
             justify-content: space-around;
-            padding: var(--space-sm) 0;
+            padding: 8px 0 calc(8px + env(safe-area-inset-bottom));
             z-index: 1000;
         }
 
@@ -716,21 +1215,28 @@
             gap: 4px;
             padding: var(--space-sm);
             cursor: pointer;
-            color: var(--tg-theme-hint-color);
-            transition: all 0.2s;
+            color: var(--color-slate-400);
+            transition: color 0.15s ease;
+        }
+
+        .nav-item:hover {
+            color: var(--color-slate-600);
         }
 
         .nav-item.active {
-            color: var(--tg-theme-button-color);
+            color: var(--color-cyan-500);
         }
 
         .nav-item-icon {
-            font-size: 20px;
+            font-size: 18px;
+            font-weight: 500;
         }
 
         .nav-item-label {
-            font-size: 11px;
-            font-weight: 500;
+            font-size: 10px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.02em;
         }
 
         /* ═══════════════════════════════════════════════════════════════
@@ -744,9 +1250,10 @@
             left: 0;
             right: 0;
             bottom: 0;
-            background: rgba(0, 0, 0, 0.5);
+            background: rgba(15, 23, 42, 0.6);
             z-index: 2000;
-            animation: fadeIn 0.2s;
+            animation: fadeIn 0.15s;
+            backdrop-filter: blur(4px);
         }
 
         .modal-backdrop.active {
@@ -755,13 +1262,14 @@
         }
 
         .modal-sheet {
-            background: var(--tg-theme-bg-color);
+            background: #ffffff;
             border-radius: var(--radius-lg) var(--radius-lg) 0 0;
             padding: var(--space-lg);
+            padding-bottom: calc(var(--space-lg) + env(safe-area-inset-bottom));
             width: 100%;
-            max-height: 80vh;
+            max-height: 85vh;
             overflow-y: auto;
-            animation: slideUp 0.3s ease-out;
+            animation: slideUp 0.25s ease-out;
         }
 
         @keyframes slideUp {
@@ -774,8 +1282,16 @@
         }
 
         .modal-header {
-            font-size: 18px;
+            font-size: 17px;
             font-weight: 600;
+            margin-bottom: var(--space-lg);
+            color: var(--color-slate-900);
+        }
+
+        .modal-description {
+            font-size: 14px;
+            color: var(--color-slate-600);
+            line-height: 1.6;
             margin-bottom: var(--space-lg);
         }
 
@@ -791,19 +1307,33 @@
 
         .empty-state {
             text-align: center;
-            padding: var(--space-xl);
-            color: var(--tg-theme-hint-color);
+            padding: var(--space-xl) var(--space-md);
         }
 
         .empty-state-icon {
-            font-size: 48px;
-            margin-bottom: var(--space-md);
+            width: 64px;
+            height: 64px;
+            margin: 0 auto var(--space-md);
+            background: var(--color-slate-100);
+            border-radius: var(--radius-lg);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            color: var(--color-slate-400);
         }
 
         .empty-state-title {
-            font-size: 16px;
-            font-weight: 500;
+            font-size: 15px;
+            font-weight: 600;
             margin-bottom: var(--space-sm);
+            color: var(--color-slate-700);
+        }
+
+        .empty-state p {
+            font-size: 13px;
+            color: var(--color-slate-500);
+            line-height: 1.5;
         }
 
         .loading {
@@ -812,12 +1342,12 @@
         }
 
         .loading-spinner {
-            width: 40px;
-            height: 40px;
-            border: 3px solid var(--tg-theme-hint-color);
-            border-top-color: var(--tg-theme-button-color);
+            width: 36px;
+            height: 36px;
+            border: 3px solid var(--color-slate-200);
+            border-top-color: var(--color-cyan-500);
             border-radius: 50%;
-            animation: spin 0.8s linear infinite;
+            animation: spin 0.7s linear infinite;
             margin: 0 auto var(--space-md);
         }
 
@@ -825,6 +1355,11 @@
             to {
                 transform: rotate(360deg);
             }
+        }
+
+        .loading p {
+            font-size: 13px;
+            color: var(--color-slate-500);
         }
 
         .text-center {
@@ -837,6 +1372,39 @@
 
         .mb-md {
             margin-bottom: var(--space-md);
+        }
+
+        /* Info Box */
+        .info-box {
+            padding: var(--space-md);
+            background: var(--color-slate-50);
+            border: 1px solid var(--color-slate-200);
+            border-radius: var(--radius-md);
+            font-size: 13px;
+            color: var(--color-slate-600);
+            line-height: 1.5;
+        }
+
+        .info-box strong {
+            color: var(--color-slate-800);
+        }
+
+        /* Success Box */
+        .success-box {
+            padding: var(--space-md);
+            background: var(--color-success-light);
+            border-left: 3px solid var(--color-success);
+            border-radius: var(--radius-sm);
+        }
+
+        /* Warning notice */
+        .warning-notice {
+            padding: var(--space-md);
+            background: var(--color-warning-light);
+            border-left: 3px solid var(--color-warning);
+            border-radius: var(--radius-sm);
+            font-size: 13px;
+            color: #92400e;
         }
     </style>
 </head>
@@ -853,7 +1421,7 @@
         <!-- Dashboard Page -->
         <div id="page-dashboard" class="page">
             <div class="page-header">
-                <div class="page-title">B2B Lead Agent 🎯</div>
+                <div class="page-title">Lead Agent</div>
                 <div class="page-subtitle" id="org-name"></div>
             </div>
             <div class="container">
@@ -879,10 +1447,10 @@
                 <div class="section">
                     <div class="section-title">Quick Actions</div>
                     <button class="btn btn-primary btn-block mb-md" onclick="showPage('search')">
-                        ➕ Add New Lead
+                        Add New Lead
                     </button>
                     <button class="btn btn-secondary btn-block" onclick="showPage('products')">
-                        📦 Manage Products
+                        Manage Products
                     </button>
                 </div>
 
@@ -892,12 +1460,12 @@
         <!-- Products Page -->
         <div id="page-products" class="page">
             <div class="page-header">
-                <div class="page-title">Products & Services 📦</div>
+                <div class="page-title">Products & Services</div>
                 <div class="page-subtitle">Manage your offerings</div>
             </div>
             <div class="container">
                 <button class="btn btn-primary btn-block mb-md" onclick="openAddProductModal()">
-                    + Add Product/Service
+                    Add Product
                 </button>
                 <div id="products-list"></div>
             </div>
@@ -906,14 +1474,12 @@
         <!-- Add Lead Page -->
         <div id="page-search" class="page">
             <div class="page-header">
-                <div class="page-title">Add New Lead ➕</div>
+                <div class="page-title">Add New Lead</div>
                 <div class="page-subtitle">Enter a business website URL</div>
             </div>
             <div class="container">
-                <div class="card mb-md" style="background: #f0f9ff; border-left: 4px solid #3b82f6;">
-                    <p style="font-size: 14px; color: #1e40af; margin: 0;">
-                        <strong>How it works:</strong> Paste the business website URL below. Our AI will extract their info and generate insights based on your products.
-                    </p>
+                <div class="info-box mb-md">
+                    <strong>How it works:</strong> Paste the business website URL below. Our AI will extract their info and generate insights based on your products.
                 </div>
 
                 <div class="form-group">
@@ -925,8 +1491,8 @@
                         placeholder="e.g., https://example.com"
                     />
                 </div>
-                <button class="btn btn-success btn-block" onclick="scrapeURL()" id="scrape-btn">
-                    ➕ Add Lead
+                <button class="btn btn-primary btn-block" onclick="scrapeURL()" id="scrape-btn">
+                    Add Lead
                 </button>
 
                 <div id="scrape-result" style="display: none;" class="mt-lg">
@@ -939,7 +1505,7 @@
         <!-- Prospects Page -->
         <div id="page-prospects" class="page">
             <div class="page-header">
-                <div class="page-title">Prospects 📋</div>
+                <div class="page-title">Prospects</div>
                 <div class="page-subtitle">Manage your leads</div>
             </div>
             <div class="container">
@@ -959,8 +1525,11 @@
 
         <!-- Prospect Detail Page -->
         <div id="page-prospect-detail" class="page">
-            <div class="page-header">
-                <button class="btn btn-secondary btn-sm" onclick="showPage('prospects')">← Back</button>
+            <div style="position: sticky; top: 0; z-index: 100; padding: var(--space-sm) var(--space-md); background: var(--color-slate-900);">
+                <button class="btn btn-ghost btn-sm" style="color: white; padding: 8px 12px;" onclick="showPage('prospects')">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"></path><path d="M12 19l-7-7 7-7"></path></svg>
+                    Back
+                </button>
             </div>
             <div class="container">
                 <div id="prospect-detail-content"></div>
@@ -971,19 +1540,19 @@
     <!-- Bottom Navigation -->
     <div class="bottom-nav">
         <div class="nav-item" onclick="showPage('dashboard')">
-            <div class="nav-item-icon">📊</div>
-            <div class="nav-item-label">Dashboard</div>
+            <svg class="nav-item-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
+            <div class="nav-item-label">Home</div>
         </div>
         <div class="nav-item" onclick="showPage('search')">
-            <div class="nav-item-icon">➕</div>
-            <div class="nav-item-label">Add Lead</div>
+            <svg class="nav-item-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+            <div class="nav-item-label">Add</div>
         </div>
         <div class="nav-item" onclick="showPage('prospects')">
-            <div class="nav-item-icon">📋</div>
-            <div class="nav-item-label">Prospects</div>
+            <svg class="nav-item-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+            <div class="nav-item-label">Leads</div>
         </div>
         <div class="nav-item" onclick="showPage('products')">
-            <div class="nav-item-icon">📦</div>
+            <svg class="nav-item-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path></svg>
             <div class="nav-item-label">Products</div>
         </div>
     </div>
@@ -1020,14 +1589,14 @@
     <!-- No Products Warning Modal -->
     <div id="modal-no-products" class="modal-backdrop">
         <div class="modal-sheet">
-            <div class="modal-header">⚠️ No Products Added</div>
-            <div style="padding: 0 var(--space-md) var(--space-md); color: #6b7280; font-size: 14px; line-height: 1.6;">
+            <div class="modal-header">No Products Added</div>
+            <div class="modal-description">
                 <p>You need to add at least one product or service before searching for leads.</p>
-                <p>The AI uses your products to generate relevant insights and pain points for prospects.</p>
+                <p style="margin-top: var(--space-sm);">The AI uses your products to generate relevant insights and pain points for prospects.</p>
             </div>
             <div class="modal-actions">
                 <button class="btn btn-secondary" style="flex: 1;" onclick="closeNoProductsModal()">Cancel</button>
-                <button class="btn btn-success" style="flex: 1;" onclick="goToProducts()">Add Products</button>
+                <button class="btn btn-primary" style="flex: 1;" onclick="goToProducts()">Add Products</button>
             </div>
         </div>
     </div>
@@ -1035,8 +1604,8 @@
     <!-- Manual Lead Entry Modal -->
     <div id="modal-manual-entry" class="modal-backdrop">
         <div class="modal-sheet">
-            <div class="modal-header">📝 Add Lead Manually</div>
-            <div style="padding: 0 var(--space-md) var(--space-md); color: #6b7280; font-size: 14px; line-height: 1.6; margin-bottom: var(--space-md);">
+            <div class="modal-header">Add Lead Manually</div>
+            <div class="modal-description">
                 <p>The website couldn't be scraped automatically. Please enter the business information manually.</p>
             </div>
             <div class="form-group">
@@ -1089,6 +1658,60 @@
             currentProspect: null,
             editingProduct: null
         };
+
+        // ═══════════════════════════════════════════════════════════════
+        // CACHE LAYER - Prevents redundant API calls
+        // ═══════════════════════════════════════════════════════════════
+
+        const cache = {
+            timestamps: {},
+            TTL: 30000, // 30 seconds cache validity
+
+            isValid(key) {
+                const ts = this.timestamps[key];
+                return ts && (Date.now() - ts) < this.TTL;
+            },
+
+            set(key) {
+                this.timestamps[key] = Date.now();
+            },
+
+            invalidate(key) {
+                delete this.timestamps[key];
+            },
+
+            invalidateAll() {
+                this.timestamps = {};
+            }
+        };
+
+        // ═══════════════════════════════════════════════════════════════
+        // STATE SYNC UTILITIES - Keep list and detail views in sync
+        // ═══════════════════════════════════════════════════════════════
+
+        function syncProspectToList(id, updates) {
+            const prospect = state.prospects.find(p => p.id === id);
+            if (prospect) {
+                Object.assign(prospect, updates);
+                // Re-render the specific list item instead of entire list
+                const listItem = document.querySelector(`.list-item[onclick*="${id}"]`);
+                if (listItem && updates.status) {
+                    const chip = listItem.querySelector('.chip');
+                    if (chip) {
+                        const statusClass = updates.status.replace('_', '-');
+                        const statusLabel = updates.status.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+                        chip.className = `chip chip-${statusClass}`;
+                        chip.textContent = statusLabel;
+                    }
+                }
+                if (listItem && (updates.phone !== undefined || updates.email !== undefined)) {
+                    const subtitle = listItem.querySelector('.list-item-subtitle');
+                    if (subtitle) {
+                        subtitle.textContent = updates.phone || prospect.address || 'No contact info';
+                    }
+                }
+            }
+        }
 
         // ═══════════════════════════════════════════════════════════════
         // API LAYER
@@ -1191,11 +1814,18 @@
                 document.querySelectorAll('.nav-item')[navIndex].classList.add('active');
             }
 
-            // Load data when page is shown
-            if (pageName === 'dashboard') loadDashboard();
-            if (pageName === 'products') loadProducts();
-            if (pageName === 'prospects') loadProspects();
-            if (pageName === 'search') loadProducts(); // Load products for validation
+            // Load data when page is shown - with caching to avoid redundant calls
+            if (pageName === 'dashboard' && !cache.isValid('dashboard')) loadDashboard();
+            if (pageName === 'products' && !cache.isValid('products')) loadProducts();
+            if (pageName === 'prospects') {
+                // Always re-render prospects from state, only fetch if cache invalid
+                if (!cache.isValid('prospects')) {
+                    loadProspects();
+                } else {
+                    renderProspects(); // Re-render from cached state
+                }
+            }
+            if (pageName === 'search' && !cache.isValid('products')) loadProducts();
         }
 
         // ═══════════════════════════════════════════════════════════════
@@ -1215,7 +1845,9 @@
                     showPage('loading');
                     document.getElementById('page-loading').innerHTML = `
                         <div class="empty-state">
-                            <div class="empty-state-icon">⚠️</div>
+                            <div class="empty-state-icon">
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+                            </div>
                             <div class="empty-state-title">No Organization</div>
                             <p>Please create or join an organization in the Hub first.</p>
                         </div>
@@ -1243,10 +1875,12 @@
                 showPage('loading');
                 document.getElementById('page-loading').innerHTML = `
                     <div class="empty-state">
-                        <div class="empty-state-icon">❌</div>
+                        <div class="empty-state-icon">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg>
+                        </div>
                         <div class="empty-state-title">Failed to Load</div>
                         <p>${error.message}</p>
-                        <p style="font-size: 12px; margin-top: 8px; color: #999;">Check console for details</p>
+                        <p style="font-size: 11px; margin-top: 8px; color: var(--color-slate-400);">Check console for details</p>
                     </div>
                 `;
             }
@@ -1261,6 +1895,7 @@
                 const dashboard = await api.getDashboard(state.orgId);
                 state.dashboard = dashboard;
                 state.currency = dashboard.currency;
+                cache.set('dashboard');
 
                 document.getElementById('org-name').textContent = state.orgName;
                 document.getElementById('stat-total').textContent = dashboard.total_prospects;
@@ -1279,6 +1914,7 @@
         async function loadProducts() {
             try {
                 state.products = await api.getProducts(state.orgId);
+                cache.set('products');
                 renderProducts();
             } catch (error) {
                 console.error('Products load error:', error);
@@ -1291,7 +1927,9 @@
             if (state.products.length === 0) {
                 list.innerHTML = `
                     <div class="empty-state">
-                        <div class="empty-state-icon">📦</div>
+                        <div class="empty-state-icon">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path></svg>
+                        </div>
                         <div class="empty-state-title">No Products Yet</div>
                         <p>Add your products and services to get AI-powered insights for prospects.</p>
                     </div>
@@ -1303,10 +1941,10 @@
                 <div class="card">
                     <div class="card-header">
                         <div class="card-title">${p.name}</div>
-                        <button class="btn btn-sm btn-secondary" onclick="editProduct('${p.id}')">Edit</button>
+                        <button class="btn btn-sm btn-ghost" onclick="editProduct('${p.id}')">Edit</button>
                     </div>
-                    ${p.description ? `<p style="font-size: 14px; color: #6b7280; margin-bottom: 8px;">${p.description}</p>` : ''}
-                    ${p.price ? `<div style="font-size: 16px; font-weight: 600; color: var(--tg-theme-button-color);">${p.price} ${state.currency}</div>` : ''}
+                    ${p.description ? `<p style="font-size: 13px; color: var(--color-slate-600); margin-bottom: 8px;">${p.description}</p>` : ''}
+                    ${p.price ? `<div style="font-size: 15px; font-weight: 600; color: var(--color-slate-800);">${p.price} ${state.currency}</div>` : ''}
                 </div>
             `).join('');
         }
@@ -1380,6 +2018,8 @@
                 }
 
                 closeProductModal();
+                cache.invalidate('products');
+                cache.invalidate('dashboard');
                 await loadProducts();
             } catch (error) {
                 alert('Failed to save product: ' + error.message);
@@ -1413,7 +2053,7 @@
 
             const btn = document.getElementById('scrape-btn');
             btn.disabled = true;
-            btn.textContent = '⏳ Processing...';
+            btn.textContent = 'Processing...';
 
             try {
                 const prospect = await api.scrapeProspect(state.orgId, url);
@@ -1421,12 +2061,12 @@
                 // Show success result
                 const resultContent = document.getElementById('scrape-result-content');
                 resultContent.innerHTML = `
-                    <div class="card card-elevated" style="border-left: 4px solid var(--color-success);">
+                    <div class="card card-elevated" style="border-left: 3px solid var(--color-success);">
                         <div class="card-header">
-                            <div class="card-title">✅ ${prospect.business_name}</div>
+                            <div class="card-title">${prospect.business_name}</div>
                             <span class="chip chip-not-contacted">New</span>
                         </div>
-                        <p style="font-size: 14px; color: #6b7280; margin-bottom: 12px;">
+                        <p style="font-size: 13px; color: var(--color-slate-600); margin-bottom: 12px;">
                             ${prospect.address || prospect.website || 'Lead added successfully'}
                         </p>
                         <div style="display: flex; gap: 8px;">
@@ -1440,12 +2080,16 @@
                 // Clear input for next entry
                 document.getElementById('url-input').value = '';
 
+                // Invalidate caches so lists refresh
+                cache.invalidate('prospects');
+                cache.invalidate('dashboard');
+
             } catch (error) {
                 // Show manual entry modal instead of alert
                 openManualEntryModal(url, error.message);
             } finally {
                 btn.disabled = false;
-                btn.textContent = '➕ Add Lead';
+                btn.textContent = 'Add Lead';
             }
         }
 
@@ -1486,7 +2130,7 @@
 
             const btn = document.getElementById('save-manual-btn');
             btn.disabled = true;
-            btn.textContent = '⏳ Saving...';
+            btn.textContent = 'Saving...';
 
             try {
                 const prospect = await api.createManualProspect(state.orgId, data);
@@ -1496,12 +2140,12 @@
                 // Show success result
                 const resultContent = document.getElementById('scrape-result-content');
                 resultContent.innerHTML = `
-                    <div class="card card-elevated" style="border-left: 4px solid var(--color-success);">
+                    <div class="card card-elevated" style="border-left: 3px solid var(--color-success);">
                         <div class="card-header">
-                            <div class="card-title">✅ ${prospect.business_name}</div>
+                            <div class="card-title">${prospect.business_name}</div>
                             <span class="chip chip-not-contacted">New</span>
                         </div>
-                        <p style="font-size: 14px; color: #6b7280; margin-bottom: 12px;">
+                        <p style="font-size: 13px; color: var(--color-slate-600); margin-bottom: 12px;">
                             ${prospect.address || prospect.website || 'Lead added successfully'}
                         </p>
                         <div style="display: flex; gap: 8px;">
@@ -1514,6 +2158,10 @@
 
                 // Clear URL input
                 document.getElementById('url-input').value = '';
+
+                // Invalidate caches so lists refresh
+                cache.invalidate('prospects');
+                cache.invalidate('dashboard');
 
             } catch (error) {
                 alert('Failed to save lead: ' + error.message);
@@ -1533,13 +2181,14 @@
         // PROSPECTS
         // ═══════════════════════════════════════════════════════════════
 
-        async function loadProspects() {
+        async function loadProspects(forceRefresh = false) {
             const status = document.getElementById('filter-status').value;
             try {
                 const filters = {};
                 if (status) filters.status = status;
 
                 state.prospects = await api.getProspects(state.orgId, filters);
+                cache.set('prospects');
                 renderProspects();
             } catch (error) {
                 console.error('Prospects load error:', error);
@@ -1552,9 +2201,11 @@
             if (state.prospects.length === 0) {
                 list.innerHTML = `
                     <div class="empty-state">
-                        <div class="empty-state-icon">📋</div>
+                        <div class="empty-state-icon">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+                        </div>
                         <div class="empty-state-title">No Prospects Yet</div>
-                        <p>Search for new leads to get started.</p>
+                        <p>Add new leads to get started.</p>
                     </div>
                 `;
                 return;
@@ -1563,10 +2214,11 @@
             list.innerHTML = state.prospects.map(p => {
                 const statusClass = p.status.replace('_', '-');
                 const statusLabel = p.status.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+                const initials = p.business_name.split(' ').map(w => w[0]).join('').substring(0, 2).toUpperCase();
 
                 return `
                     <div class="list-item" onclick="viewProspect('${p.id}')">
-                        <div class="list-item-icon">🏢</div>
+                        <div class="list-item-icon">${initials}</div>
                         <div class="list-item-content">
                             <div class="list-item-title">${p.business_name}</div>
                             <div class="list-item-subtitle">${p.phone || p.address || 'No contact info'}</div>
@@ -1590,115 +2242,232 @@
             }
         }
 
-        function renderProspectDetail(p) {
-            const statusClass = p.status.replace('_', '-');
-            const statusLabel = p.status.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+        function getHostname(url) {
+            try {
+                return new URL(url).hostname;
+            } catch {
+                return url;
+            }
+        }
 
-            const painPointsHtml = p.pain_points && p.pain_points.length > 0 ? `
-                <div class="prospect-pain-points">
-                    <h4>Pain Points We Can Solve</h4>
-                    <ol class="pain-points-list">
-                        ${p.pain_points.map(pp => `
-                            <li>
-                                <div class="pain-point-title">${pp.title}</div>
-                                <div class="pain-point-description">${pp.description}</div>
-                                ${pp.relevant_product ? `<span class="relevant-product">💡 ${pp.relevant_product}</span>` : ''}
-                            </li>
-                        `).join('')}
-                    </ol>
-                </div>
-            ` : '';
+        function renderProspectDetail(p) {
+            const statuses = [
+                { value: 'not_contacted', label: 'Not Contacted' },
+                { value: 'contacted', label: 'Contacted' },
+                { value: 'ongoing_conversations', label: 'Ongoing' },
+                { value: 'closed', label: 'Closed' }
+            ];
 
             document.getElementById('prospect-detail-content').innerHTML = `
-                <div class="prospect-card">
-                    <div class="prospect-header">
-                        <div class="prospect-name">${p.business_name}</div>
-                        <span class="chip chip-${statusClass}">${statusLabel}</span>
+                <!-- Header -->
+                <div class="prospect-detail-header">
+                    <div class="prospect-detail-name">${p.business_name}</div>
+                    <div class="prospect-detail-meta">
+                        ${p.website ? `<a href="${p.website}" target="_blank" style="color: var(--color-cyan-400);">${getHostname(p.website)}</a>` : ''}
+                        ${p.address ? `<span>${p.address}</span>` : ''}
                     </div>
+                </div>
 
-                    ${p.summary ? `
-                        <div class="prospect-summary">${p.summary}</div>
-                    ` : '<div class="prospect-summary">AI insights are being generated...</div>'}
-
-                    ${painPointsHtml}
-
-                    <div class="prospect-contact">
-                        <div class="contact-field">
-                            <label><strong>📞 Phone:</strong></label>
-                            <input type="tel" id="contact-phone" class="input" value="${p.phone || ''}" placeholder="Add phone number">
+                <!-- Quick Actions Bar -->
+                <div class="quick-actions-bar">
+                    ${p.phone ? `
+                        <a href="tel:${p.phone.replace(/[^0-9+]/g, '')}" class="quick-action-btn primary">
+                            <span class="quick-action-icon">&#128222;</span>
+                            <span class="quick-action-label">Call</span>
+                        </a>
+                    ` : `
+                        <div class="quick-action-btn disabled">
+                            <span class="quick-action-icon">&#128222;</span>
+                            <span class="quick-action-label">Call</span>
                         </div>
-                        <div class="contact-field">
-                            <label><strong>📧 Email:</strong></label>
-                            <input type="email" id="contact-email" class="input" value="${p.email || ''}" placeholder="Add email address">
+                    `}
+                    ${p.website ? `
+                        <a href="${p.website}" target="_blank" class="quick-action-btn">
+                            <span class="quick-action-icon">&#127760;</span>
+                            <span class="quick-action-label">Website</span>
+                        </a>
+                    ` : `
+                        <div class="quick-action-btn disabled">
+                            <span class="quick-action-icon">&#127760;</span>
+                            <span class="quick-action-label">Website</span>
                         </div>
-                        ${p.address ? `<p><strong>📍 Address:</strong> ${p.address}</p>` : ''}
-                        <button class="btn btn-primary" onclick="saveContact('${p.id}')">💾 Save Contact Info</button>
-                    </div>
+                    `}
+                    <button class="quick-action-btn" onclick="downloadVCard('${p.id}')">
+                        <span class="quick-action-icon">&#128100;</span>
+                        <span class="quick-action-label">Save</span>
+                    </button>
+                </div>
 
-                    <div class="prospect-actions">
-                        ${p.phone ? `<a href="tel:${p.phone.replace(/[^0-9+]/g, '')}" class="btn btn-primary">📞 Call</a>` : '<button class="btn btn-secondary" disabled>📞 Call</button>'}
-                        <button class="btn btn-secondary" onclick="downloadVCard('${p.id}')">👤 Add to Phone</button>
-                        ${p.website ? `<a href="${p.website}" target="_blank" class="btn btn-secondary">🌐 Visit Website</a>` : ''}
-                        <button class="btn btn-danger" onclick="deleteProspectConfirm('${p.id}')">🗑️ Delete</button>
+                <!-- Status Pills -->
+                <div class="status-selector-section">
+                    <span class="status-selector-label">Status</span>
+                    <div class="status-pills">
+                        ${statuses.map(s => `
+                            <button class="status-pill ${p.status === s.value ? 'active' : ''}" onclick="updateStatus('${p.id}', '${s.value}')">${s.label}</button>
+                        `).join('')}
                     </div>
+                </div>
 
-                    <div class="prospect-status-selector">
-                        <label>Status:</label>
-                        <select class="select" onchange="updateStatus('${p.id}', this.value)">
-                            <option value="not_contacted" ${p.status === 'not_contacted' ? 'selected' : ''}>Not Contacted</option>
-                            <option value="contacted" ${p.status === 'contacted' ? 'selected' : ''}>Contacted</option>
-                            <option value="ongoing_conversations" ${p.status === 'ongoing_conversations' ? 'selected' : ''}>Ongoing Conversations</option>
-                            <option value="closed" ${p.status === 'closed' ? 'selected' : ''}>Closed</option>
-                        </select>
+                <!-- Contact Info Card -->
+                <div class="contact-info-card">
+                    <div class="contact-info-header">
+                        <span class="contact-info-title">Contact Info</span>
+                        <button class="edit-contact-toggle" onclick="toggleContactEdit()">Edit</button>
                     </div>
-
-                    ${p.pain_points && p.pain_points.length > 0 ? `
-                    <div class="call-script-section">
-                        <button class="script-reveal-toggle" onclick="toggleCallScript(this)">
-                            <span class="script-reveal-icon">📞</span>
-                            <span class="script-reveal-text">Reveal Call Script</span>
-                            <span class="script-reveal-arrow">▼</span>
-                        </button>
-                        <div class="call-script-content-wrapper">
-                            ${p.call_script && p.call_script.length > 0 ? `
-                            <div class="call-script-container">
-                                ${p.call_script.map((item, index) => `
-                                    <div class="cue-card">
-                                        <div class="cue-card-number">${index + 1}</div>
-                                        <div class="cue-card-question">"${item.question}"</div>
-                                        <div class="cue-card-answer">${item.answer}</div>
-                                    </div>
-                                `).join('')}
-                            </div>
-                            ` : `
-                            <div id="call-script-content-${p.id}" class="call-script-pending">
-                                <p style="color: var(--tg-theme-hint-color); font-size: 14px; text-align: center; padding: var(--space-md);">
-                                    Loading call script...
-                                </p>
-                            </div>
-                            `}
-                            <div class="tips-section">
-                                <button class="tips-toggle" onclick="toggleTips(this)">
-                                    <span class="tips-toggle-icon">▼</span>
-                                    <span>Tips for cold calling</span>
-                                </button>
-                                <div class="tips-content">
-                                    <p>When reaching out to someone for the first time, it's important to get to the point quickly. They don't know you yet, so respecting their time is key. This doesn't mean they aren't interested in what you offer—it simply means your message needs to be presented in a clear, accessible way.</p>
-                                    <p>That's why a question-and-answer format works so well. It's engaging, easy to follow, and—most importantly—straight to the point. Clients appreciate communication that's concise, relevant, and considerate of their time.</p>
+                    <div class="contact-info-grid">
+                        <div class="contact-info-item">
+                            <div class="contact-info-icon">&#128222;</div>
+                            <div class="contact-info-content">
+                                <div class="contact-info-label">Phone</div>
+                                <div class="contact-info-value">
+                                    ${p.phone ? `<a href="tel:${p.phone.replace(/[^0-9+]/g, '')}">${p.phone}</a>` : '<span class="contact-info-empty">Not set</span>'}
                                 </div>
                             </div>
                         </div>
+                        <div class="contact-info-item">
+                            <div class="contact-info-icon">&#9993;</div>
+                            <div class="contact-info-content">
+                                <div class="contact-info-label">Email</div>
+                                <div class="contact-info-value">
+                                    ${p.email ? `<a href="mailto:${p.email}">${p.email}</a>` : '<span class="contact-info-empty">Not set</span>'}
+                                </div>
+                            </div>
+                        </div>
+                        ${p.address ? `
+                        <div class="contact-info-item">
+                            <div class="contact-info-icon">&#128205;</div>
+                            <div class="contact-info-content">
+                                <div class="contact-info-label">Address</div>
+                                <div class="contact-info-value">${p.address}</div>
+                            </div>
+                        </div>
+                        ` : ''}
                     </div>
+                    <div class="contact-edit-form" id="contact-edit-form">
+                        <div class="contact-edit-row">
+                            <input type="tel" id="contact-phone" placeholder="Phone number" value="${p.phone || ''}">
+                        </div>
+                        <div class="contact-edit-row">
+                            <input type="email" id="contact-email" placeholder="Email address" value="${p.email || ''}">
+                        </div>
+                        <div class="contact-edit-actions">
+                            <button class="btn btn-secondary btn-sm" onclick="toggleContactEdit()">Cancel</button>
+                            <button class="btn btn-primary btn-sm" onclick="saveContact('${p.id}')">Save</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- AI Insights Section -->
+                <div class="ai-insights-section">
+                    <div class="section-title">AI Insights</div>
+                    ${p.summary ? `
+                        <div class="ai-summary-box">
+                            <div class="ai-summary-text">${p.summary}</div>
+                        </div>
+                    ` : `
+                        <div class="ai-generating">AI insights are being generated...</div>
+                    `}
+
+                    ${p.pain_points && p.pain_points.length > 0 ? `
+                        <div class="section-title" style="margin-top: var(--space-lg);">Opportunities</div>
+                        <div class="opportunities-list">
+                            ${p.pain_points.map((pp, index) => `
+                                <div class="opportunity-card">
+                                    <div class="opportunity-number">${index + 1}</div>
+                                    <div class="opportunity-content">
+                                        <div class="opportunity-title">${pp.title}</div>
+                                        <div class="opportunity-description">${pp.description}</div>
+                                        ${pp.relevant_product ? `<span class="opportunity-product">${pp.relevant_product}</span>` : ''}
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
                     ` : ''}
                 </div>
+
+                <!-- Call Script Section -->
+                ${p.pain_points && p.pain_points.length > 0 ? `
+                <div class="call-script-section">
+                    <button class="script-reveal-toggle" onclick="toggleCallScript(this)">
+                        <span class="script-reveal-icon">&#128172;</span>
+                        <span class="script-reveal-text">Call Script</span>
+                        <span class="script-reveal-arrow">&#9662;</span>
+                    </button>
+                    <div class="call-script-content-wrapper">
+                        ${p.call_script && p.call_script.length > 0 ? `
+                        <div class="call-script-container">
+                            ${p.call_script.map((item, index) => `
+                                <div class="cue-card">
+                                    <div class="cue-card-question-section">
+                                        <div class="cue-card-number">${index + 1}</div>
+                                        <span class="cue-card-label cue-card-label-ask">Ask</span>
+                                        <div class="cue-card-question">${item.question}</div>
+                                    </div>
+                                    <div class="cue-card-answer-section">
+                                        <span class="cue-card-label cue-card-label-response">Your Response</span>
+                                        <div class="cue-card-answer">${item.answer}</div>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                        ` : `
+                        <div id="call-script-content-${p.id}" class="call-script-pending">
+                            <p style="color: var(--color-slate-500); font-size: 13px; text-align: center; padding: var(--space-md);">
+                                Loading call script...
+                            </p>
+                        </div>
+                        `}
+                        <div class="tips-section">
+                            <button class="tips-toggle" onclick="toggleTips(this)">
+                                <span class="tips-toggle-icon">&#9662;</span>
+                                <span>Tips for cold calling</span>
+                            </button>
+                            <div class="tips-content">
+                                <p>Get to the point quickly. They don't know you yet, so respect their time.</p>
+                                <p>Questions invite engagement. Answers should focus on solutions, not product pitches.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                ` : ''}
+
+                <!-- Danger Zone -->
+                <div class="danger-zone">
+                    <button class="danger-zone-btn" onclick="deleteProspectConfirm('${p.id}')">Delete This Lead</button>
+                </div>
             `;
+        }
+
+        function toggleContactEdit() {
+            const form = document.getElementById('contact-edit-form');
+            form.classList.toggle('visible');
         }
 
         async function updateStatus(id, status) {
             try {
                 await api.updateProspectStatus(id, status);
                 state.currentProspect.status = status;
-                renderProspectDetail(state.currentProspect);
+
+                // Partial DOM update - only update status pills instead of full re-render
+                document.querySelectorAll('.status-pill').forEach(pill => {
+                    const pillStatus = pill.getAttribute('onclick')?.match(/'([^']+)'\s*\)$/)?.[1];
+                    if (pillStatus === status) {
+                        pill.classList.add('active');
+                    } else {
+                        pill.classList.remove('active');
+                    }
+                });
+
+                // Sync to list view state
+                syncProspectToList(id, { status });
+
+                // Invalidate dashboard cache since status counts changed
+                cache.invalidate('dashboard');
+
+                // Haptic feedback on success
+                if (window.Telegram?.WebApp?.HapticFeedback) {
+                    window.Telegram.WebApp.HapticFeedback.selectionChanged();
+                }
             } catch (error) {
                 alert('Failed to update status: ' + error.message);
             }
@@ -1715,13 +2484,49 @@
                 state.currentProspect.phone = updatedProspect.phone;
                 state.currentProspect.email = updatedProspect.email;
 
-                // Re-render to update call button
-                renderProspectDetail(state.currentProspect);
+                // Partial DOM update - only update contact display values
+                const contactInfoItems = document.querySelectorAll('.contact-info-item');
+                contactInfoItems.forEach(item => {
+                    const label = item.querySelector('.contact-info-label')?.textContent;
+                    const valueEl = item.querySelector('.contact-info-value');
+                    if (!valueEl) return;
 
+                    if (label === 'Phone') {
+                        valueEl.innerHTML = updatedProspect.phone
+                            ? `<a href="tel:${updatedProspect.phone.replace(/[^0-9+]/g, '')}">${updatedProspect.phone}</a>`
+                            : '<span class="contact-info-empty">Not set</span>';
+                    } else if (label === 'Email') {
+                        valueEl.innerHTML = updatedProspect.email
+                            ? `<a href="mailto:${updatedProspect.email}">${updatedProspect.email}</a>`
+                            : '<span class="contact-info-empty">Not set</span>';
+                    }
+                });
+
+                // Update quick action call button
+                const callBtn = document.querySelector('.quick-actions-bar a[href^="tel:"], .quick-actions-bar .quick-action-btn.disabled:first-child');
+                if (callBtn) {
+                    if (updatedProspect.phone) {
+                        callBtn.outerHTML = `<a href="tel:${updatedProspect.phone.replace(/[^0-9+]/g, '')}" class="quick-action-btn primary">
+                            <span class="quick-action-icon">&#128222;</span>
+                            <span class="quick-action-label">Call</span>
+                        </a>`;
+                    } else {
+                        callBtn.outerHTML = `<div class="quick-action-btn disabled">
+                            <span class="quick-action-icon">&#128222;</span>
+                            <span class="quick-action-label">Call</span>
+                        </div>`;
+                    }
+                }
+
+                // Hide edit form
+                toggleContactEdit();
+
+                // Sync to list view state
+                syncProspectToList(id, { phone: updatedProspect.phone, email: updatedProspect.email });
+
+                // Show brief success feedback
                 if (window.Telegram?.WebApp) {
-                    window.Telegram.WebApp.showAlert('Contact information saved!');
-                } else {
-                    alert('Contact information saved!');
+                    window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
                 }
             } catch (error) {
                 alert('Failed to save contact: ' + error.message);
@@ -1768,6 +2573,8 @@
 
             try {
                 await api.deleteProspect(id);
+                cache.invalidate('prospects');
+                cache.invalidate('dashboard');
                 showPage('prospects');
                 await loadProspects();
             } catch (error) {
@@ -1795,7 +2602,7 @@
                     await fetchCallScript(state.currentProspect.id, pendingContainer);
                 }
             } else {
-                textSpan.textContent = 'Reveal Call Script';
+                textSpan.textContent = 'View Call Script';
             }
         }
 
@@ -1810,9 +2617,15 @@
                     newContent.className = 'call-script-container';
                     newContent.innerHTML = result.script_items.map((item, index) => `
                         <div class="cue-card">
-                            <div class="cue-card-number">${index + 1}</div>
-                            <div class="cue-card-question">"${item.question}"</div>
-                            <div class="cue-card-answer">${item.answer}</div>
+                            <div class="cue-card-question-section">
+                                <div class="cue-card-number">${index + 1}</div>
+                                <span class="cue-card-label cue-card-label-ask">Ask</span>
+                                <div class="cue-card-question">${item.question}</div>
+                            </div>
+                            <div class="cue-card-answer-section">
+                                <span class="cue-card-label cue-card-label-response">Your Response</span>
+                                <div class="cue-card-answer">${item.answer}</div>
+                            </div>
                         </div>
                     `).join('');
 
@@ -1824,16 +2637,26 @@
                     }
                 } else {
                     container.innerHTML = `
-                        <p style="color: var(--tg-theme-hint-color); font-size: 14px; text-align: center; padding: var(--space-md);">
-                            Call script is being generated. Please check back in a moment.
-                        </p>
+                        <div style="text-align: center; padding: var(--space-lg); color: var(--color-slate-500);">
+                            <div style="font-size: 32px; margin-bottom: var(--space-sm);">&#9203;</div>
+                            <p style="font-size: 13px; margin-bottom: var(--space-xs);">Call script is being generated...</p>
+                            <p style="font-size: 12px; opacity: 0.7;">Check back in a moment</p>
+                        </div>
                     `;
                 }
             } catch (error) {
+                // Check if it's a "no pain points" error
+                const isPainPointsError = error.message && error.message.includes('pain points');
                 container.innerHTML = `
-                    <p style="color: var(--tg-theme-hint-color); font-size: 14px; text-align: center; padding: var(--space-md);">
-                        ${error.message || 'Call script is being generated. Please check back in a moment.'}
-                    </p>
+                    <div style="text-align: center; padding: var(--space-lg); color: var(--color-slate-500);">
+                        <div style="font-size: 32px; margin-bottom: var(--space-sm);">${isPainPointsError ? '&#9203;' : '&#128172;'}</div>
+                        <p style="font-size: 13px; margin-bottom: var(--space-xs);">
+                            ${isPainPointsError ? 'AI insights are still being generated...' : 'Call script is being prepared...'}
+                        </p>
+                        <p style="font-size: 12px; opacity: 0.7;">
+                            ${isPainPointsError ? 'The call script will be available once AI analysis is complete' : 'Please check back in a moment'}
+                        </p>
+                    </div>
                 `;
             }
         }

@@ -732,13 +732,13 @@ async def update_prospect_status(
     prospect_id: str,
     data: ProspectStatusUpdate,
     x_telegram_init_data: str = Header(...)
-) -> Prospect:
+) -> ProspectCard:
     """Update the status of a prospect."""
     tg_user = get_telegram_user(x_telegram_init_data)
     db = get_supabase_admin()
 
     # Get prospect
-    prospect_result = db.table("lead_agent_prospects").select("org_id").eq(
+    prospect_result = db.table("lead_agent_prospects").select("*").eq(
         "id", prospect_id
     ).single().execute()
 
@@ -753,7 +753,22 @@ async def update_prospect_status(
         "status": data.status
     }).eq("id", prospect_id).execute()
 
-    return Prospect(**result.data[0])
+    prospect = result.data[0]
+    return ProspectCard(
+        id=prospect["id"],
+        business_name=prospect["business_name"],
+        phone=prospect.get("phone"),
+        email=prospect.get("email"),
+        address=prospect.get("address"),
+        website=prospect.get("website"),
+        google_maps_url=prospect.get("google_maps_url"),
+        summary=prospect.get("business_summary"),
+        pain_points=prospect.get("pain_points") or [],
+        status=prospect["status"],
+        search_query=prospect.get("search_query"),
+        source=prospect.get("source") or "url_scrape",
+        created_at=prospect["created_at"]
+    )
 
 
 @router.patch("/prospects/{prospect_id}/contact")
@@ -799,10 +814,10 @@ async def update_prospect_contact(
         website=prospect.get("website"),
         google_maps_url=prospect.get("google_maps_url"),
         summary=prospect.get("business_summary"),
-        pain_points=prospect.get("pain_points", []),
+        pain_points=prospect.get("pain_points") or [],
         status=prospect["status"],
         search_query=prospect.get("search_query"),
-        source=prospect.get("source", "url_scrape"),
+        source=prospect.get("source") or "url_scrape",
         created_at=prospect["created_at"]
     )
 
