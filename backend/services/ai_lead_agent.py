@@ -26,9 +26,12 @@ class LeadAgentAI:
         business_website: Optional[str],
         products: List[Product],
         business_description: Optional[str] = None
-    ) -> tuple[str, List[PainPoint]]:
+    ) -> tuple[str, List[PainPoint], list]:
         """
-        Generate business summary and pain points for a prospect.
+        Generate business summary, pain points, and call script for a prospect.
+
+        The call script transforms pain points into conversational questions
+        with answers - designed to be easy to skim like cue cards.
 
         Args:
             business_name: Name of the business
@@ -38,7 +41,7 @@ class LeadAgentAI:
             business_description: Pre-extracted description from website (optional)
 
         Returns:
-            tuple: (business_summary, list_of_pain_points)
+            tuple: (business_summary, list_of_pain_points, call_script_items)
         """
         # Build products context
         if products:
@@ -73,6 +76,23 @@ TASKS:
    - Explain the pain point in 1-2 sentences
    - If applicable, mention which of our products would help (use exact product name or null)
 
+3. Create a CALL SCRIPT based on the pain points. For each pain point, create:
+   - A SHORT, conversational question (like you're chatting with a friend)
+     * Use casual language: "you guys", "finding it hard", "struggling with"
+     * Keep it under 15 words
+     * Sound genuinely curious, not salesy
+     * Example: "Are you guys finding it hard to discover talented young players?"
+   - A brief answer showing how we can help (1-2 sentences max)
+     * Reference our specific product/service if relevant
+     * Keep it conversational and benefit-focused
+     * Example: "We specialize in discovering children's sport talent using science-based methods."
+
+IMPORTANT RULES FOR CALL SCRIPT:
+- Questions should sound human, not corporate
+- Avoid jargon and buzzwords
+- The question should invite the prospect to share their experience
+- Answers should be solutions, not product pitches
+
 Respond ONLY with valid JSON in this exact format:
 {{
     "business_summary": "...",
@@ -92,6 +112,20 @@ Respond ONLY with valid JSON in this exact format:
             "description": "...",
             "relevant_product": "product name or null"
         }}
+    ],
+    "call_script": [
+        {{
+            "question": "Are you guys finding it hard to...?",
+            "answer": "We specialize in... using..."
+        }},
+        {{
+            "question": "...",
+            "answer": "..."
+        }},
+        {{
+            "question": "...",
+            "answer": "..."
+        }}
     ]
 }}"""
 
@@ -101,7 +135,7 @@ Respond ONLY with valid JSON in this exact format:
                 messages=[
                     {
                         "role": "system",
-                        "content": "You are a B2B sales intelligence assistant with expertise in identifying business pain points and matching them to solutions. Respond only with valid JSON."
+                        "content": "You are a B2B sales intelligence assistant with expertise in identifying business pain points and matching them to solutions. You also help sales reps sound natural and human on calls - avoiding corporate speak and helping people connect authentically. Respond only with valid JSON."
                     },
                     {
                         "role": "user",
@@ -110,7 +144,7 @@ Respond ONLY with valid JSON in this exact format:
                 ],
                 response_format={"type": "json_object"},
                 temperature=0.7,
-                max_tokens=600
+                max_tokens=900
             )
 
             result = json.loads(response.choices[0].message.content)
@@ -126,12 +160,14 @@ Respond ONLY with valid JSON in this exact format:
                     relevant_product=pp.get("relevant_product")
                 ))
 
-            return business_summary, pain_points
+            call_script = result.get("call_script", [])[:3]
+
+            return business_summary, pain_points, call_script
 
         except Exception as e:
             print(f"Error generating AI insights: {e}")
             # Return empty fallback
-            return "", []
+            return "", [], []
 
     async def generate_call_script(
         self,

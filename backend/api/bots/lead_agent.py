@@ -92,7 +92,7 @@ async def generate_ai_insights_task(
 
     Two-tier LLM pipeline:
     - Tier 1 (GPT-4o-mini): Already extracted business_description from URL (passed in)
-    - Tier 2 (GPT-4o): Generate strategic insights & pain points with pattern recognition
+    - Tier 2 (GPT-4o): Generate strategic insights, pain points, and call script
     """
     db = get_supabase_admin()
 
@@ -116,7 +116,7 @@ async def generate_ai_insights_task(
 
         # Generate insights using GPT-4o (with business description from GPT-4o-mini)
         ai = LeadAgentAI(settings.openai_api_key)
-        summary, pain_points = await ai.generate_prospect_insights(
+        summary, pain_points, call_script = await ai.generate_prospect_insights(
             business_name=prospect_data["business_name"],
             business_address=prospect_data.get("address"),
             business_website=prospect_data.get("website"),
@@ -124,10 +124,11 @@ async def generate_ai_insights_task(
             business_description=business_description
         )
 
-        # Update prospect with AI-generated content
+        # Update prospect with AI-generated content (including call script)
         db.table("lead_agent_prospects").update({
             "business_summary": summary,
             "pain_points": [pp.dict() for pp in pain_points],
+            "call_script": call_script,
             "ai_generated_at": datetime.now(timezone.utc).isoformat()
         }).eq("id", prospect_id).execute()
 
@@ -601,6 +602,87 @@ async def create_prospect_manually(
     )
 
 
+# NOTE: More specific routes (with sub-paths) must be defined BEFORE
+# the generic /prospects/{prospect_id} route to ensure correct routing.
+
+@router.get("/prospects/{prospect_id}/call-script")
+async def get_call_script(
+    prospect_id: str,
+    x_telegram_init_data: str = Header(...)
+):
+    """
+    Get the call script for a prospect.
+
+    For new prospects, returns the pre-generated script from the database.
+    For existing prospects without a stored script, generates one on-demand.
+    """
+    tg_user = get_telegram_user(x_telegram_init_data)
+    db = get_supabase_admin()
+
+    # Get prospect with call script
+    result = db.table("lead_agent_prospects").select("*").eq(
+        "id", prospect_id
+    ).single().execute()
+
+    if not result.data:
+        raise HTTPException(404, "Prospect not found")
+
+    prospect = result.data
+
+    org_id = prospect["org_id"]
+
+    # Verify org membership
+    await verify_org_member(tg_user.id, org_id)
+
+    # Return the stored call script if available
+    call_script = prospect.get("call_script", [])
+
+    if call_script:
+        return {
+            "business_name": prospect["business_name"],
+            "script_items": call_script
+        }
+
+    # For existing prospects without a call script, generate one on-demand
+    pain_points = prospect.get("pain_points", [])
+    if not pain_points:
+        raise HTTPException(
+            status_code=400,
+            detail="No pain points available yet. Please wait for AI insights to be generated."
+        )
+
+    # Get organization's products for context
+    products_result = db.table("lead_agent_products").select("*").eq(
+        "org_id", org_id
+    ).eq("is_active", True).execute()
+
+    products = [Product(**p) for p in products_result.data] if products_result.data else []
+
+    # Generate call script using AI
+    ai = LeadAgentAI(api_key=settings.openai_api_key)
+    script_items = await ai.generate_call_script(
+        business_name=prospect["business_name"],
+        pain_points=pain_points,
+        products=products
+    )
+
+    if not script_items:
+        raise HTTPException(
+            status_code=500,
+            detail="Failed to generate call script. Please try again."
+        )
+
+    # Store the generated script for future use
+    db.table("lead_agent_prospects").update({
+        "call_script": script_items
+    }).eq("id", prospect_id).execute()
+
+    return {
+        "business_name": prospect["business_name"],
+        "script_items": script_items
+    }
+
+
 @router.get("/prospects/{prospect_id}")
 async def get_prospect(
     prospect_id: str,
@@ -625,6 +707,7 @@ async def get_prospect(
 
     # Convert to ProspectCard
     pain_points = [PainPoint(**pp) for pp in prospect.get("pain_points", [])]
+    call_script = prospect.get("call_script", [])
 
     return ProspectCard(
         id=prospect["id"],
@@ -636,74 +719,12 @@ async def get_prospect(
         google_maps_url=prospect.get("google_maps_url"),
         summary=prospect.get("business_summary"),
         pain_points=pain_points,
+        call_script=call_script,
         status=prospect["status"],
         search_query=prospect.get("search_query"),
         source=prospect.get("source", "gemini_search"),
         created_at=prospect["created_at"]
     )
-
-
-@router.get("/prospects/{prospect_id}/call-script")
-async def get_call_script(
-    prospect_id: str,
-    x_telegram_init_data: str = Header(...)
-):
-    """
-    Generate a conversational call script for a prospect.
-
-    Transforms pain points into natural questions and answers
-    that sound human and conversational.
-    """
-    tg_user = get_telegram_user(x_telegram_init_data)
-    db = get_supabase_admin()
-
-    # Get prospect with pain points
-    result = db.table("lead_agent_prospects").select("*").eq(
-        "id", prospect_id
-    ).single().execute()
-
-    if not result.data:
-        raise HTTPException(404, "Prospect not found")
-
-    prospect = result.data
-    org_id = prospect["org_id"]
-
-    # Verify org membership
-    await verify_org_member(tg_user.id, org_id)
-
-    # Check if pain points exist
-    pain_points = prospect.get("pain_points", [])
-    if not pain_points:
-        raise HTTPException(
-            status_code=400,
-            detail="No pain points available yet. Please wait for AI insights to be generated."
-        )
-
-    # Get organization's products for context
-    products_result = db.table("lead_agent_products").select("*").eq(
-        "org_id", org_id
-    ).eq("is_active", True).execute()
-
-    products = [Product(**p) for p in products_result.data] if products_result.data else []
-
-    # Generate call script using AI
-    ai = LeadAgentAI(api_key=settings.OPENAI_API_KEY)
-    script_items = await ai.generate_call_script(
-        business_name=prospect["business_name"],
-        pain_points=pain_points,
-        products=products
-    )
-
-    if not script_items:
-        raise HTTPException(
-            status_code=500,
-            detail="Failed to generate call script. Please try again."
-        )
-
-    return {
-        "business_name": prospect["business_name"],
-        "script_items": script_items
-    }
 
 
 @router.patch("/prospects/{prospect_id}/status")

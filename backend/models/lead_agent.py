@@ -112,6 +112,12 @@ class Prospect(BaseModel):
         from_attributes = True
 
 
+class CallScriptItem(BaseModel):
+    """A single item in the call script (question + answer format)."""
+    question: str
+    answer: str
+
+
 class ProspectCard(BaseModel):
     """Prospect data formatted as a cue card for display."""
     id: str
@@ -123,6 +129,7 @@ class ProspectCard(BaseModel):
     google_maps_url: Optional[str] = None
     summary: Optional[str] = None
     pain_points: List[PainPoint] = []
+    call_script: List[CallScriptItem] = []
     status: str
     search_query: Optional[str] = None  # Optional for URL-scraped prospects
     source: str = "gemini_search"

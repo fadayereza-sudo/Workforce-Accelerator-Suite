@@ -493,21 +493,6 @@
             margin-bottom: var(--space-md);
         }
 
-        .call-script-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: var(--space-md);
-        }
-
-        .call-script-title {
-            font-size: 16px;
-            font-weight: 600;
-            display: flex;
-            align-items: center;
-            gap: var(--space-sm);
-        }
-
         .call-script-container {
             display: flex;
             flex-direction: column;
@@ -558,24 +543,71 @@
             margin-left: var(--space-md);
         }
 
-        .call-script-loading {
-            text-align: center;
-            padding: var(--space-xl);
-            color: var(--tg-theme-hint-color);
+        /* Call Script Reveal Toggle */
+        .script-reveal-toggle {
+            display: flex;
+            align-items: center;
+            gap: var(--space-sm);
+            width: 100%;
+            padding: var(--space-md);
+            background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+            border: none;
+            border-radius: var(--radius-md);
+            font-size: 15px;
+            font-weight: 600;
+            color: #92400e;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: var(--shadow-sm);
         }
 
-        .call-script-loading .spinner {
-            width: 32px;
-            height: 32px;
-            border: 3px solid var(--tg-theme-secondary-bg-color);
-            border-top-color: var(--tg-theme-button-color);
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-            margin: 0 auto var(--space-md);
+        .script-reveal-toggle:hover {
+            box-shadow: var(--shadow-md);
         }
 
-        @keyframes spin {
-            to { transform: rotate(360deg); }
+        .script-reveal-toggle.open {
+            border-radius: var(--radius-md) var(--radius-md) 0 0;
+        }
+
+        .script-reveal-icon {
+            font-size: 18px;
+        }
+
+        .script-reveal-text {
+            flex: 1;
+            text-align: left;
+        }
+
+        .script-reveal-arrow {
+            transition: transform 0.3s ease;
+            font-size: 12px;
+        }
+
+        .script-reveal-toggle.open .script-reveal-arrow {
+            transform: rotate(180deg);
+        }
+
+        .call-script-content-wrapper {
+            display: none;
+            background: #fffbeb;
+            border-radius: 0 0 var(--radius-md) var(--radius-md);
+            padding: var(--space-md);
+            animation: slideDown 0.3s ease-out;
+        }
+
+        .call-script-content-wrapper.open {
+            display: block;
+        }
+
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
 
         /* Tips Collapsible */
@@ -1066,7 +1098,10 @@
 
         const api = {
             async fetch(endpoint, options = {}) {
-                const res = await fetch(`${API_BASE}${endpoint}`, {
+                const url = `${API_BASE}${endpoint}`;
+                console.log(`[API] ${options.method || 'GET'} ${url}`);
+
+                const res = await fetch(url, {
                     ...options,
                     headers: {
                         'Content-Type': 'application/json',
@@ -1075,8 +1110,18 @@
                     }
                 });
 
+                console.log(`[API] Response status: ${res.status} ${res.statusText}`);
+
                 if (!res.ok) {
-                    const error = await res.json().catch(() => ({ detail: 'Request failed' }));
+                    const errorText = await res.text();
+                    console.error(`[API] Error response body:`, errorText);
+
+                    let error;
+                    try {
+                        error = JSON.parse(errorText);
+                    } catch {
+                        error = { detail: errorText || 'Request failed' };
+                    }
 
                     // Handle FastAPI validation errors (422) which return array of errors
                     if (Array.isArray(error.detail)) {
@@ -1609,25 +1654,38 @@
 
                     ${p.pain_points && p.pain_points.length > 0 ? `
                     <div class="call-script-section">
-                        <div class="call-script-header">
-                            <div class="call-script-title">📞 Call Script</div>
-                            <button class="btn btn-sm btn-primary" onclick="generateCallScript('${p.id}')" id="generate-script-btn">
-                                Generate
-                            </button>
-                        </div>
-                        <div id="call-script-content">
-                            <p style="color: var(--tg-theme-hint-color); font-size: 14px; text-align: center; padding: var(--space-md);">
-                                Click "Generate" to create a conversational call script based on the pain points above.
-                            </p>
-                        </div>
-                        <div class="tips-section">
-                            <button class="tips-toggle" onclick="toggleTips(this)">
-                                <span class="tips-toggle-icon">▼</span>
-                                <span>Tips for cold calling</span>
-                            </button>
-                            <div class="tips-content">
-                                <p>When reaching out to someone for the first time, it's important to get to the point quickly. They don't know you yet, so respecting their time is key. This doesn't mean they aren't interested in what you offer—it simply means your message needs to be presented in a clear, accessible way.</p>
-                                <p>That's why a question-and-answer format works so well. It's engaging, easy to follow, and—most importantly—straight to the point. Clients appreciate communication that's concise, relevant, and considerate of their time.</p>
+                        <button class="script-reveal-toggle" onclick="toggleCallScript(this)">
+                            <span class="script-reveal-icon">📞</span>
+                            <span class="script-reveal-text">Reveal Call Script</span>
+                            <span class="script-reveal-arrow">▼</span>
+                        </button>
+                        <div class="call-script-content-wrapper">
+                            ${p.call_script && p.call_script.length > 0 ? `
+                            <div class="call-script-container">
+                                ${p.call_script.map((item, index) => `
+                                    <div class="cue-card">
+                                        <div class="cue-card-number">${index + 1}</div>
+                                        <div class="cue-card-question">"${item.question}"</div>
+                                        <div class="cue-card-answer">${item.answer}</div>
+                                    </div>
+                                `).join('')}
+                            </div>
+                            ` : `
+                            <div id="call-script-content-${p.id}" class="call-script-pending">
+                                <p style="color: var(--tg-theme-hint-color); font-size: 14px; text-align: center; padding: var(--space-md);">
+                                    Loading call script...
+                                </p>
+                            </div>
+                            `}
+                            <div class="tips-section">
+                                <button class="tips-toggle" onclick="toggleTips(this)">
+                                    <span class="tips-toggle-icon">▼</span>
+                                    <span>Tips for cold calling</span>
+                                </button>
+                                <div class="tips-content">
+                                    <p>When reaching out to someone for the first time, it's important to get to the point quickly. They don't know you yet, so respecting their time is key. This doesn't mean they aren't interested in what you offer—it simply means your message needs to be presented in a clear, accessible way.</p>
+                                    <p>That's why a question-and-answer format works so well. It's engaging, easy to follow, and—most importantly—straight to the point. Clients appreciate communication that's concise, relevant, and considerate of their time.</p>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -1718,57 +1776,65 @@
         }
 
         // ═══════════════════════════════════════════════════════════════
-        // CALL SCRIPT
+        // CALL SCRIPT TOGGLE
         // ═══════════════════════════════════════════════════════════════
 
-        async function generateCallScript(prospectId) {
-            const btn = document.getElementById('generate-script-btn');
-            const container = document.getElementById('call-script-content');
+        async function toggleCallScript(button) {
+            button.classList.toggle('open');
+            const content = button.nextElementSibling;
+            content.classList.toggle('open');
 
-            btn.disabled = true;
-            btn.textContent = 'Generating...';
+            // Update button text
+            const textSpan = button.querySelector('.script-reveal-text');
+            if (button.classList.contains('open')) {
+                textSpan.textContent = 'Hide Call Script';
 
-            container.innerHTML = `
-                <div class="call-script-loading">
-                    <div class="spinner"></div>
-                    <p>Creating your call script...</p>
-                </div>
-            `;
+                // Check if we need to fetch the call script (for existing prospects)
+                const pendingContainer = content.querySelector('.call-script-pending');
+                if (pendingContainer && state.currentProspect) {
+                    await fetchCallScript(state.currentProspect.id, pendingContainer);
+                }
+            } else {
+                textSpan.textContent = 'Reveal Call Script';
+            }
+        }
 
+        async function fetchCallScript(prospectId, container) {
             try {
                 const result = await api.getCallScript(prospectId);
 
                 if (result.script_items && result.script_items.length > 0) {
-                    container.innerHTML = `
-                        <div class="call-script-container">
-                            ${result.script_items.map((item, index) => `
-                                <div class="cue-card">
-                                    <div class="cue-card-number">${index + 1}</div>
-                                    <div class="cue-card-question">"${item.question}"</div>
-                                    <div class="cue-card-answer">${item.answer}</div>
-                                </div>
-                            `).join('')}
+                    // Replace the pending container with the actual cue cards
+                    const parent = container.parentElement;
+                    const newContent = document.createElement('div');
+                    newContent.className = 'call-script-container';
+                    newContent.innerHTML = result.script_items.map((item, index) => `
+                        <div class="cue-card">
+                            <div class="cue-card-number">${index + 1}</div>
+                            <div class="cue-card-question">"${item.question}"</div>
+                            <div class="cue-card-answer">${item.answer}</div>
                         </div>
-                    `;
-                    btn.textContent = 'Regenerate';
+                    `).join('');
+
+                    parent.replaceChild(newContent, container);
+
+                    // Update the state so we don't fetch again
+                    if (state.currentProspect) {
+                        state.currentProspect.call_script = result.script_items;
+                    }
                 } else {
                     container.innerHTML = `
-                        <p style="color: var(--color-error); font-size: 14px; text-align: center; padding: var(--space-md);">
-                            Could not generate script. Please try again.
+                        <p style="color: var(--tg-theme-hint-color); font-size: 14px; text-align: center; padding: var(--space-md);">
+                            Call script is being generated. Please check back in a moment.
                         </p>
                     `;
-                    btn.textContent = 'Try Again';
                 }
-
             } catch (error) {
                 container.innerHTML = `
-                    <p style="color: var(--color-error); font-size: 14px; text-align: center; padding: var(--space-md);">
-                        ${error.message}
+                    <p style="color: var(--tg-theme-hint-color); font-size: 14px; text-align: center; padding: var(--space-md);">
+                        ${error.message || 'Call script is being generated. Please check back in a moment.'}
                     </p>
                 `;
-                btn.textContent = 'Try Again';
-            } finally {
-                btn.disabled = false;
             }
         }
 
