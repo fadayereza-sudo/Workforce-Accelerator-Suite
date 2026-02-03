@@ -318,7 +318,7 @@ async def get_invite_link(
 
     # Generate full URL - this opens the Mini App with the invite code
     # Format: https://t.me/BotUsername/app?startapp=invite_CODE
-    bot_username = "apex_org_bot"
+    bot_username = "apex_workforce_bot"
     url = f"https://t.me/{bot_username}/app?startapp=invite_{org.data['invite_code']}"
 
     return InviteLink(
@@ -362,7 +362,7 @@ async def regenerate_invite_link(
     org = db.table("organizations").select("name").eq("id", org_id).single().execute()
 
     # Generate URL
-    bot_username = "apex_org_bot"
+    bot_username = "apex_workforce_bot"
     url = f"https://t.me/{bot_username}/app?startapp=invite_{new_code}"
 
     return InviteLink(
