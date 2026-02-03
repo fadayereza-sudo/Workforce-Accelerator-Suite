@@ -485,6 +485,151 @@
         }
 
         /* ═══════════════════════════════════════════════════════════════
+           CALL SCRIPT (CUE CARD STYLE)
+           ═══════════════════════════════════════════════════════════════ */
+
+        .call-script-section {
+            margin-top: var(--space-lg);
+            margin-bottom: var(--space-md);
+        }
+
+        .call-script-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: var(--space-md);
+        }
+
+        .call-script-title {
+            font-size: 16px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: var(--space-sm);
+        }
+
+        .call-script-container {
+            display: flex;
+            flex-direction: column;
+            gap: var(--space-md);
+        }
+
+        .cue-card {
+            background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+            border-radius: var(--radius-md);
+            padding: var(--space-md);
+            box-shadow: var(--shadow-md);
+            border-left: 4px solid #f59e0b;
+            position: relative;
+        }
+
+        .cue-card-number {
+            position: absolute;
+            top: -8px;
+            left: -8px;
+            width: 28px;
+            height: 28px;
+            background: #f59e0b;
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            font-weight: 700;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .cue-card-question {
+            font-size: 16px;
+            font-weight: 600;
+            color: #92400e;
+            margin-bottom: var(--space-sm);
+            line-height: 1.4;
+            padding-left: var(--space-md);
+        }
+
+        .cue-card-answer {
+            font-size: 14px;
+            color: #78350f;
+            line-height: 1.5;
+            padding-left: var(--space-md);
+            border-left: 2px solid rgba(146, 64, 14, 0.3);
+            margin-left: var(--space-md);
+        }
+
+        .call-script-loading {
+            text-align: center;
+            padding: var(--space-xl);
+            color: var(--tg-theme-hint-color);
+        }
+
+        .call-script-loading .spinner {
+            width: 32px;
+            height: 32px;
+            border: 3px solid var(--tg-theme-secondary-bg-color);
+            border-top-color: var(--tg-theme-button-color);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto var(--space-md);
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Tips Collapsible */
+        .tips-section {
+            margin-top: var(--space-md);
+        }
+
+        .tips-toggle {
+            display: flex;
+            align-items: center;
+            gap: var(--space-sm);
+            padding: var(--space-sm) var(--space-md);
+            background: #e0f2fe;
+            border: none;
+            border-radius: var(--radius-sm);
+            font-size: 13px;
+            font-weight: 500;
+            color: #0369a1;
+            cursor: pointer;
+            width: 100%;
+            text-align: left;
+        }
+
+        .tips-toggle-icon {
+            transition: transform 0.2s;
+        }
+
+        .tips-toggle.open .tips-toggle-icon {
+            transform: rotate(180deg);
+        }
+
+        .tips-content {
+            display: none;
+            padding: var(--space-md);
+            background: #f0f9ff;
+            border-radius: 0 0 var(--radius-sm) var(--radius-sm);
+            font-size: 14px;
+            line-height: 1.7;
+            color: #0c4a6e;
+        }
+
+        .tips-content.open {
+            display: block;
+        }
+
+        .tips-content p {
+            margin-bottom: var(--space-md);
+        }
+
+        .tips-content p:last-child {
+            margin-bottom: 0;
+        }
+
+        /* ═══════════════════════════════════════════════════════════════
            STATS GRID
            ═══════════════════════════════════════════════════════════════ */
 
@@ -981,6 +1126,7 @@
             }),
             deleteProspect: (id) => api.fetch(`/prospects/${id}`, { method: 'DELETE' }),
             getVCard: (id) => api.fetch(`/prospects/${id}/vcard`),
+            getCallScript: (id) => api.fetch(`/prospects/${id}/call-script`),
 
             // Dashboard
             getDashboard: (orgId) => api.fetch(`/dashboard?org_id=${orgId}`)
@@ -1460,6 +1606,32 @@
                             <option value="closed" ${p.status === 'closed' ? 'selected' : ''}>Closed</option>
                         </select>
                     </div>
+
+                    ${p.pain_points && p.pain_points.length > 0 ? `
+                    <div class="call-script-section">
+                        <div class="call-script-header">
+                            <div class="call-script-title">📞 Call Script</div>
+                            <button class="btn btn-sm btn-primary" onclick="generateCallScript('${p.id}')" id="generate-script-btn">
+                                Generate
+                            </button>
+                        </div>
+                        <div id="call-script-content">
+                            <p style="color: var(--tg-theme-hint-color); font-size: 14px; text-align: center; padding: var(--space-md);">
+                                Click "Generate" to create a conversational call script based on the pain points above.
+                            </p>
+                        </div>
+                        <div class="tips-section">
+                            <button class="tips-toggle" onclick="toggleTips(this)">
+                                <span class="tips-toggle-icon">▼</span>
+                                <span>Tips for cold calling</span>
+                            </button>
+                            <div class="tips-content">
+                                <p>When reaching out to someone for the first time, it's important to get to the point quickly. They don't know you yet, so respecting their time is key. This doesn't mean they aren't interested in what you offer—it simply means your message needs to be presented in a clear, accessible way.</p>
+                                <p>That's why a question-and-answer format works so well. It's engaging, easy to follow, and—most importantly—straight to the point. Clients appreciate communication that's concise, relevant, and considerate of their time.</p>
+                            </div>
+                        </div>
+                    </div>
+                    ` : ''}
                 </div>
             `;
         }
@@ -1543,6 +1715,67 @@
             } catch (error) {
                 alert('Failed to delete prospect: ' + error.message);
             }
+        }
+
+        // ═══════════════════════════════════════════════════════════════
+        // CALL SCRIPT
+        // ═══════════════════════════════════════════════════════════════
+
+        async function generateCallScript(prospectId) {
+            const btn = document.getElementById('generate-script-btn');
+            const container = document.getElementById('call-script-content');
+
+            btn.disabled = true;
+            btn.textContent = 'Generating...';
+
+            container.innerHTML = `
+                <div class="call-script-loading">
+                    <div class="spinner"></div>
+                    <p>Creating your call script...</p>
+                </div>
+            `;
+
+            try {
+                const result = await api.getCallScript(prospectId);
+
+                if (result.script_items && result.script_items.length > 0) {
+                    container.innerHTML = `
+                        <div class="call-script-container">
+                            ${result.script_items.map((item, index) => `
+                                <div class="cue-card">
+                                    <div class="cue-card-number">${index + 1}</div>
+                                    <div class="cue-card-question">"${item.question}"</div>
+                                    <div class="cue-card-answer">${item.answer}</div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    `;
+                    btn.textContent = 'Regenerate';
+                } else {
+                    container.innerHTML = `
+                        <p style="color: var(--color-error); font-size: 14px; text-align: center; padding: var(--space-md);">
+                            Could not generate script. Please try again.
+                        </p>
+                    `;
+                    btn.textContent = 'Try Again';
+                }
+
+            } catch (error) {
+                container.innerHTML = `
+                    <p style="color: var(--color-error); font-size: 14px; text-align: center; padding: var(--space-md);">
+                        ${error.message}
+                    </p>
+                `;
+                btn.textContent = 'Try Again';
+            } finally {
+                btn.disabled = false;
+            }
+        }
+
+        function toggleTips(button) {
+            button.classList.toggle('open');
+            const content = button.nextElementSibling;
+            content.classList.toggle('open');
         }
 
         // ═══════════════════════════════════════════════════════════════

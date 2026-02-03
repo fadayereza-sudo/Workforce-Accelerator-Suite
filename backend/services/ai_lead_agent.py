@@ -132,3 +132,112 @@ Respond ONLY with valid JSON in this exact format:
             print(f"Error generating AI insights: {e}")
             # Return empty fallback
             return "", []
+
+    async def generate_call_script(
+        self,
+        business_name: str,
+        pain_points: list,
+        products: List[Product]
+    ) -> list:
+        """
+        Generate a conversational call script based on pain points.
+
+        Transforms technical pain points into natural, question-based
+        conversation starters with suggested answers.
+
+        Args:
+            business_name: Name of the prospect business
+            pain_points: List of PainPoint objects
+            products: List of organization's products/services
+
+        Returns:
+            List of script items with question and answer
+        """
+        if not pain_points:
+            return []
+
+        # Build products context for answers
+        if products:
+            products_context = "\n".join([
+                f"- {p.name}: {p.description or 'No description'}"
+                for p in products
+            ])
+        else:
+            products_context = "No products defined yet."
+
+        # Format pain points for the prompt
+        pain_points_text = "\n".join([
+            f"{i+1}. {pp.get('title', pp.title) if isinstance(pp, dict) else pp.title}: "
+            f"{pp.get('description', pp.description) if isinstance(pp, dict) else pp.description}"
+            for i, pp in enumerate(pain_points[:3])
+        ])
+
+        prompt = f"""You are a B2B sales coach. Transform these technical pain points into natural, conversational questions for a cold call.
+
+PROSPECT: {business_name}
+
+PAIN POINTS:
+{pain_points_text}
+
+OUR PRODUCTS/SERVICES:
+{products_context}
+
+TASK:
+For each pain point, create:
+1. A SHORT, conversational question (like you're chatting with a friend)
+   - Use casual language: "you guys", "finding it hard", "struggling with"
+   - Keep it under 15 words
+   - Sound genuinely curious, not salesy
+
+2. A brief answer showing how we can help (1-2 sentences max)
+   - Reference our specific product/service if relevant
+   - Keep it conversational and benefit-focused
+
+IMPORTANT RULES:
+- Questions should sound human, not corporate
+- Avoid jargon and buzzwords
+- The question should invite the prospect to share their experience
+- Answers should be solutions, not product pitches
+
+Respond ONLY with valid JSON in this exact format:
+{{
+    "script_items": [
+        {{
+            "question": "Are you guys finding it hard to...?",
+            "answer": "We specialize in... using..."
+        }},
+        {{
+            "question": "...",
+            "answer": "..."
+        }},
+        {{
+            "question": "...",
+            "answer": "..."
+        }}
+    ]
+}}"""
+
+        try:
+            response = await self.client.chat.completions.create(
+                model="gpt-4o",
+                messages=[
+                    {
+                        "role": "system",
+                        "content": "You are a B2B sales coach who helps reps sound natural and human on calls. You avoid corporate speak and help people connect authentically. Respond only with valid JSON."
+                    },
+                    {
+                        "role": "user",
+                        "content": prompt
+                    }
+                ],
+                response_format={"type": "json_object"},
+                temperature=0.8,  # Slightly higher for natural language variation
+                max_tokens=500
+            )
+
+            result = json.loads(response.choices[0].message.content)
+            return result.get("script_items", [])
+
+        except Exception as e:
+            print(f"Error generating call script: {e}")
+            return []

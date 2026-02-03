@@ -643,6 +643,69 @@ async def get_prospect(
     )
 
 
+@router.get("/prospects/{prospect_id}/call-script")
+async def get_call_script(
+    prospect_id: str,
+    x_telegram_init_data: str = Header(...)
+):
+    """
+    Generate a conversational call script for a prospect.
+
+    Transforms pain points into natural questions and answers
+    that sound human and conversational.
+    """
+    tg_user = get_telegram_user(x_telegram_init_data)
+    db = get_supabase_admin()
+
+    # Get prospect with pain points
+    result = db.table("lead_agent_prospects").select("*").eq(
+        "id", prospect_id
+    ).single().execute()
+
+    if not result.data:
+        raise HTTPException(404, "Prospect not found")
+
+    prospect = result.data
+    org_id = prospect["org_id"]
+
+    # Verify org membership
+    await verify_org_member(tg_user.id, org_id)
+
+    # Check if pain points exist
+    pain_points = prospect.get("pain_points", [])
+    if not pain_points:
+        raise HTTPException(
+            status_code=400,
+            detail="No pain points available yet. Please wait for AI insights to be generated."
+        )
+
+    # Get organization's products for context
+    products_result = db.table("lead_agent_products").select("*").eq(
+        "org_id", org_id
+    ).eq("is_active", True).execute()
+
+    products = [Product(**p) for p in products_result.data] if products_result.data else []
+
+    # Generate call script using AI
+    ai = LeadAgentAI(api_key=settings.OPENAI_API_KEY)
+    script_items = await ai.generate_call_script(
+        business_name=prospect["business_name"],
+        pain_points=pain_points,
+        products=products
+    )
+
+    if not script_items:
+        raise HTTPException(
+            status_code=500,
+            detail="Failed to generate call script. Please try again."
+        )
+
+    return {
+        "business_name": prospect["business_name"],
+        "script_items": script_items
+    }
+
+
 @router.patch("/prospects/{prospect_id}/status")
 async def update_prospect_status(
     prospect_id: str,
