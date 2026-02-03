@@ -15,15 +15,33 @@
 
         :root {
             /* Telegram Theme Variables (overridden by SDK) */
-            --tg-theme-bg-color: #ffffff;
-            --tg-theme-secondary-bg-color: #f4f4f5;
-            --tg-theme-text-color: #000000;
-            --tg-theme-hint-color: #999999;
-            --tg-theme-link-color: #2481cc;
-            --tg-theme-button-color: #2481cc;
+            --tg-theme-bg-color: #0f172a;
+            --tg-theme-secondary-bg-color: #1e293b;
+            --tg-theme-text-color: #f8fafc;
+            --tg-theme-hint-color: #94a3b8;
+            --tg-theme-link-color: #06b6d4;
+            --tg-theme-button-color: #06b6d4;
             --tg-theme-button-text-color: #ffffff;
 
-            /* Extended Palette */
+            /* Extended Palette - Slate colors */
+            --color-slate-900: #0f172a;
+            --color-slate-800: #1e293b;
+            --color-slate-700: #334155;
+            --color-slate-600: #475569;
+            --color-slate-500: #64748b;
+            --color-slate-400: #94a3b8;
+            --color-slate-300: #cbd5e1;
+            --color-slate-200: #e2e8f0;
+            --color-slate-100: #f1f5f9;
+            --color-slate-50: #f8fafc;
+
+            /* Accent - Cyan */
+            --color-cyan-500: #06b6d4;
+            --color-cyan-400: #22d3ee;
+            --color-cyan-600: #0891b2;
+            --color-cyan-700: #0e7490;
+
+            /* Semantic Colors */
             --color-success: #10b981;
             --color-success-light: #d1fae5;
             --color-warning: #f59e0b;
@@ -32,15 +50,16 @@
             --color-error-light: #fee2e2;
 
             /* Gradients */
-            --gradient-primary: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --gradient-primary: linear-gradient(135deg, var(--color-slate-800) 0%, var(--color-slate-900) 100%);
+            --gradient-accent: linear-gradient(135deg, var(--color-cyan-500) 0%, var(--color-cyan-600) 100%);
             --gradient-success: linear-gradient(135deg, #10b981 0%, #34d399 100%);
             --gradient-warm: linear-gradient(135deg, #f59e0b 0%, #fbbf24 100%);
 
             /* Shadows */
-            --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
-            --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08);
-            --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.12);
-            --shadow-glow: 0 0 20px rgba(102, 126, 234, 0.3);
+            --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.06);
+            --shadow-md: 0 4px 12px rgba(15, 23, 42, 0.08);
+            --shadow-lg: 0 8px 24px rgba(15, 23, 42, 0.12);
+            --shadow-glow: 0 0 20px rgba(6, 182, 212, 0.15);
 
             /* Typography */
             --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
@@ -150,7 +169,7 @@
         }
 
         .card-gradient {
-            background: var(--gradient-primary);
+            background: var(--gradient-accent);
             color: white;
         }
 
@@ -205,12 +224,13 @@
         }
 
         .btn-primary {
-            background: var(--gradient-primary);
+            background: var(--color-cyan-500);
             color: white;
             box-shadow: var(--shadow-md);
         }
 
         .btn-primary:hover:not(:disabled) {
+            background: var(--color-cyan-600);
             box-shadow: var(--shadow-glow);
         }
 
@@ -309,7 +329,7 @@
             width: 44px;
             height: 44px;
             border-radius: var(--radius-full);
-            background: var(--gradient-primary);
+            background: var(--color-cyan-500);
             display: flex;
             align-items: center;
             justify-content: center;
@@ -607,7 +627,7 @@
         .onboarding-icon {
             width: 100px;
             height: 100px;
-            background: var(--gradient-primary);
+            background: var(--color-cyan-500);
             border-radius: 28px;
             display: flex;
             align-items: center;
@@ -681,7 +701,7 @@
             width: 60px;
             height: 60px;
             border-radius: var(--radius-md);
-            background: var(--gradient-primary);
+            background: var(--color-cyan-500);
             display: flex;
             align-items: center;
             justify-content: center;
@@ -744,7 +764,7 @@
             width: 56px;
             height: 56px;
             border-radius: var(--radius-full);
-            background: var(--gradient-primary);
+            background: var(--color-cyan-500);
             display: flex;
             align-items: center;
             justify-content: center;
@@ -937,7 +957,9 @@
              ───────────────────────────────────────────────────────────────── -->
         <div id="page-pending" class="page">
             <div class="status-pending">
-                <div class="status-icon status-icon-waiting">⏳</div>
+                <div class="status-icon status-icon-waiting">
+                    <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                </div>
                 <h2 class="page-title">Awaiting Approval</h2>
                 <p class="text-muted" id="pending-message">
                     Your request to join has been sent. The admin will review it shortly.
@@ -996,7 +1018,9 @@
                     <!-- Populated by JS -->
                 </div>
                 <div id="requests-empty" class="empty-state hidden">
-                    <div class="empty-state-icon">✨</div>
+                    <div class="empty-state-icon">
+                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+                    </div>
                     <p class="empty-state-title">No pending requests</p>
                     <p>Share your invite link to add team members</p>
                 </div>
@@ -1024,7 +1048,9 @@
             </div>
 
             <div id="member-no-bots" class="empty-state hidden">
-                <div class="empty-state-icon">🤖</div>
+                <div class="empty-state-icon">
+                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="10" rx="2"></rect><circle cx="12" cy="5" r="2"></circle><path d="M12 7v4"></path><line x1="8" y1="16" x2="8" y2="16"></line><line x1="16" y1="16" x2="16" y2="16"></line></svg>
+                </div>
                 <p class="empty-state-title">No agents assigned yet</p>
                 <p>Your admin will grant you access to agents soon</p>
             </div>
@@ -1526,7 +1552,7 @@
                 statusText.textContent = 'Share this link with your team via Telegram';
                 copyBtn.classList.remove('hidden');
                 regenerateBtn.classList.add('hidden');
-                card.style.background = 'var(--gradient-primary)';
+                card.style.background = 'var(--gradient-accent)';
             }
         };
 
@@ -1918,7 +1944,9 @@
                 document.getElementById('member-no-bots').classList.add('hidden');
                 document.getElementById('member-bots-list').innerHTML = me.bot_access.map(bot => `
                     <div class="list-item list-item-clickable" onclick="openAgent('${bot.bot_id}')">
-                        <div class="list-item-avatar" style="background: var(--gradient-success);">🤖</div>
+                        <div class="list-item-avatar" style="background: var(--color-success);">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="10" rx="2"></rect><circle cx="12" cy="5" r="2"></circle><path d="M12 7v4"></path><circle cx="8" cy="16" r="1" fill="currentColor"></circle><circle cx="16" cy="16" r="1" fill="currentColor"></circle></svg>
+                        </div>
                         <div class="list-item-content">
                             <div class="list-item-title">${escapeHtml(bot.bot_name)}</div>
                             <div class="list-item-subtitle">Access granted</div>

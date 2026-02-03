@@ -3,8 +3,8 @@ Lead Agent Bot API - B2B Lead generation and management endpoints.
 
 Handles:
 - Product/service management
-- Prospect search and discovery (via Gemini)
-- AI-powered insights generation (via OpenAI)
+- Prospect scraping from URLs (via GPT-4o-mini)
+- AI-powered insights generation (via GPT-4o)
 - Prospect status management
 - vCard generation for contacts
 """
@@ -17,12 +17,11 @@ from models import (
     TelegramUser,
     ProductCreate, ProductUpdate, Product,
     ProspectCreate, ProspectManualCreate, ProspectStatusUpdate, ProspectContactUpdate, Prospect, ProspectCard,
-    PainPoint, SearchRequest, ScrapeRequest, SearchResult, SearchHistory,
+    PainPoint, ScrapeRequest, SearchHistory,
     LeadAgentDashboard, CurrencyUpdate,
     JournalEntryCreate, JournalEntryUpdate, JournalEntry
 )
 from services import get_supabase_admin, get_telegram_user
-from services.lead_discovery import LeadDiscoveryService, ScrapedBusiness
 from services.url_scraper import URLScraperService, ScraperError
 from services.ai_lead_agent import LeadAgentAI
 from config import settings
@@ -295,115 +294,6 @@ async def list_prospects(
         ))
 
     return cards
-
-
-@router.post("/prospects/search")
-async def search_prospects(
-    org_id: str = Query(...),
-    data: SearchRequest = ...,
-    background_tasks: BackgroundTasks = ...,
-    x_telegram_init_data: str = Header(...)
-) -> SearchResult:
-    """
-    Search for new prospects using Gemini.
-    Deduplicates against existing prospects and queues AI generation.
-    """
-    tg_user = get_telegram_user(x_telegram_init_data)
-    user_id, _ = await verify_org_member(tg_user.id, org_id)
-
-    db = get_supabase_admin()
-
-    # Check if organization has any active products
-    products = db.table("lead_agent_products").select("id").eq(
-        "org_id", org_id
-    ).eq("is_active", True).execute()
-
-    if not products.data:
-        raise HTTPException(
-            status_code=400,
-            detail="Please add at least one product or service before searching for leads. The AI needs your products to generate relevant insights."
-        )
-
-    # Initialize lead discovery service
-    discovery = LeadDiscoveryService(settings.gemini_api_key)
-
-    # Search for businesses
-    businesses = await discovery.search_businesses(data.query, max_results=10)
-
-    new_prospects = []
-    skipped_duplicates = 0
-
-    for business in businesses:
-        dedup_hash = business.get_dedup_hash()
-
-        # Check if prospect already exists
-        existing = db.table("lead_agent_prospects").select("id").eq(
-            "org_id", org_id
-        ).eq("dedup_hash", dedup_hash).execute()
-
-        if existing.data:
-            skipped_duplicates += 1
-            continue
-
-        # Insert new prospect
-        prospect_data = {
-            "org_id": org_id,
-            "business_name": business.business_name,
-            "phone": business.phone,
-            "email": business.email,
-            "address": business.address,
-            "website": business.website,
-            "google_maps_url": business.google_maps_url,
-            "dedup_hash": dedup_hash,
-            "search_query": data.query,
-            "source": "gemini_search",
-            "status": "not_contacted",
-            "created_by": user_id
-        }
-
-        result = db.table("lead_agent_prospects").insert(prospect_data).execute()
-        prospect = result.data[0]
-
-        # Queue AI insights generation
-        background_tasks.add_task(generate_ai_insights_task, prospect["id"], org_id)
-
-        # Add to new prospects list
-        new_prospects.append(ProspectCard(
-            id=prospect["id"],
-            business_name=prospect["business_name"],
-            phone=prospect.get("phone"),
-            email=prospect.get("email"),
-            address=prospect.get("address"),
-            website=prospect.get("website"),
-            google_maps_url=prospect.get("google_maps_url"),
-            summary=None,  # AI generation pending
-            pain_points=[],  # AI generation pending
-            status=prospect["status"],
-            search_query=prospect["search_query"],
-            source="gemini_search",
-            created_at=prospect["created_at"]
-        ))
-
-    # Record search history
-    search_data = {
-        "org_id": org_id,
-        "user_id": user_id,
-        "query": data.query,
-        "results_count": len(businesses),
-        "new_prospects_count": len(new_prospects),
-        "skipped_duplicates_count": skipped_duplicates
-    }
-    search_result = db.table("lead_agent_searches").insert(search_data).execute()
-    search_id = search_result.data[0]["id"]
-
-    return SearchResult(
-        search_id=search_id,
-        query=data.query,
-        total_found=len(businesses),
-        new_prospects=len(new_prospects),
-        skipped_duplicates=skipped_duplicates,
-        prospects=new_prospects
-    )
 
 
 @router.post("/prospects/scrape")

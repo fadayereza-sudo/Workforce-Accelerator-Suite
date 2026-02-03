@@ -159,7 +159,7 @@
             font-size: 13px;
             font-weight: 600;
             margin-bottom: var(--space-md);
-            color: var(--color-slate-500);
+            color: var(--color-slate-700);
             text-transform: uppercase;
             letter-spacing: 0.05em;
         }
@@ -489,7 +489,7 @@
             font-size: 13px;
             font-weight: 600;
             margin-bottom: var(--space-md);
-            color: var(--color-slate-500);
+            color: var(--color-slate-700);
             text-transform: uppercase;
             letter-spacing: 0.05em;
         }
@@ -651,7 +651,7 @@
         .status-selector-label {
             font-size: 11px;
             font-weight: 600;
-            color: var(--color-slate-500);
+            color: var(--color-slate-700);
             text-transform: uppercase;
             letter-spacing: 0.05em;
             margin-bottom: var(--space-sm);
@@ -705,7 +705,7 @@
         .contact-info-title {
             font-size: 13px;
             font-weight: 600;
-            color: var(--color-slate-500);
+            color: var(--color-slate-700);
             text-transform: uppercase;
             letter-spacing: 0.05em;
         }
@@ -1619,6 +1619,16 @@
             </div>
             <div class="container">
                 <div class="form-group">
+                    <label class="input-label">Search</label>
+                    <input
+                        type="text"
+                        class="input"
+                        id="search-prospects"
+                        placeholder="Search by name, phone, address..."
+                        oninput="filterProspectsBySearch()"
+                    />
+                </div>
+                <div class="form-group">
                     <label class="input-label">Filter by Status</label>
                     <select class="select" id="filter-status" onchange="loadProspects()">
                         <option value="">All</option>
@@ -1751,12 +1761,12 @@
             <div class="form-group">
                 <label class="input-label">Type of Interaction</label>
                 <div class="journal-type-selector">
-                    <button type="button" class="journal-type-btn active" data-type="note" onclick="selectJournalType(this)">&#128221; Note</button>
-                    <button type="button" class="journal-type-btn" data-type="call" onclick="selectJournalType(this)">&#128222; Call</button>
-                    <button type="button" class="journal-type-btn" data-type="email" onclick="selectJournalType(this)">&#9993; Email</button>
-                    <button type="button" class="journal-type-btn" data-type="whatsapp" onclick="selectJournalType(this)">&#128172; WhatsApp</button>
-                    <button type="button" class="journal-type-btn" data-type="meeting" onclick="selectJournalType(this)">&#128197; Meeting</button>
-                    <button type="button" class="journal-type-btn" data-type="text" onclick="selectJournalType(this)">&#128241; Text</button>
+                    <button type="button" class="journal-type-btn active" data-type="note" onclick="selectJournalType(this)">Note</button>
+                    <button type="button" class="journal-type-btn" data-type="call" onclick="selectJournalType(this)">Call</button>
+                    <button type="button" class="journal-type-btn" data-type="email" onclick="selectJournalType(this)">Email</button>
+                    <button type="button" class="journal-type-btn" data-type="whatsapp" onclick="selectJournalType(this)">WhatsApp</button>
+                    <button type="button" class="journal-type-btn" data-type="meeting" onclick="selectJournalType(this)">Meeting</button>
+                    <button type="button" class="journal-type-btn" data-type="text" onclick="selectJournalType(this)">Text</button>
                 </div>
             </div>
             <div class="form-group">
@@ -2346,23 +2356,48 @@
             }
         }
 
+        function filterProspectsBySearch() {
+            renderProspects();
+        }
+
         function renderProspects() {
             const list = document.getElementById('prospects-list');
+            const searchTerm = (document.getElementById('search-prospects')?.value || '').toLowerCase().trim();
 
-            if (state.prospects.length === 0) {
+            // Filter prospects by search term
+            const filteredProspects = searchTerm
+                ? state.prospects.filter(p => {
+                    const name = (p.business_name || '').toLowerCase();
+                    const phone = (p.phone || '').toLowerCase();
+                    const address = (p.address || '').toLowerCase();
+                    const email = (p.email || '').toLowerCase();
+                    return name.includes(searchTerm) ||
+                           phone.includes(searchTerm) ||
+                           address.includes(searchTerm) ||
+                           email.includes(searchTerm);
+                })
+                : state.prospects;
+
+            if (filteredProspects.length === 0) {
+                const emptyMessage = searchTerm
+                    ? `No prospects matching "${searchTerm}"`
+                    : 'No Prospects Yet';
+                const emptySubtext = searchTerm
+                    ? 'Try a different search term.'
+                    : 'Add new leads to get started.';
                 list.innerHTML = `
                     <div class="empty-state">
                         <div class="empty-state-icon">
                             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
                         </div>
-                        <div class="empty-state-title">No Prospects Yet</div>
-                        <p>Add new leads to get started.</p>
+                        <div class="empty-state-title">${emptyMessage}</div>
+                        <p>${emptySubtext}</p>
                     </div>
                 `;
                 return;
             }
 
-            list.innerHTML = state.prospects.map(p => {
+            list.innerHTML = filteredProspects.map(p => {
                 const statusClass = p.status.replace('_', '-');
                 const statusLabel = p.status.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
                 const initials = p.business_name.split(' ').map(w => w[0]).join('').substring(0, 2).toUpperCase();
@@ -2415,10 +2450,7 @@
                 <!-- Header -->
                 <div class="prospect-detail-header">
                     <div class="prospect-detail-name">${p.business_name}</div>
-                    <div class="prospect-detail-meta">
-                        ${p.website ? `<a href="${p.website}" target="_blank" style="color: var(--color-cyan-400);">${getHostname(p.website)}</a>` : ''}
-                        ${p.address ? `<span>${p.address}</span>` : ''}
-                    </div>
+                    ${p.address ? `<div class="prospect-detail-meta"><span>${p.address}</span></div>` : ''}
                 </div>
 
                 <!-- Quick Actions Bar -->
@@ -2445,10 +2477,6 @@
                             <span class="quick-action-label">Website</span>
                         </div>
                     `}
-                    <button class="quick-action-btn" onclick="downloadVCard('${p.id}')">
-                        <span class="quick-action-icon">&#128100;</span>
-                        <span class="quick-action-label">Save</span>
-                    </button>
                 </div>
 
                 <!-- Status Pills -->
@@ -2546,7 +2574,9 @@
                     </div>
                     <div id="journal-entries-list" class="journal-entries">
                         <div class="journal-empty">
-                            <div class="journal-empty-icon">&#128221;</div>
+                            <div class="journal-empty-icon">
+                                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg>
+                            </div>
                             <p>Loading entries...</p>
                         </div>
                     </div>
@@ -2556,7 +2586,7 @@
                 ${p.pain_points && p.pain_points.length > 0 ? `
                 <div class="call-script-section">
                     <button class="script-reveal-toggle" onclick="toggleCallScript(this)">
-                        <span class="script-reveal-icon">&#128172;</span>
+                        <svg class="script-reveal-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
                         <span class="script-reveal-text">Call Script</span>
                         <span class="script-reveal-arrow">&#9662;</span>
                     </button>
@@ -2764,7 +2794,9 @@
                 if (entries.length === 0) {
                     list.innerHTML = `
                         <div class="journal-empty">
-                            <div class="journal-empty-icon">&#128221;</div>
+                            <div class="journal-empty-icon">
+                                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg>
+                            </div>
                             <p>No entries yet</p>
                             <p style="font-size: 12px; margin-top: 4px;">Add your first interaction note</p>
                         </div>
@@ -2968,8 +3000,10 @@
                     }
                 } else {
                     container.innerHTML = `
-                        <div style="text-align: center; padding: var(--space-lg); color: var(--color-slate-500);">
-                            <div style="font-size: 32px; margin-bottom: var(--space-sm);">&#9203;</div>
+                        <div style="text-align: center; padding: var(--space-lg); color: var(--color-slate-700);">
+                            <div style="margin-bottom: var(--space-sm);">
+                                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                            </div>
                             <p style="font-size: 13px; margin-bottom: var(--space-xs);">Call script is being generated...</p>
                             <p style="font-size: 12px; opacity: 0.7;">Check back in a moment</p>
                         </div>
@@ -2979,8 +3013,13 @@
                 // Check if it's a "no pain points" error
                 const isPainPointsError = error.message && error.message.includes('pain points');
                 container.innerHTML = `
-                    <div style="text-align: center; padding: var(--space-lg); color: var(--color-slate-500);">
-                        <div style="font-size: 32px; margin-bottom: var(--space-sm);">${isPainPointsError ? '&#9203;' : '&#128172;'}</div>
+                    <div style="text-align: center; padding: var(--space-lg); color: var(--color-slate-700);">
+                        <div style="margin-bottom: var(--space-sm);">
+                            ${isPainPointsError
+                                ? '<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>'
+                                : '<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>'
+                            }
+                        </div>
                         <p style="font-size: 13px; margin-bottom: var(--space-xs);">
                             ${isPainPointsError ? 'AI insights are still being generated...' : 'Call script is being prepared...'}
                         </p>
