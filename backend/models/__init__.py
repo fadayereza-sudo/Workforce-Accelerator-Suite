@@ -2,7 +2,7 @@
 Pydantic models for API requests and responses.
 """
 from .user import TelegramUser, User, UserCreate
-from .org import Organization, OrgCreate, InviteLink, OrgStats, OrgDetails, OrgUpdate
+from .org import Organization, OrgCreate, InviteCode, OrgStats, OrgDetails, OrgUpdate
 from .membership import (
     MembershipRequest,
     MembershipRequestCreate,
@@ -68,7 +68,7 @@ __all__ = [
     "UserCreate",
     "Organization",
     "OrgCreate",
-    "InviteLink",
+    "InviteCode",
     "OrgStats",
     "OrgDetails",
     "OrgUpdate",

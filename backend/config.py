@@ -17,6 +17,8 @@ class Settings(BaseSettings):
 
     # Telegram Bots
     bot_hub_token: str = ""
+    BOT_USERNAME: str = "apex_workforce_bot"
+    MINI_APP_SHORTNAME: str = "hub"  # The shortname configured in BotFather for the Web App
 
     # AI Services
     openai_api_key: str = ""  # For URL scraping and business insights generation

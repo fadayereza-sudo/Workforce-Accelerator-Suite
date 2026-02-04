@@ -178,9 +178,9 @@ async def create_product(
     data: ProductCreate = ...,
     x_telegram_init_data: str = Header(...)
 ) -> Product:
-    """Create a new product."""
+    """Create a new product (admin only)."""
     tg_user = get_telegram_user(x_telegram_init_data)
-    await verify_org_member(tg_user.id, org_id)
+    await verify_org_admin(tg_user.id, org_id)
 
     db = get_supabase_admin()
     product_data = {
@@ -201,7 +201,7 @@ async def update_product(
     data: ProductUpdate,
     x_telegram_init_data: str = Header(...)
 ) -> Product:
-    """Update a product."""
+    """Update a product (admin only)."""
     tg_user = get_telegram_user(x_telegram_init_data)
     db = get_supabase_admin()
 
@@ -213,7 +213,7 @@ async def update_product(
     if not product_result.data:
         raise HTTPException(404, "Product not found")
 
-    await verify_org_member(tg_user.id, product_result.data["org_id"])
+    await verify_org_admin(tg_user.id, product_result.data["org_id"])
 
     # Build update data
     update_data = {}
@@ -238,7 +238,7 @@ async def delete_product(
     product_id: str,
     x_telegram_init_data: str = Header(...)
 ) -> dict:
-    """Delete a product."""
+    """Delete a product (admin only)."""
     tg_user = get_telegram_user(x_telegram_init_data)
     db = get_supabase_admin()
 
@@ -250,7 +250,7 @@ async def delete_product(
     if not product_result.data:
         raise HTTPException(404, "Product not found")
 
-    await verify_org_member(tg_user.id, product_result.data["org_id"])
+    await verify_org_admin(tg_user.id, product_result.data["org_id"])
 
     db.table("lead_agent_products").delete().eq("id", product_id).execute()
 

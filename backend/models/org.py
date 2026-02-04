@@ -26,11 +26,12 @@ class Organization(BaseModel):
         from_attributes = True
 
 
-class InviteLink(BaseModel):
-    """Generated invite link for an organization."""
-    url: str
+class InviteCode(BaseModel):
+    """Generated invite code for an organization."""
     code: str
     org_name: str
+    bot_url: str
+    text_content: str  # Ready-to-share text file content
     expires_at: datetime
     is_expired: bool
 

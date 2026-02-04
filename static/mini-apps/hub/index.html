@@ -417,24 +417,13 @@
             gap: var(--space-md);
         }
 
-        .invite-link {
+        .invite-code-text {
             flex: 1;
             font-family: monospace;
-            font-size: 13px;
-            color: var(--tg-theme-hint-color);
-            word-break: break-all;
-        }
-
-        .invite-copy-btn {
-            background: var(--tg-theme-button-color);
-            color: var(--tg-theme-button-text-color);
-            border: none;
-            padding: 10px 16px;
-            border-radius: var(--radius-sm);
+            font-size: 16px;
             font-weight: 600;
-            font-size: 14px;
-            cursor: pointer;
-            flex-shrink: 0;
+            color: var(--tg-theme-text-color);
+            word-break: break-all;
         }
 
         /* ─────────────────────────────────────────────────────────────────────
@@ -1385,21 +1374,26 @@
 
             <div class="onboarding-divider">or</div>
 
-            <p class="text-center text-muted text-sm mb-lg">
-                Have an invite link? Ask your admin to share it with you on Telegram.
-            </p>
+            <button class="btn btn-outline btn-block" onclick="showJoinWithCode()">
+                Join with Invite Code
+            </button>
         </div>
 
         <!-- ─────────────────────────────────────────────────────────────────
-             PAGE: JOIN ORG (via invite link)
+             PAGE: JOIN ORG (via invite code)
              ───────────────────────────────────────────────────────────────── -->
         <div id="page-join" class="page">
             <div class="page-header">
                 <h1 class="page-title">Join Organization</h1>
-                <p class="page-subtitle" id="join-org-name">Loading...</p>
+                <p class="page-subtitle" id="join-org-name">Enter your invite code to join</p>
             </div>
 
             <div class="card card-elevated">
+                <div class="input-group">
+                    <label class="input-label">Invite Code</label>
+                    <input type="text" id="join-code-input" class="input" placeholder="Enter invite code">
+                </div>
+
                 <div class="input-group">
                     <label class="input-label">Your Full Name</label>
                     <input type="text" id="join-name-input" class="input" placeholder="Enter your name">
@@ -1413,6 +1407,10 @@
                     Request to Join
                 </button>
             </div>
+
+            <button class="btn btn-secondary btn-block mt-auto" onclick="showPage('onboarding')">
+                Back
+            </button>
         </div>
 
         <!-- ─────────────────────────────────────────────────────────────────
@@ -1451,23 +1449,23 @@
                         <button class="org-edit-btn" onclick="openEditOrgModal()">Edit</button>
                     </div>
 
-                    <!-- Invite Link Card -->
+                    <!-- Invite Code Card -->
                     <div class="card card-gradient mb-lg" id="invite-card">
                         <div class="card-header">
                             <span class="card-title">Invite Team Members</span>
-                            <span class="card-badge" id="invite-status-badge">Share</span>
+                            <span class="card-badge" id="invite-status-badge">Active</span>
                         </div>
                         <p class="text-sm mb-md" style="opacity: 0.9;" id="invite-status-text">
-                            Share this link with your team via Telegram
+                            Generate a shareable invite link to add team members
                         </p>
-                        <div class="invite-box" style="background: rgba(255,255,255,0.15);" id="invite-link-box">
-                            <span class="invite-link" id="invite-link-text" style="color: white;">Loading...</span>
-                            <button class="invite-copy-btn" id="invite-copy-btn" onclick="copyInviteLink()" style="background: white; color: #667eea;">
-                                Copy
-                            </button>
+                        <div class="invite-box" style="background: rgba(255,255,255,0.15);" id="invite-code-box">
+                            <span class="invite-code-text" id="invite-code-display" style="color: white;">Loading...</span>
                         </div>
-                        <button class="btn btn-block hidden" id="regenerate-btn" onclick="regenerateInviteLink()" style="margin-top: 12px; background: rgba(255,255,255,0.2); color: white; border: 2px solid rgba(255,255,255,0.4);">
-                            Generate New Link
+                        <button class="btn btn-block" id="send-invite-btn" onclick="sendInviteLink()" style="margin-top: 12px; background: white; color: #0891b2;">
+                            Generate Invite Link
+                        </button>
+                        <button class="btn btn-block hidden" id="regenerate-btn" onclick="sendInviteLink()" style="margin-top: 12px; background: rgba(255,255,255,0.2); color: white; border: 2px solid rgba(255,255,255,0.4);">
+                            Generate New Invite Link
                         </button>
                     </div>
 
@@ -1711,6 +1709,34 @@
                 </div>
 
                 <!-- ═══════════════════════════════════════════════════════════
+                     SECTION: PRODUCTS
+                     ═══════════════════════════════════════════════════════════ -->
+                <div id="section-products" class="admin-section">
+                    <div class="page-header">
+                        <h1 class="page-title">Products & Services</h1>
+                        <p class="page-subtitle">Organization's offerings</p>
+                    </div>
+
+                    <!-- Add Product Button -->
+                    <button class="btn btn-primary btn-block mb-lg" onclick="openAddProductModal()">
+                        + Add Product or Service
+                    </button>
+
+                    <!-- Products List -->
+                    <div class="section-title">Your Products</div>
+                    <div id="products-list" class="list">
+                        <!-- Populated by JS -->
+                    </div>
+                    <div id="products-empty" class="empty-state hidden">
+                        <div class="empty-state-icon">
+                            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>
+                        </div>
+                        <p class="empty-state-title">No products yet</p>
+                        <p>Add your organization's products and services to share with the team</p>
+                    </div>
+                </div>
+
+                <!-- ═══════════════════════════════════════════════════════════
                      SECTION: HELP
                      ═══════════════════════════════════════════════════════════ -->
                 <div id="section-help" class="admin-section">
@@ -1798,6 +1824,12 @@
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect><line x1="1" y1="10" x2="23" y2="10"></line></svg>
                     </div>
                     <span class="nav-item-label">Billing</span>
+                </div>
+                <div class="nav-item" onclick="switchAdminSection('products')">
+                    <div class="nav-item-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>
+                    </div>
+                    <span class="nav-item-label">Products</span>
                 </div>
                 <div class="nav-item" onclick="switchAdminSection('help')">
                     <div class="nav-item-icon">
@@ -1963,6 +1995,76 @@
     </div>
 
     <!-- ═══════════════════════════════════════════════════════════════════════
+         MODAL: ADD/EDIT PRODUCT
+         ═══════════════════════════════════════════════════════════════════════ -->
+    <div id="modal-product" class="modal-backdrop">
+        <div class="modal-sheet">
+            <div class="modal-handle"></div>
+
+            <h2 class="modal-title" id="product-modal-title">Add Product</h2>
+
+            <div class="input-group">
+                <label class="input-label">Name *</label>
+                <input type="text" id="product-name" class="input" placeholder="e.g., Website Development">
+            </div>
+
+            <div class="input-group">
+                <label class="input-label">Description</label>
+                <textarea id="product-description" class="textarea" placeholder="Describe this product or service..."></textarea>
+            </div>
+
+            <div class="input-group">
+                <label class="input-label">Price (optional)</label>
+                <input type="number" id="product-price" class="input" placeholder="0.00" min="0" step="0.01">
+            </div>
+
+            <div style="display: flex; gap: var(--space-sm);">
+                <button class="btn btn-secondary" style="flex: 1;" onclick="closeProductModal()">
+                    Cancel
+                </button>
+                <button class="btn btn-primary" style="flex: 2;" id="product-save-btn" onclick="saveProduct()">
+                    Add Product
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════════════════════
+         MODAL: VIEW PRODUCT (for members)
+         ═══════════════════════════════════════════════════════════════════════ -->
+    <div id="modal-product-view" class="modal-backdrop">
+        <div class="modal-sheet">
+            <div class="modal-handle"></div>
+
+            <h2 class="modal-title" id="product-view-name">Product Name</h2>
+
+            <div class="mb-lg">
+                <p class="text-muted" id="product-view-description">No description provided</p>
+            </div>
+
+            <div class="card" id="product-view-price-card">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <span class="text-muted">Price</span>
+                    <span class="text-lg font-bold" id="product-view-price">-</span>
+                </div>
+            </div>
+
+            <div style="display: flex; gap: var(--space-sm); margin-top: var(--space-lg);" id="product-admin-actions">
+                <button class="btn btn-secondary" style="flex: 1;" onclick="editProduct()">
+                    Edit
+                </button>
+                <button class="btn btn-danger" style="flex: 1;" onclick="confirmDeleteProduct()">
+                    Delete
+                </button>
+            </div>
+
+            <button class="btn btn-secondary btn-block" style="margin-top: var(--space-sm);" onclick="closeProductViewModal()">
+                Close
+            </button>
+        </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════════════════════
          APPLICATION LOGIC
          ═══════════════════════════════════════════════════════════════════════ -->
     <script>
@@ -1987,15 +2089,6 @@
         applyTheme();
         tg.onEvent('themeChanged', applyTheme);
 
-        // Parse start parameter (for invite links)
-        const getStartParam = () => {
-            const startParam = tg.initDataUnsafe?.start_param;
-            if (startParam && startParam.startsWith('invite_')) {
-                return { type: 'invite', code: startParam.replace('invite_', '') };
-            }
-            return null;
-        };
-
         /* ─────────────────────────────────────────────────────────────────────
            STATE
            ───────────────────────────────────────────────────────────────────── */
@@ -2007,7 +2100,7 @@
             currentOrg: null,
             currentMembership: null,
             orgDetails: null,
-            inviteLink: null,
+            inviteCode: null,
             membershipRequests: [],
             members: [],
             availableBots: [],
@@ -2023,7 +2116,11 @@
             analyticsPeriod: 'week',
             teamAnalytics: null,
             agentAnalytics: null,
-            billingOverview: null
+            billingOverview: null,
+            // Products
+            products: [],
+            selectedProduct: null,
+            editingProduct: null
         };
 
         /* ─────────────────────────────────────────────────────────────────────
@@ -2083,8 +2180,11 @@
                 method: 'PATCH',
                 body: JSON.stringify(data)
             }),
-            getInviteLink: (orgId) => api.fetch(`/orgs/${orgId}/invite-link`),
-            regenerateInviteLink: (orgId) => api.fetch(`/orgs/${orgId}/regenerate-invite`, {
+            getInviteCode: (orgId) => api.fetch(`/orgs/${orgId}/invite-code`),
+            regenerateInviteCode: (orgId) => api.fetch(`/orgs/${orgId}/regenerate-invite`, {
+                method: 'POST'
+            }),
+            sendInviteLink: (orgId) => api.fetch(`/orgs/${orgId}/send-invite-link`, {
                 method: 'POST'
             }),
             getInviteInfo: (code) => api.fetch(`/invite/${code}`),
@@ -2122,6 +2222,19 @@
             logActivity: (orgId, botId, actionType, actionDetail = {}) => api.fetch('/activity', {
                 method: 'POST',
                 body: JSON.stringify({ org_id: orgId, bot_id: botId, action_type: actionType, action_detail: actionDetail })
+            }),
+            // Products & Services
+            getProducts: (orgId) => api.fetch(`/orgs/${orgId}/products`),
+            createProduct: (orgId, data) => api.fetch(`/orgs/${orgId}/products`, {
+                method: 'POST',
+                body: JSON.stringify(data)
+            }),
+            updateProduct: (orgId, productId, data) => api.fetch(`/orgs/${orgId}/products/${productId}`, {
+                method: 'PATCH',
+                body: JSON.stringify(data)
+            }),
+            deleteProduct: (orgId, productId) => api.fetch(`/orgs/${orgId}/products/${productId}`, {
+                method: 'DELETE'
             })
         };
 
@@ -2139,8 +2252,14 @@
            ───────────────────────────────────────────────────────────────────── */
 
         const init = async () => {
+            // Safety timeout - if init takes too long, show onboarding
+            const safetyTimeout = setTimeout(() => {
+                console.warn('[Hub Init] Timeout - showing onboarding');
+                showPage('onboarding');
+            }, 5000);
+
             try {
-                // Get user data FIRST to check existing membership status
+                // Get user data to check existing membership status
                 const data = await api.getMe();
                 console.log('[Hub Init] API response:', JSON.stringify(data, null, 2));
 
@@ -2152,92 +2271,78 @@
                 console.log('[Hub Init] Memberships count:', state.memberships.length);
                 console.log('[Hub Init] Pending requests count:', state.pendingRequests.length);
 
-                // Check if user has pending requests
+                // User not signed up yet - show onboarding (create org or join with invite code)
+                if (!state.user) {
+                    console.log('[Hub Init] User not signed up - showing onboarding');
+                    clearTimeout(safetyTimeout);
+                    showPage('onboarding');
+                    return;
+                }
+
+                // User has pending membership request - show pending approval screen
                 if (state.pendingRequests.length > 0) {
                     const request = state.pendingRequests[0];
                     console.log('[Hub Init] Showing pending page for request:', request.id);
                     document.getElementById('pending-message').textContent =
                         `Your request to join "${request.organizations?.name || 'the organization'}" is being reviewed.`;
+                    clearTimeout(safetyTimeout);
                     showPage('pending');
                     return;
                 }
 
-                // Check if user has memberships (prioritize existing membership over invite links)
+                // User is a member - show appropriate dashboard based on role
                 if (state.memberships.length > 0) {
                     const membership = state.memberships[0];
                     console.log('[Hub Init] Found membership:', membership.id, 'role:', membership.role);
                     state.currentOrg = membership.organizations;
                     state.currentMembership = membership;
 
+                    clearTimeout(safetyTimeout);
                     if (membership.role === 'admin') {
                         console.log('[Hub Init] Loading admin dashboard');
                         await loadAdminDashboard();
                     } else {
-                        console.log('[Hub Init] Loading member dashboard');
+                        console.log('[Hub Init] Loading member dashboard (bot assignments)');
                         await loadMemberDashboard();
                     }
                     return;
                 }
 
-                // No membership or pending request - check for invite link
-                const startParam = getStartParam();
-                console.log('[Hub Init] No membership found. Start param:', startParam);
-
-                if (startParam?.type === 'invite') {
-                    console.log('[Hub Init] Handling invite link:', startParam.code);
-                    await handleInviteLink(startParam.code);
-                    return;
-                }
-
-                // No membership and no invite link - show onboarding
-                console.log('[Hub Init] Showing onboarding page');
+                // User exists but no membership or pending request - edge case, show onboarding
+                // This can happen if a user's membership was revoked
+                console.log('[Hub Init] User exists but no membership - showing onboarding');
+                clearTimeout(safetyTimeout);
                 showPage('onboarding');
 
             } catch (error) {
                 console.error('[Hub Init] Error:', error);
-
-                // On error, still try to handle invite link if present
-                const startParam = getStartParam();
-                if (startParam?.type === 'invite') {
-                    console.log('[Hub Init] Error occurred, but handling invite link:', startParam.code);
-                    await handleInviteLink(startParam.code);
-                } else {
-                    console.log('[Hub Init] Error occurred, showing onboarding');
-                    showPage('onboarding');
-                }
-            }
-        };
-
-        /* ─────────────────────────────────────────────────────────────────────
-           INVITE LINK HANDLING
-           ───────────────────────────────────────────────────────────────────── */
-
-        let currentInviteCode = null;
-
-        const handleInviteLink = async (code) => {
-            try {
-                const info = await api.getInviteInfo(code);
-                currentInviteCode = code;
-
-                document.getElementById('join-org-name').textContent = `Join "${info.org_name}"`;
-                document.getElementById('join-name-input').value = state.user?.full_name || '';
-
-                showPage('join');
-            } catch (error) {
-                // Check if it's an expiration error (410 status)
-                if (error.message.includes('expired')) {
-                    alert('This invite link has expired. Please ask the organization admin for a new link.');
-                } else {
-                    alert('Invalid invite link. Please check the link and try again.');
-                }
+                clearTimeout(safetyTimeout);
                 showPage('onboarding');
             }
         };
 
+        /* ─────────────────────────────────────────────────────────────────────
+           INVITE CODE HANDLING
+           ───────────────────────────────────────────────────────────────────── */
+
+        const showJoinWithCode = () => {
+            document.getElementById('join-code-input').value = '';
+            document.getElementById('join-name-input').value = state.user?.full_name || '';
+            document.getElementById('join-org-name').textContent = 'Enter your invite code to join';
+            showPage('join');
+        };
+
         const submitJoinRequest = async () => {
+            const codeInput = document.getElementById('join-code-input');
             const nameInput = document.getElementById('join-name-input');
             const submitBtn = document.getElementById('join-submit-btn');
+            const code = codeInput.value.trim();
             const name = nameInput.value.trim();
+
+            if (!code) {
+                alert('Please enter the invite code');
+                return;
+            }
 
             if (!name) {
                 alert('Please enter your name');
@@ -2248,12 +2353,18 @@
             submitBtn.textContent = 'Sending...';
 
             try {
-                const result = await api.submitJoinRequest(currentInviteCode, name);
+                const result = await api.submitJoinRequest(code, name);
                 document.getElementById('pending-message').textContent =
                     `Your request to join "${result.org_name}" has been sent. The admin will review it shortly.`;
                 showPage('pending');
             } catch (error) {
-                alert(error.message);
+                if (error.message.includes('expired')) {
+                    alert('This invite code has expired. Please ask the organization admin for a new code.');
+                } else if (error.message.includes('Invalid')) {
+                    alert('Invalid invite code. Please check the code and try again.');
+                } else {
+                    alert(error.message);
+                }
                 submitBtn.disabled = false;
                 submitBtn.textContent = 'Request to Join';
             }
@@ -2316,20 +2427,20 @@
             showPage('admin');
 
             // Load remaining data in parallel (orgDetails already loaded above)
-            const [inviteLink, requests, members, bots] = await Promise.all([
-                api.getInviteLink(state.currentOrg.id),
+            const [inviteCode, requests, members, bots] = await Promise.all([
+                api.getInviteCode(state.currentOrg.id),
                 api.getMembershipRequests(state.currentOrg.id),
                 api.getMembers(state.currentOrg.id),
                 api.getBots().catch(() => [])
             ]);
 
-            state.inviteLink = inviteLink;
+            state.inviteCode = inviteCode;
             state.membershipRequests = requests;
             state.members = members;
             state.availableBots = bots;
 
             updateOrgHeader(state.orgDetails);
-            updateInviteLinkDisplay(inviteLink);
+            updateInviteCodeDisplay(inviteCode);
             renderRequests();
             renderMembers();
 
@@ -2361,54 +2472,72 @@
                 `Created ${createdDate} • ${details.stats.member_count} member${details.stats.member_count !== 1 ? 's' : ''}`;
         };
 
-        const updateInviteLinkDisplay = (inviteLink) => {
-            const linkText = document.getElementById('invite-link-text');
+        const updateInviteCodeDisplay = (inviteCode) => {
+            const codeDisplay = document.getElementById('invite-code-display');
             const statusBadge = document.getElementById('invite-status-badge');
             const statusText = document.getElementById('invite-status-text');
-            const copyBtn = document.getElementById('invite-copy-btn');
+            const sendBtn = document.getElementById('send-invite-btn');
             const regenerateBtn = document.getElementById('regenerate-btn');
             const card = document.getElementById('invite-card');
 
-            linkText.textContent = inviteLink.url;
+            codeDisplay.textContent = `Code: ${inviteCode.code}`;
 
-            if (inviteLink.is_expired) {
-                // Link is expired
+            if (inviteCode.is_expired) {
+                // Code is expired
                 statusBadge.textContent = 'Expired';
                 statusBadge.style.background = 'rgba(239, 68, 68, 0.3)';
-                statusText.textContent = 'This invite link has expired. Generate a new one to invite team members.';
-                copyBtn.classList.add('hidden');
+                statusText.textContent = 'This invite code has expired. Generate a new one to invite team members.';
+                sendBtn.classList.add('hidden');
                 regenerateBtn.classList.remove('hidden');
                 card.style.background = 'linear-gradient(135deg, #6b7280 0%, #4b5563 100%)';
             } else {
-                // Link is active - show time remaining
-                const expiresAt = new Date(inviteLink.expires_at);
+                // Code is active - show time remaining
+                const expiresAt = new Date(inviteCode.expires_at);
                 const now = new Date();
                 const hoursLeft = Math.max(0, Math.floor((expiresAt - now) / (1000 * 60 * 60)));
                 const minsLeft = Math.max(0, Math.floor(((expiresAt - now) % (1000 * 60 * 60)) / (1000 * 60)));
 
                 statusBadge.textContent = `${hoursLeft}h ${minsLeft}m left`;
                 statusBadge.style.background = 'rgba(255, 255, 255, 0.2)';
-                statusText.textContent = 'Share this link with your team via Telegram';
-                copyBtn.classList.remove('hidden');
+                statusText.textContent = 'Tap below to receive an invite link you can forward';
+                sendBtn.classList.remove('hidden');
                 regenerateBtn.classList.add('hidden');
                 card.style.background = 'var(--gradient-accent)';
             }
         };
 
-        const regenerateInviteLink = async () => {
-            const btn = document.getElementById('regenerate-btn');
-            btn.disabled = true;
-            btn.textContent = 'Generating...';
+        const sendInviteLink = async () => {
+            if (!state.currentOrg) return;
+
+            const sendBtn = document.getElementById('send-invite-btn');
+            const regenerateBtn = document.getElementById('regenerate-btn');
+            const activeBtn = sendBtn.classList.contains('hidden') ? regenerateBtn : sendBtn;
+
+            activeBtn.disabled = true;
+            activeBtn.textContent = 'Sending...';
 
             try {
-                const newLink = await api.regenerateInviteLink(state.currentOrg.id);
-                state.inviteLink = newLink;
-                updateInviteLinkDisplay(newLink);
+                const result = await api.sendInviteLink(state.currentOrg.id);
+
+                // If code was regenerated, refresh the display
+                if (result.code_regenerated) {
+                    const newCode = await api.getInviteCode(state.currentOrg.id);
+                    state.inviteCode = newCode;
+                    updateInviteCodeDisplay(newCode);
+                }
+
+                // Show success feedback
+                activeBtn.textContent = 'Sent!';
+                tg.showAlert('Invite link sent to your Telegram chat. Forward it to invite team members!');
+
+                setTimeout(() => {
+                    activeBtn.textContent = activeBtn === sendBtn ? 'Generate Invite Link' : 'Generate New Invite Link';
+                }, 2000);
             } catch (error) {
-                alert(error.message);
+                tg.showAlert(error.message || 'Failed to send invite link');
+                activeBtn.textContent = activeBtn === sendBtn ? 'Generate Invite Link' : 'Generate New Invite Link';
             } finally {
-                btn.disabled = false;
-                btn.textContent = 'Generate New Link';
+                activeBtn.disabled = false;
             }
         };
 
@@ -2418,20 +2547,6 @@
 
             document.getElementById('tab-requests').classList.toggle('hidden', tab !== 'requests');
             document.getElementById('tab-members').classList.toggle('hidden', tab !== 'members');
-        };
-
-        const copyInviteLink = async () => {
-            try {
-                await navigator.clipboard.writeText(state.inviteLink.url);
-
-                // Visual feedback
-                const btn = document.getElementById('invite-copy-btn');
-                btn.textContent = 'Copied!';
-                setTimeout(() => btn.textContent = 'Copy', 2000);
-            } catch {
-                // Fallback for older browsers
-                alert('Link: ' + state.inviteLink.url);
-            }
         };
 
         const renderRequests = () => {
@@ -2853,6 +2968,8 @@
                 await loadReports();
             } else if (section === 'billing' && !state.billingOverview) {
                 await loadBillingOverview();
+            } else if (section === 'products') {
+                await loadProducts();
             }
 
             // Log activity
@@ -3238,6 +3355,175 @@
                 style: 'currency',
                 currency: currency
             }).format(cents / 100);
+        };
+
+        /* ─────────────────────────────────────────────────────────────────────
+           ADMIN DASHBOARD: PRODUCTS & SERVICES
+           ───────────────────────────────────────────────────────────────────── */
+
+        const loadProducts = async () => {
+            if (!state.currentOrg) return;
+
+            try {
+                const products = await api.getProducts(state.currentOrg.id);
+                state.products = products;
+                renderProducts(products);
+            } catch (error) {
+                // SECURITY: Check for authorization failure
+                if (handleAuthError(error)) return;
+
+                console.error('Failed to load products:', error);
+            }
+        };
+
+        const renderProducts = (products) => {
+            const productsList = document.getElementById('products-list');
+            const productsEmpty = document.getElementById('products-empty');
+            const isAdmin = state.currentMembership?.role === 'admin';
+
+            if (products.length === 0) {
+                productsList.innerHTML = '';
+                productsEmpty.classList.remove('hidden');
+            } else {
+                productsEmpty.classList.add('hidden');
+                productsList.innerHTML = products.map(p => `
+                    <div class="list-item" onclick="viewProduct('${p.id}')">
+                        <div class="list-item-avatar" style="background: ${p.is_active ? 'var(--color-primary)' : 'var(--color-muted)'};">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="20" height="20">
+                                <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+                            </svg>
+                        </div>
+                        <div class="list-item-content">
+                            <div class="list-item-title">${escapeHtml(p.name)}</div>
+                            <div class="list-item-subtitle">${p.price ? formatProductPrice(p.price) : 'No price set'}${!p.is_active ? ' • Inactive' : ''}</div>
+                        </div>
+                        <span class="list-item-action">→</span>
+                    </div>
+                `).join('');
+            }
+
+            // Show/hide add button based on role
+            const addBtn = document.querySelector('#section-products .btn-primary');
+            if (addBtn) {
+                addBtn.style.display = isAdmin ? 'block' : 'none';
+            }
+        };
+
+        const formatProductPrice = (price) => {
+            const num = parseFloat(price);
+            if (isNaN(num)) return price;
+            return new Intl.NumberFormat('en-US', {
+                style: 'currency',
+                currency: 'USD'
+            }).format(num);
+        };
+
+        const openAddProductModal = () => {
+            state.editingProduct = null;
+            document.getElementById('product-modal-title').textContent = 'Add Product';
+            document.getElementById('product-save-btn').textContent = 'Add Product';
+            document.getElementById('product-name').value = '';
+            document.getElementById('product-description').value = '';
+            document.getElementById('product-price').value = '';
+            document.getElementById('modal-product').classList.add('active');
+        };
+
+        const openEditProductModal = (product) => {
+            state.editingProduct = product;
+            document.getElementById('product-modal-title').textContent = 'Edit Product';
+            document.getElementById('product-save-btn').textContent = 'Save Changes';
+            document.getElementById('product-name').value = product.name;
+            document.getElementById('product-description').value = product.description || '';
+            document.getElementById('product-price').value = product.price || '';
+            document.getElementById('modal-product').classList.add('active');
+        };
+
+        const closeProductModal = () => {
+            document.getElementById('modal-product').classList.remove('active');
+            state.editingProduct = null;
+        };
+
+        const saveProduct = async () => {
+            const name = document.getElementById('product-name').value.trim();
+            const description = document.getElementById('product-description').value.trim();
+            const priceValue = document.getElementById('product-price').value;
+            const price = priceValue ? parseFloat(priceValue) : null;
+
+            if (!name) {
+                tg.showAlert('Please enter a product name');
+                return;
+            }
+
+            const data = { name, description: description || null, price };
+
+            try {
+                if (state.editingProduct) {
+                    // Update existing product
+                    await api.updateProduct(state.currentOrg.id, state.editingProduct.id, data);
+                    tg.showPopup({ message: 'Product updated successfully' });
+                } else {
+                    // Create new product
+                    await api.createProduct(state.currentOrg.id, data);
+                    tg.showPopup({ message: 'Product added successfully' });
+                }
+
+                closeProductModal();
+                await loadProducts();
+            } catch (error) {
+                console.error('Failed to save product:', error);
+                tg.showAlert(error.message || 'Failed to save product');
+            }
+        };
+
+        const viewProduct = (productId) => {
+            const product = state.products.find(p => p.id === productId);
+            if (!product) return;
+
+            state.selectedProduct = product;
+            const isAdmin = state.currentMembership?.role === 'admin';
+
+            document.getElementById('product-view-name').textContent = product.name;
+            document.getElementById('product-view-description').textContent = product.description || 'No description provided';
+            document.getElementById('product-view-price').textContent = product.price ? formatProductPrice(product.price) : 'Not set';
+
+            // Show/hide admin actions
+            const adminActions = document.getElementById('product-admin-actions');
+            adminActions.style.display = isAdmin ? 'flex' : 'none';
+
+            document.getElementById('modal-product-view').classList.add('active');
+        };
+
+        const closeProductViewModal = () => {
+            document.getElementById('modal-product-view').classList.remove('active');
+            state.selectedProduct = null;
+        };
+
+        const editProduct = () => {
+            if (!state.selectedProduct) return;
+            closeProductViewModal();
+            openEditProductModal(state.selectedProduct);
+        };
+
+        const confirmDeleteProduct = () => {
+            if (!state.selectedProduct) return;
+
+            tg.showConfirm(`Delete "${state.selectedProduct.name}"? This action cannot be undone.`, async (confirmed) => {
+                if (confirmed) {
+                    await deleteProduct(state.selectedProduct.id);
+                }
+            });
+        };
+
+        const deleteProduct = async (productId) => {
+            try {
+                await api.deleteProduct(state.currentOrg.id, productId);
+                tg.showPopup({ message: 'Product deleted' });
+                closeProductViewModal();
+                await loadProducts();
+            } catch (error) {
+                console.error('Failed to delete product:', error);
+                tg.showAlert(error.message || 'Failed to delete product');
+            }
         };
 
         /* ─────────────────────────────────────────────────────────────────────

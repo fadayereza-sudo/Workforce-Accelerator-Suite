@@ -16,19 +16,22 @@ from fastapi import APIRouter, Header, HTTPException, BackgroundTasks
 
 from models import (
     TelegramUser, User,
-    Organization, OrgCreate, InviteLink, OrgStats, OrgDetails, OrgUpdate,
+    Organization, OrgCreate, InviteCode, OrgStats, OrgDetails, OrgUpdate,
     MembershipRequest, MembershipRequestCreate, MembershipRequestResponse,
     MembershipApproval, Member, BotAccess, MemberBotsUpdate,
     # Admin models
     ActivityLogCreate, MemberActivity, TeamAnalytics, AgentUsage, AgentAnalytics,
     CustomerCreate, CustomerUpdate, Customer, CustomerList, ImportJobResponse,
-    SubscriptionPlan, OrgSubscription, Invoice, InvoiceList, BillingOverview
+    SubscriptionPlan, OrgSubscription, Invoice, InvoiceList, BillingOverview,
+    # Product models
+    ProductCreate, ProductUpdate, Product
 )
 from services import get_supabase_admin, get_telegram_user
 from services.notifications import (
     notify_admin_new_request,
     notify_user_approved,
-    notify_user_rejected
+    notify_user_rejected,
+    send_invite_link_to_admin
 )
 from config import settings
 
@@ -52,30 +55,32 @@ async def get_current_user(x_telegram_init_data: str = Header(...)) -> TelegramU
 async def get_me(x_telegram_init_data: str = Header(...)) -> dict:
     """
     Get current user profile and their organization context.
-    Creates user if first time.
+
+    Users are only created through proper signup flows:
+    - Creating an organization (POST /orgs) - becomes admin
+    - Joining via invite code (POST /membership-requests) - pending approval
+
+    Returns user: null if the telegram user hasn't signed up yet.
     """
     tg_user = get_telegram_user(x_telegram_init_data)
     db = get_supabase_admin()
 
     print(f"[/me] Telegram user: id={tg_user.id}, username={tg_user.username}, name={tg_user.first_name}")
 
-    # Get or create user
+    # Check if user exists - DO NOT create automatically
     result = db.table("users").select("*").eq("telegram_id", tg_user.id).execute()
 
-    if result.data:
-        user = result.data[0]
-        print(f"[/me] Found existing user: id={user['id']}, name={user['full_name']}")
-    else:
-        # Create new user
-        user_data = {
-            "telegram_id": tg_user.id,
-            "telegram_username": tg_user.username,
-            "full_name": f"{tg_user.first_name} {tg_user.last_name or ''}".strip(),
-            "avatar_url": tg_user.photo_url
+    if not result.data:
+        # User hasn't signed up yet - return null user
+        print(f"[/me] User not found - needs to sign up via org creation or invite code")
+        return {
+            "user": None,
+            "memberships": [],
+            "pending_requests": []
         }
-        result = db.table("users").insert(user_data).execute()
-        user = result.data[0]
-        print(f"[/me] Created new user: id={user['id']}, name={user['full_name']}")
+
+    user = result.data[0]
+    print(f"[/me] Found existing user: id={user['id']}, name={user['full_name']}")
 
     # Get user's memberships
     memberships = db.table("memberships").select(
@@ -293,12 +298,12 @@ async def update_organization(
 # INVITE LINK ENDPOINTS
 # ─────────────────────────────────────────────────────────────────────────────
 
-@router.get("/orgs/{org_id}/invite-link")
-async def get_invite_link(
+@router.get("/orgs/{org_id}/invite-code")
+async def get_invite_code(
     org_id: str,
     x_telegram_init_data: str = Header(...)
-) -> InviteLink:
-    """Get the invite link for an organization (admin only)."""
+) -> InviteCode:
+    """Get the invite code for an organization (admin only)."""
     tg_user = get_telegram_user(x_telegram_init_data)
     db = get_supabase_admin()
 
@@ -320,26 +325,37 @@ async def get_invite_link(
     expires_at = datetime.fromisoformat(org.data["invite_code_expires_at"].replace("Z", "+00:00"))
     is_expired = datetime.now(timezone.utc) > expires_at
 
-    # Generate full URL - this opens the Mini App with the invite code
-    # Format: https://t.me/BotUsername/app?startapp=invite_CODE
-    bot_username = "apex_workforce_bot"
-    url = f"https://t.me/{bot_username}/app?startapp=invite_{org.data['invite_code']}"
+    # Direct mini-app URL for users to open
+    bot_username = settings.BOT_USERNAME if hasattr(settings, 'BOT_USERNAME') else "apex_workforce_bot"
+    app_shortname = settings.MINI_APP_SHORTNAME if hasattr(settings, 'MINI_APP_SHORTNAME') else "hub"
+    app_url = f"https://t.me/{bot_username}/{app_shortname}"
 
-    return InviteLink(
-        url=url,
+    # Generate text content for the invite file
+    text_content = f"""Join {org.data['name']} on Workforce Accelerator
+
+1. Open the app: {app_url}
+2. Tap 'Join with Invite Code'
+3. Enter this invite code: {org.data['invite_code']}
+4. Enter your full name and submit
+
+This code expires in 24 hours."""
+
+    return InviteCode(
         code=org.data["invite_code"],
         org_name=org.data["name"],
+        bot_url=app_url,
+        text_content=text_content,
         expires_at=expires_at,
         is_expired=is_expired
     )
 
 
 @router.post("/orgs/{org_id}/regenerate-invite")
-async def regenerate_invite_link(
+async def regenerate_invite_code(
     org_id: str,
     x_telegram_init_data: str = Header(...)
-) -> InviteLink:
-    """Regenerate the invite link for an organization (admin only)."""
+) -> InviteCode:
+    """Regenerate the invite code for an organization (admin only)."""
     tg_user = get_telegram_user(x_telegram_init_data)
     db = get_supabase_admin()
 
@@ -365,17 +381,98 @@ async def regenerate_invite_link(
     # Get org name
     org = db.table("organizations").select("name").eq("id", org_id).single().execute()
 
-    # Generate URL
-    bot_username = "apex_workforce_bot"
-    url = f"https://t.me/{bot_username}/app?startapp=invite_{new_code}"
+    # Direct mini-app URL for users to open
+    bot_username = settings.BOT_USERNAME if hasattr(settings, 'BOT_USERNAME') else "apex_workforce_bot"
+    app_shortname = settings.MINI_APP_SHORTNAME if hasattr(settings, 'MINI_APP_SHORTNAME') else "hub"
+    app_url = f"https://t.me/{bot_username}/{app_shortname}"
 
-    return InviteLink(
-        url=url,
+    # Generate text content for the invite file
+    text_content = f"""Join {org.data['name']} on Workforce Accelerator
+
+1. Open the app: {app_url}
+2. Tap 'Join with Invite Code'
+3. Enter this invite code: {new_code}
+4. Enter your full name and submit
+
+This code expires in 24 hours."""
+
+    return InviteCode(
         code=new_code,
         org_name=org.data["name"],
+        bot_url=app_url,
+        text_content=text_content,
         expires_at=expires_at,
         is_expired=False
     )
+
+
+@router.post("/orgs/{org_id}/send-invite-link")
+async def send_invite_link(
+    org_id: str,
+    background_tasks: BackgroundTasks,
+    x_telegram_init_data: str = Header(...)
+) -> dict:
+    """
+    Send the invite link message to the admin via Telegram.
+    The admin can then forward this message to invite users.
+    If the current code is expired, a new one is generated automatically.
+    """
+    tg_user = get_telegram_user(x_telegram_init_data)
+    db = get_supabase_admin()
+
+    # Verify admin
+    user = db.table("users").select("id").eq("telegram_id", tg_user.id).single().execute()
+    membership = db.table("memberships").select("role").eq(
+        "user_id", user.data["id"]
+    ).eq("org_id", org_id).single().execute()
+
+    if not membership.data or membership.data["role"] != "admin":
+        raise HTTPException(403, "Admin access required")
+
+    # Get org details
+    org = db.table("organizations").select("name, invite_code, invite_code_expires_at").eq(
+        "id", org_id
+    ).single().execute()
+
+    # Check if code is expired and regenerate if needed
+    expires_at = datetime.fromisoformat(org.data["invite_code_expires_at"].replace("Z", "+00:00"))
+    is_expired = datetime.now(timezone.utc) > expires_at
+
+    if is_expired:
+        # Generate new invite code
+        new_code = secrets.token_urlsafe(8)
+        expires_at = datetime.now(timezone.utc) + timedelta(hours=24)
+        db.table("organizations").update({
+            "invite_code": new_code,
+            "invite_code_expires_at": expires_at.isoformat()
+        }).eq("id", org_id).execute()
+        invite_code = new_code
+    else:
+        invite_code = org.data["invite_code"]
+
+    # Direct mini-app URL (opens the app directly instead of just the bot chat)
+    bot_username = settings.BOT_USERNAME if hasattr(settings, 'BOT_USERNAME') else "apex_workforce_bot"
+    app_shortname = settings.MINI_APP_SHORTNAME if hasattr(settings, 'MINI_APP_SHORTNAME') else "hub"
+    app_url = f"https://t.me/{bot_username}/{app_shortname}"
+
+    # Calculate hours remaining
+    hours_remaining = max(1, int((expires_at - datetime.now(timezone.utc)).total_seconds() / 3600))
+
+    # Send the invite message to admin in background
+    background_tasks.add_task(
+        send_invite_link_to_admin,
+        admin_telegram_id=tg_user.id,
+        org_name=org.data["name"],
+        invite_code=invite_code,
+        app_url=app_url,
+        expires_in_hours=hours_remaining
+    )
+
+    return {
+        "success": True,
+        "message": "Invite link sent to your Telegram chat",
+        "code_regenerated": is_expired
+    }
 
 
 @router.get("/invite/{invite_code}")
@@ -1487,3 +1584,162 @@ async def get_billing_overview(
         usage=usage,
         invoices=invoices
     )
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# ADMIN DASHBOARD - PRODUCTS & SERVICES
+# ═══════════════════════════════════════════════════════════════════════════
+
+@router.get("/orgs/{org_id}/products")
+async def list_products(
+    org_id: str,
+    x_telegram_init_data: str = Header(...)
+) -> List[Product]:
+    """
+    List all products/services for an organization.
+    Viewable by all members, but only editable by admins.
+    """
+    tg_user = get_telegram_user(x_telegram_init_data)
+    db = get_supabase_admin()
+
+    # Verify membership (any member can view)
+    user = db.table("users").select("id").eq("telegram_id", tg_user.id).single().execute()
+    if not user.data:
+        raise HTTPException(404, "User not found")
+
+    membership = db.table("memberships").select("role").eq(
+        "user_id", user.data["id"]
+    ).eq("org_id", org_id).execute()
+
+    if not membership.data:
+        raise HTTPException(403, "Not a member of this organization")
+
+    # Get all products
+    result = db.table("lead_agent_products").select("*").eq(
+        "org_id", org_id
+    ).order("created_at", desc=True).execute()
+
+    return [Product(**p) for p in result.data]
+
+
+@router.post("/orgs/{org_id}/products")
+async def create_product(
+    org_id: str,
+    data: ProductCreate,
+    x_telegram_init_data: str = Header(...)
+) -> Product:
+    """Create a new product/service (admin only)."""
+    tg_user = get_telegram_user(x_telegram_init_data)
+    db = get_supabase_admin()
+
+    # Verify admin
+    user = db.table("users").select("id").eq("telegram_id", tg_user.id).single().execute()
+    if not user.data:
+        raise HTTPException(404, "User not found")
+
+    membership = db.table("memberships").select("role").eq(
+        "user_id", user.data["id"]
+    ).eq("org_id", org_id).single().execute()
+
+    if not membership.data or membership.data["role"] != "admin":
+        raise HTTPException(403, "Admin access required")
+
+    # Create product
+    product_data = {
+        "org_id": org_id,
+        "name": data.name,
+        "description": data.description,
+        "price": str(data.price) if data.price else None,
+        "is_active": True
+    }
+
+    result = db.table("lead_agent_products").insert(product_data).execute()
+    return Product(**result.data[0])
+
+
+@router.patch("/orgs/{org_id}/products/{product_id}")
+async def update_product(
+    org_id: str,
+    product_id: str,
+    data: ProductUpdate,
+    x_telegram_init_data: str = Header(...)
+) -> Product:
+    """Update a product/service (admin only)."""
+    tg_user = get_telegram_user(x_telegram_init_data)
+    db = get_supabase_admin()
+
+    # Verify admin
+    user = db.table("users").select("id").eq("telegram_id", tg_user.id).single().execute()
+    if not user.data:
+        raise HTTPException(404, "User not found")
+
+    membership = db.table("memberships").select("role").eq(
+        "user_id", user.data["id"]
+    ).eq("org_id", org_id).single().execute()
+
+    if not membership.data or membership.data["role"] != "admin":
+        raise HTTPException(403, "Admin access required")
+
+    # Verify product belongs to this org
+    product_check = db.table("lead_agent_products").select("id").eq(
+        "id", product_id
+    ).eq("org_id", org_id).execute()
+
+    if not product_check.data:
+        raise HTTPException(404, "Product not found")
+
+    # Build update data
+    update_data = {}
+    if data.name is not None:
+        update_data["name"] = data.name
+    if data.description is not None:
+        update_data["description"] = data.description
+    if data.price is not None:
+        update_data["price"] = str(data.price)
+    if data.is_active is not None:
+        update_data["is_active"] = data.is_active
+
+    if not update_data:
+        raise HTTPException(400, "No fields to update")
+
+    result = db.table("lead_agent_products").update(update_data).eq(
+        "id", product_id
+    ).execute()
+
+    return Product(**result.data[0])
+
+
+@router.delete("/orgs/{org_id}/products/{product_id}")
+async def delete_product(
+    org_id: str,
+    product_id: str,
+    x_telegram_init_data: str = Header(...)
+) -> dict:
+    """Delete a product/service (admin only)."""
+    tg_user = get_telegram_user(x_telegram_init_data)
+    db = get_supabase_admin()
+
+    # Verify admin
+    user = db.table("users").select("id").eq("telegram_id", tg_user.id).single().execute()
+    if not user.data:
+        raise HTTPException(404, "User not found")
+
+    membership = db.table("memberships").select("role").eq(
+        "user_id", user.data["id"]
+    ).eq("org_id", org_id).single().execute()
+
+    if not membership.data or membership.data["role"] != "admin":
+        raise HTTPException(403, "Admin access required")
+
+    # Verify product belongs to this org and get name for response
+    product = db.table("lead_agent_products").select("id, name").eq(
+        "id", product_id
+    ).eq("org_id", org_id).execute()
+
+    if not product.data:
+        raise HTTPException(404, "Product not found")
+
+    # Delete product
+    db.table("lead_agent_products").delete().eq("id", product_id).execute()
+
+    return {"status": "deleted", "product_id": product_id, "name": product.data[0]["name"]}
