@@ -33,6 +33,26 @@ from .lead_agent import (
     JournalEntryUpdate,
     JournalEntry
 )
+from .admin import (
+    ActivityLogCreate,
+    MemberActivity,
+    TeamAnalytics,
+    AgentUsage,
+    AgentAnalytics,
+    CustomerCreate,
+    CustomerUpdate,
+    Customer,
+    CustomerList,
+    ImportJobCreate,
+    ImportJobResponse,
+    SubscriptionPlan,
+    OrgSubscription,
+    SubscriptionUpgrade,
+    Invoice,
+    InvoiceLineItem,
+    InvoiceList,
+    BillingOverview
+)
 
 __all__ = [
     "TelegramUser",
@@ -69,5 +89,24 @@ __all__ = [
     "CurrencyUpdate",
     "JournalEntryCreate",
     "JournalEntryUpdate",
-    "JournalEntry"
+    "JournalEntry",
+    # Admin models
+    "ActivityLogCreate",
+    "MemberActivity",
+    "TeamAnalytics",
+    "AgentUsage",
+    "AgentAnalytics",
+    "CustomerCreate",
+    "CustomerUpdate",
+    "Customer",
+    "CustomerList",
+    "ImportJobCreate",
+    "ImportJobResponse",
+    "SubscriptionPlan",
+    "OrgSubscription",
+    "SubscriptionUpgrade",
+    "Invoice",
+    "InvoiceLineItem",
+    "InvoiceList",
+    "BillingOverview"
 ]

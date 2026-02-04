@@ -18,7 +18,11 @@ from models import (
     TelegramUser, User,
     Organization, OrgCreate, InviteLink, OrgStats, OrgDetails, OrgUpdate,
     MembershipRequest, MembershipRequestCreate, MembershipRequestResponse,
-    MembershipApproval, Member, BotAccess, MemberBotsUpdate
+    MembershipApproval, Member, BotAccess, MemberBotsUpdate,
+    # Admin models
+    ActivityLogCreate, MemberActivity, TeamAnalytics, AgentUsage, AgentAnalytics,
+    CustomerCreate, CustomerUpdate, Customer, CustomerList, ImportJobResponse,
+    SubscriptionPlan, OrgSubscription, Invoice, InvoiceList, BillingOverview
 )
 from services import get_supabase_admin, get_telegram_user
 from services.notifications import (
@@ -808,3 +812,678 @@ async def list_available_bots(
     bots = db.table("bot_registry").select("*").eq("is_active", True).execute()
 
     return bots.data
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# ADMIN DASHBOARD - ACTIVITY TRACKING
+# ═══════════════════════════════════════════════════════════════════════════
+
+@router.post("/activity")
+async def log_activity(
+    data: ActivityLogCreate,
+    x_telegram_init_data: str = Header(...)
+) -> dict:
+    """Log member activity (called from mini-apps)."""
+    tg_user = get_telegram_user(x_telegram_init_data)
+    db = get_supabase_admin()
+
+    # Get user and membership
+    user = db.table("users").select("id").eq("telegram_id", tg_user.id).single().execute()
+    if not user.data:
+        raise HTTPException(404, "User not found")
+
+    membership = db.table("memberships").select("id").eq(
+        "user_id", user.data["id"]
+    ).eq("org_id", data.org_id).single().execute()
+
+    if not membership.data:
+        raise HTTPException(403, "Not a member of this organization")
+
+    # Log the activity
+    activity_data = {
+        "membership_id": membership.data["id"],
+        "user_id": user.data["id"],
+        "org_id": data.org_id,
+        "bot_id": data.bot_id,
+        "action_type": data.action_type,
+        "action_detail": data.action_detail
+    }
+    db.table("member_activity_log").insert(activity_data).execute()
+
+    # Update last_active_at
+    db.table("memberships").update({
+        "last_active_at": datetime.now(timezone.utc).isoformat()
+    }).eq("id", membership.data["id"]).execute()
+
+    return {"status": "logged"}
+
+
+@router.get("/orgs/{org_id}/analytics/team")
+async def get_team_analytics(
+    org_id: str,
+    period: str = "week",
+    x_telegram_init_data: str = Header(...)
+) -> TeamAnalytics:
+    """Get team activity analytics (admin only)."""
+    tg_user = get_telegram_user(x_telegram_init_data)
+    db = get_supabase_admin()
+
+    # Verify admin
+    user = db.table("users").select("id").eq("telegram_id", tg_user.id).single().execute()
+    if not user.data:
+        raise HTTPException(404, "User not found")
+
+    membership = db.table("memberships").select("role").eq(
+        "user_id", user.data["id"]
+    ).eq("org_id", org_id).single().execute()
+
+    if not membership.data or membership.data["role"] != "admin":
+        raise HTTPException(403, "Admin access required")
+
+    # Calculate period bounds
+    now = datetime.now(timezone.utc)
+    if period == "day":
+        period_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+    elif period == "week":
+        period_start = now - timedelta(days=now.weekday())
+        period_start = period_start.replace(hour=0, minute=0, second=0, microsecond=0)
+    elif period == "month":
+        period_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    else:
+        period_start = now - timedelta(days=7)
+
+    period_end = now
+
+    # Get all members with their user info
+    members_result = db.table("memberships").select(
+        "id, user_id, role, last_active_at, users(full_name, telegram_username)"
+    ).eq("org_id", org_id).execute()
+
+    # Get activity counts per member for this period
+    activity_counts = {}
+    bots_accessed = {}
+
+    for m in members_result.data:
+        # Count activities
+        activity_result = db.table("member_activity_log").select(
+            "id", count="exact"
+        ).eq("membership_id", m["id"]).gte(
+            "created_at", period_start.isoformat()
+        ).execute()
+        activity_counts[m["id"]] = activity_result.count or 0
+
+        # Get unique bots accessed
+        bots_result = db.table("member_activity_log").select(
+            "bot_id"
+        ).eq("membership_id", m["id"]).gte(
+            "created_at", period_start.isoformat()
+        ).not_.is_("bot_id", "null").execute()
+        bots_accessed[m["id"]] = list(set(b["bot_id"] for b in bots_result.data if b["bot_id"]))
+
+    # Build member activity list
+    member_activities = []
+    active_count = 0
+    total_activities = 0
+
+    for m in members_result.data:
+        count = activity_counts.get(m["id"], 0)
+        total_activities += count
+
+        if count > 0 or (m.get("last_active_at") and
+            datetime.fromisoformat(m["last_active_at"].replace("Z", "+00:00")) >= period_start):
+            active_count += 1
+
+        member_activities.append(MemberActivity(
+            user_id=m["user_id"],
+            membership_id=m["id"],
+            full_name=m["users"]["full_name"],
+            telegram_username=m["users"].get("telegram_username"),
+            role=m["role"],
+            last_active_at=m.get("last_active_at"),
+            activity_count=count,
+            bots_accessed=bots_accessed.get(m["id"], [])
+        ))
+
+    # Sort by activity count (most active first)
+    member_activities.sort(key=lambda x: x.activity_count, reverse=True)
+
+    return TeamAnalytics(
+        period=period,
+        period_start=period_start,
+        period_end=period_end,
+        total_members=len(members_result.data),
+        active_members=active_count,
+        total_activities=total_activities,
+        members=member_activities
+    )
+
+
+@router.get("/orgs/{org_id}/analytics/agents")
+async def get_agent_analytics(
+    org_id: str,
+    period: str = "week",
+    x_telegram_init_data: str = Header(...)
+) -> AgentAnalytics:
+    """Get agent usage analytics (admin only)."""
+    tg_user = get_telegram_user(x_telegram_init_data)
+    db = get_supabase_admin()
+
+    # Verify admin
+    user = db.table("users").select("id").eq("telegram_id", tg_user.id).single().execute()
+    if not user.data:
+        raise HTTPException(404, "User not found")
+
+    membership = db.table("memberships").select("role").eq(
+        "user_id", user.data["id"]
+    ).eq("org_id", org_id).single().execute()
+
+    if not membership.data or membership.data["role"] != "admin":
+        raise HTTPException(403, "Admin access required")
+
+    # Calculate period bounds
+    now = datetime.now(timezone.utc)
+    if period == "day":
+        period_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+    elif period == "week":
+        period_start = now - timedelta(days=now.weekday())
+        period_start = period_start.replace(hour=0, minute=0, second=0, microsecond=0)
+    elif period == "month":
+        period_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    else:
+        period_start = now - timedelta(days=7)
+
+    period_end = now
+
+    # Get all bots
+    bots_result = db.table("bot_registry").select("id, name, icon").eq("is_active", True).execute()
+
+    # Get activity stats per bot
+    agent_usage = []
+    total_tasks = 0
+
+    for bot in bots_result.data:
+        # Count task_completed activities for this bot
+        tasks_result = db.table("member_activity_log").select(
+            "id", count="exact"
+        ).eq("org_id", org_id).eq("bot_id", bot["id"]).eq(
+            "action_type", "task_completed"
+        ).gte("created_at", period_start.isoformat()).execute()
+
+        task_count = tasks_result.count or 0
+        total_tasks += task_count
+
+        # Count unique users for this bot
+        users_result = db.table("member_activity_log").select(
+            "user_id"
+        ).eq("org_id", org_id).eq("bot_id", bot["id"]).gte(
+            "created_at", period_start.isoformat()
+        ).execute()
+        unique_users = len(set(u["user_id"] for u in users_result.data))
+
+        agent_usage.append(AgentUsage(
+            bot_id=bot["id"],
+            bot_name=bot["name"],
+            bot_icon=bot.get("icon"),
+            task_count=task_count,
+            active_users=unique_users
+        ))
+
+    # Sort by task count (most used first)
+    agent_usage.sort(key=lambda x: x.task_count, reverse=True)
+
+    return AgentAnalytics(
+        period=period,
+        period_start=period_start,
+        period_end=period_end,
+        total_tasks=total_tasks,
+        agents=agent_usage
+    )
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# ADMIN DASHBOARD - CUSTOMER DATABASE
+# ═══════════════════════════════════════════════════════════════════════════
+
+@router.get("/orgs/{org_id}/customers")
+async def list_customers(
+    org_id: str,
+    search: Optional[str] = None,
+    status: Optional[str] = None,
+    limit: int = 50,
+    offset: int = 0,
+    x_telegram_init_data: str = Header(...)
+) -> CustomerList:
+    """List customers for an organization (admin only)."""
+    tg_user = get_telegram_user(x_telegram_init_data)
+    db = get_supabase_admin()
+
+    # Verify admin
+    user = db.table("users").select("id").eq("telegram_id", tg_user.id).single().execute()
+    if not user.data:
+        raise HTTPException(404, "User not found")
+
+    membership = db.table("memberships").select("role").eq(
+        "user_id", user.data["id"]
+    ).eq("org_id", org_id).single().execute()
+
+    if not membership.data or membership.data["role"] != "admin":
+        raise HTTPException(403, "Admin access required")
+
+    # Build query
+    query = db.table("customers").select("*", count="exact").eq("org_id", org_id)
+
+    if status:
+        query = query.eq("status", status)
+
+    if search:
+        # Search in name, email, company
+        query = query.or_(f"name.ilike.%{search}%,email.ilike.%{search}%,company.ilike.%{search}%")
+
+    # Execute with pagination
+    result = query.order("created_at", desc=True).range(offset, offset + limit - 1).execute()
+
+    customers = [Customer(
+        id=c["id"],
+        org_id=c["org_id"],
+        name=c["name"],
+        email=c.get("email"),
+        phone=c.get("phone"),
+        company=c.get("company"),
+        address_line1=c.get("address_line1"),
+        city=c.get("city"),
+        country=c.get("country"),
+        status=c["status"],
+        customer_type=c["customer_type"],
+        lifetime_value=c.get("lifetime_value", 0),
+        tags=c.get("tags", []),
+        notes=c.get("notes"),
+        source=c.get("source"),
+        created_at=c["created_at"]
+    ) for c in result.data]
+
+    return CustomerList(
+        customers=customers,
+        total=result.count or 0,
+        limit=limit,
+        offset=offset
+    )
+
+
+@router.post("/orgs/{org_id}/customers")
+async def create_customer(
+    org_id: str,
+    data: CustomerCreate,
+    x_telegram_init_data: str = Header(...)
+) -> Customer:
+    """Create a new customer (admin only)."""
+    tg_user = get_telegram_user(x_telegram_init_data)
+    db = get_supabase_admin()
+
+    # Verify admin
+    user = db.table("users").select("id").eq("telegram_id", tg_user.id).single().execute()
+    if not user.data:
+        raise HTTPException(404, "User not found")
+
+    membership = db.table("memberships").select("role").eq(
+        "user_id", user.data["id"]
+    ).eq("org_id", org_id).single().execute()
+
+    if not membership.data or membership.data["role"] != "admin":
+        raise HTTPException(403, "Admin access required")
+
+    # Create customer
+    customer_data = {
+        "org_id": org_id,
+        "name": data.name,
+        "email": data.email,
+        "phone": data.phone,
+        "company": data.company,
+        "address_line1": data.address_line1,
+        "address_line2": data.address_line2,
+        "city": data.city,
+        "state": data.state,
+        "postal_code": data.postal_code,
+        "country": data.country,
+        "status": data.status,
+        "customer_type": data.customer_type,
+        "tags": data.tags,
+        "notes": data.notes,
+        "source": "manual",
+        "created_by": user.data["id"]
+    }
+
+    result = db.table("customers").insert(customer_data).execute()
+    c = result.data[0]
+
+    return Customer(
+        id=c["id"],
+        org_id=c["org_id"],
+        name=c["name"],
+        email=c.get("email"),
+        phone=c.get("phone"),
+        company=c.get("company"),
+        address_line1=c.get("address_line1"),
+        city=c.get("city"),
+        country=c.get("country"),
+        status=c["status"],
+        customer_type=c["customer_type"],
+        lifetime_value=c.get("lifetime_value", 0),
+        tags=c.get("tags", []),
+        notes=c.get("notes"),
+        source=c.get("source"),
+        created_at=c["created_at"]
+    )
+
+
+@router.get("/orgs/{org_id}/customers/{customer_id}")
+async def get_customer(
+    org_id: str,
+    customer_id: str,
+    x_telegram_init_data: str = Header(...)
+) -> Customer:
+    """Get a customer by ID (admin only)."""
+    tg_user = get_telegram_user(x_telegram_init_data)
+    db = get_supabase_admin()
+
+    # Verify admin
+    user = db.table("users").select("id").eq("telegram_id", tg_user.id).single().execute()
+    if not user.data:
+        raise HTTPException(404, "User not found")
+
+    membership = db.table("memberships").select("role").eq(
+        "user_id", user.data["id"]
+    ).eq("org_id", org_id).single().execute()
+
+    if not membership.data or membership.data["role"] != "admin":
+        raise HTTPException(403, "Admin access required")
+
+    # Get customer
+    result = db.table("customers").select("*").eq("id", customer_id).eq("org_id", org_id).single().execute()
+    if not result.data:
+        raise HTTPException(404, "Customer not found")
+
+    c = result.data
+    return Customer(
+        id=c["id"],
+        org_id=c["org_id"],
+        name=c["name"],
+        email=c.get("email"),
+        phone=c.get("phone"),
+        company=c.get("company"),
+        address_line1=c.get("address_line1"),
+        city=c.get("city"),
+        country=c.get("country"),
+        status=c["status"],
+        customer_type=c["customer_type"],
+        lifetime_value=c.get("lifetime_value", 0),
+        tags=c.get("tags", []),
+        notes=c.get("notes"),
+        source=c.get("source"),
+        created_at=c["created_at"]
+    )
+
+
+@router.patch("/orgs/{org_id}/customers/{customer_id}")
+async def update_customer(
+    org_id: str,
+    customer_id: str,
+    data: CustomerUpdate,
+    x_telegram_init_data: str = Header(...)
+) -> Customer:
+    """Update a customer (admin only)."""
+    tg_user = get_telegram_user(x_telegram_init_data)
+    db = get_supabase_admin()
+
+    # Verify admin
+    user = db.table("users").select("id").eq("telegram_id", tg_user.id).single().execute()
+    if not user.data:
+        raise HTTPException(404, "User not found")
+
+    membership = db.table("memberships").select("role").eq(
+        "user_id", user.data["id"]
+    ).eq("org_id", org_id).single().execute()
+
+    if not membership.data or membership.data["role"] != "admin":
+        raise HTTPException(403, "Admin access required")
+
+    # Build update data
+    update_data = {}
+    for field in ["name", "email", "phone", "company", "address_line1", "address_line2",
+                  "city", "state", "postal_code", "country", "status", "customer_type", "tags", "notes"]:
+        value = getattr(data, field)
+        if value is not None:
+            update_data[field] = value
+
+    if not update_data:
+        raise HTTPException(400, "No fields to update")
+
+    # Update customer
+    result = db.table("customers").update(update_data).eq("id", customer_id).eq("org_id", org_id).execute()
+    if not result.data:
+        raise HTTPException(404, "Customer not found")
+
+    c = result.data[0]
+    return Customer(
+        id=c["id"],
+        org_id=c["org_id"],
+        name=c["name"],
+        email=c.get("email"),
+        phone=c.get("phone"),
+        company=c.get("company"),
+        address_line1=c.get("address_line1"),
+        city=c.get("city"),
+        country=c.get("country"),
+        status=c["status"],
+        customer_type=c["customer_type"],
+        lifetime_value=c.get("lifetime_value", 0),
+        tags=c.get("tags", []),
+        notes=c.get("notes"),
+        source=c.get("source"),
+        created_at=c["created_at"]
+    )
+
+
+@router.delete("/orgs/{org_id}/customers/{customer_id}")
+async def delete_customer(
+    org_id: str,
+    customer_id: str,
+    x_telegram_init_data: str = Header(...)
+) -> dict:
+    """Delete a customer (admin only)."""
+    tg_user = get_telegram_user(x_telegram_init_data)
+    db = get_supabase_admin()
+
+    # Verify admin
+    user = db.table("users").select("id").eq("telegram_id", tg_user.id).single().execute()
+    if not user.data:
+        raise HTTPException(404, "User not found")
+
+    membership = db.table("memberships").select("role").eq(
+        "user_id", user.data["id"]
+    ).eq("org_id", org_id).single().execute()
+
+    if not membership.data or membership.data["role"] != "admin":
+        raise HTTPException(403, "Admin access required")
+
+    # Delete customer
+    result = db.table("customers").delete().eq("id", customer_id).eq("org_id", org_id).execute()
+    if not result.data:
+        raise HTTPException(404, "Customer not found")
+
+    return {"status": "deleted", "customer_id": customer_id}
+
+
+@router.get("/orgs/{org_id}/customers/export")
+async def export_customers(
+    org_id: str,
+    x_telegram_init_data: str = Header(...)
+) -> dict:
+    """Export customers as CSV data (admin only)."""
+    tg_user = get_telegram_user(x_telegram_init_data)
+    db = get_supabase_admin()
+
+    # Verify admin
+    user = db.table("users").select("id").eq("telegram_id", tg_user.id).single().execute()
+    if not user.data:
+        raise HTTPException(404, "User not found")
+
+    membership = db.table("memberships").select("role").eq(
+        "user_id", user.data["id"]
+    ).eq("org_id", org_id).single().execute()
+
+    if not membership.data or membership.data["role"] != "admin":
+        raise HTTPException(403, "Admin access required")
+
+    # Get all customers
+    result = db.table("customers").select("*").eq("org_id", org_id).order("created_at", desc=True).execute()
+
+    # Build CSV content
+    headers = ["name", "email", "phone", "company", "address", "city", "country", "status", "type", "notes"]
+    rows = []
+    for c in result.data:
+        rows.append([
+            c.get("name", ""),
+            c.get("email", ""),
+            c.get("phone", ""),
+            c.get("company", ""),
+            c.get("address_line1", ""),
+            c.get("city", ""),
+            c.get("country", ""),
+            c.get("status", ""),
+            c.get("customer_type", ""),
+            c.get("notes", "")
+        ])
+
+    return {
+        "headers": headers,
+        "rows": rows,
+        "total": len(rows)
+    }
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# ADMIN DASHBOARD - BILLING
+# ═══════════════════════════════════════════════════════════════════════════
+
+@router.get("/plans")
+async def list_subscription_plans() -> List[SubscriptionPlan]:
+    """List available subscription plans (public)."""
+    db = get_supabase_admin()
+
+    result = db.table("subscription_plans").select("*").eq("is_active", True).order("sort_order").execute()
+
+    return [SubscriptionPlan(
+        id=p["id"],
+        name=p["name"],
+        description=p.get("description"),
+        price_monthly=p["price_monthly"],
+        price_yearly=p.get("price_yearly"),
+        max_members=p.get("max_members"),
+        max_customers=p.get("max_customers"),
+        features=p.get("features", []),
+        is_active=p["is_active"]
+    ) for p in result.data]
+
+
+@router.get("/orgs/{org_id}/billing")
+async def get_billing_overview(
+    org_id: str,
+    x_telegram_init_data: str = Header(...)
+) -> BillingOverview:
+    """Get billing overview for an organization (admin only)."""
+    tg_user = get_telegram_user(x_telegram_init_data)
+    db = get_supabase_admin()
+
+    # Verify admin
+    user = db.table("users").select("id").eq("telegram_id", tg_user.id).single().execute()
+    if not user.data:
+        raise HTTPException(404, "User not found")
+
+    membership = db.table("memberships").select("role").eq(
+        "user_id", user.data["id"]
+    ).eq("org_id", org_id).single().execute()
+
+    if not membership.data or membership.data["role"] != "admin":
+        raise HTTPException(403, "Admin access required")
+
+    # Get subscription
+    sub_result = db.table("org_subscriptions").select(
+        "*, subscription_plans(*)"
+    ).eq("org_id", org_id).single().execute()
+
+    if not sub_result.data:
+        # Create default free subscription if none exists
+        plan = db.table("subscription_plans").select("*").eq("id", "free").single().execute()
+        default_end = datetime.now(timezone.utc) + timedelta(days=36500)  # 100 years
+        new_sub = db.table("org_subscriptions").insert({
+            "org_id": org_id,
+            "plan_id": "free",
+            "current_period_end": default_end.isoformat()
+        }).execute()
+        sub_result = db.table("org_subscriptions").select(
+            "*, subscription_plans(*)"
+        ).eq("id", new_sub.data[0]["id"]).single().execute()
+
+    s = sub_result.data
+    plan_data = s["subscription_plans"]
+
+    subscription = OrgSubscription(
+        id=s["id"],
+        org_id=s["org_id"],
+        plan_id=s["plan_id"],
+        plan=SubscriptionPlan(
+            id=plan_data["id"],
+            name=plan_data["name"],
+            description=plan_data.get("description"),
+            price_monthly=plan_data["price_monthly"],
+            price_yearly=plan_data.get("price_yearly"),
+            max_members=plan_data.get("max_members"),
+            max_customers=plan_data.get("max_customers"),
+            features=plan_data.get("features", []),
+            is_active=plan_data["is_active"]
+        ),
+        billing_cycle=s["billing_cycle"],
+        status=s["status"],
+        trial_ends_at=s.get("trial_ends_at"),
+        current_period_start=s["current_period_start"],
+        current_period_end=s["current_period_end"],
+        canceled_at=s.get("canceled_at")
+    )
+
+    # Get usage stats
+    members_count = db.table("memberships").select("id", count="exact").eq("org_id", org_id).execute()
+    customers_count = db.table("customers").select("id", count="exact").eq("org_id", org_id).execute()
+
+    usage = {
+        "members_used": members_count.count or 0,
+        "members_limit": plan_data.get("max_members"),
+        "customers_used": customers_count.count or 0,
+        "customers_limit": plan_data.get("max_customers")
+    }
+
+    # Get recent invoices
+    invoices_result = db.table("invoices").select("*").eq("org_id", org_id).order(
+        "issue_date", desc=True
+    ).limit(10).execute()
+
+    invoices = [Invoice(
+        id=i["id"],
+        org_id=i["org_id"],
+        invoice_number=i["invoice_number"],
+        subtotal=i["subtotal"],
+        tax=i.get("tax", 0),
+        total=i["total"],
+        currency=i.get("currency", "USD"),
+        status=i["status"],
+        issue_date=i["issue_date"],
+        due_date=i["due_date"],
+        paid_at=i.get("paid_at"),
+        line_items=i.get("line_items", []),
+        pdf_url=i.get("pdf_url")
+    ) for i in invoices_result.data]
+
+    return BillingOverview(
+        subscription=subscription,
+        usage=usage,
+        invoices=invoices
+    )

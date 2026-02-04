@@ -2006,7 +2006,25 @@
             }),
 
             // Dashboard
-            getDashboard: (orgId) => api.fetch(`/dashboard?org_id=${orgId}`)
+            getDashboard: (orgId) => api.fetch(`/dashboard?org_id=${orgId}`),
+
+            // Activity Logging (for admin analytics)
+            logActivity: (orgId, actionType, actionDetail = {}) => {
+                // Fire and forget - don't block UI for analytics
+                fetch('/api/hub/activity', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Telegram-Init-Data': tg.initData
+                    },
+                    body: JSON.stringify({
+                        org_id: orgId,
+                        bot_id: 'lead-agent',
+                        action_type: actionType,
+                        action_detail: actionDetail
+                    })
+                }).catch(() => {}); // Ignore errors silently
+            }
         };
 
         // ═══════════════════════════════════════════════════════════════
@@ -2084,6 +2102,9 @@
 
                 await loadDashboard();
                 showPage('dashboard');
+
+                // Log activity for analytics
+                api.logActivity(state.orgId, 'page_view', { page: 'dashboard' });
             } catch (error) {
                 console.error('Init error:', error);
                 showPage('loading');
@@ -2241,8 +2262,10 @@
 
                 if (state.editingProduct) {
                     await api.updateProduct(state.editingProduct.id, data);
+                    api.logActivity(state.orgId, 'task_completed', { action: 'update_product', product_id: state.editingProduct.id });
                 } else {
                     await api.createProduct(state.orgId, data);
+                    api.logActivity(state.orgId, 'task_completed', { action: 'create_product' });
                 }
 
                 closeProductModal();
@@ -2317,6 +2340,9 @@
 
             try {
                 const prospect = await api.scrapeProspect(state.orgId, url);
+
+                // Log activity
+                api.logActivity(state.orgId, 'task_completed', { action: 'scrape_prospect', prospect_id: prospect.id });
 
                 // Show success result
                 const resultContent = document.getElementById('scrape-result-content');
@@ -2744,6 +2770,9 @@
                 await api.updateProspectStatus(id, status);
                 state.currentProspect.status = status;
 
+                // Log activity
+                api.logActivity(state.orgId, 'task_completed', { action: 'update_status', prospect_id: id, status });
+
                 // Partial DOM update - only update status pills instead of full re-render
                 document.querySelectorAll('.status-pill').forEach(pill => {
                     const pillStatus = pill.getAttribute('onclick')?.match(/'([^']+)'\s*\)$/)?.[1];
@@ -3000,11 +3029,13 @@
                         content,
                         interaction_type: interactionType
                     });
+                    api.logActivity(state.orgId, 'task_completed', { action: 'update_journal', prospect_id: prospectId });
                 } else {
                     await api.createJournalEntry(prospectId, {
                         content,
                         interaction_type: interactionType
                     });
+                    api.logActivity(state.orgId, 'task_completed', { action: 'create_journal', prospect_id: prospectId, interaction_type: interactionType });
                 }
 
                 closeJournalModal();
