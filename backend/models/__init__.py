@@ -53,6 +53,14 @@ from .admin import (
     InvoiceList,
     BillingOverview
 )
+from .reports import (
+    BotTaskLogEntry,
+    ActivityReport,
+    ReportListItem,
+    ReportsList,
+    GenerateReportRequest,
+    ReportSummaryResponse
+)
 
 __all__ = [
     "TelegramUser",
@@ -108,5 +116,12 @@ __all__ = [
     "Invoice",
     "InvoiceLineItem",
     "InvoiceList",
-    "BillingOverview"
+    "BillingOverview",
+    # Report models
+    "BotTaskLogEntry",
+    "ActivityReport",
+    "ReportListItem",
+    "ReportsList",
+    "GenerateReportRequest",
+    "ReportSummaryResponse"
 ]

@@ -24,6 +24,7 @@ from models import (
 from services import get_supabase_admin, get_telegram_user
 from services.url_scraper import URLScraperService, ScraperError
 from services.ai_lead_agent import LeadAgentAI
+from services.bot_task_logger import BotTaskLogger, TaskTimer
 from config import settings
 
 router = APIRouter()
@@ -116,13 +117,15 @@ async def generate_ai_insights_task(
 
         # Generate insights using GPT-4o (with business description from GPT-4o-mini)
         ai = LeadAgentAI(settings.openai_api_key)
-        summary, pain_points, call_script = await ai.generate_prospect_insights(
-            business_name=prospect_data["business_name"],
-            business_address=prospect_data.get("address"),
-            business_website=prospect_data.get("website"),
-            products=products,
-            business_description=business_description
-        )
+
+        with TaskTimer() as timer:
+            summary, pain_points, call_script = await ai.generate_prospect_insights(
+                business_name=prospect_data["business_name"],
+                business_address=prospect_data.get("address"),
+                business_website=prospect_data.get("website"),
+                products=products,
+                business_description=business_description
+            )
 
         # Update prospect with AI-generated content (including call script)
         db.table("lead_agent_prospects").update({
@@ -131,6 +134,16 @@ async def generate_ai_insights_task(
             "call_script": call_script,
             "ai_generated_at": datetime.now(timezone.utc).isoformat()
         }).eq("id", prospect_id).execute()
+
+        # Log bot task for reporting
+        BotTaskLogger.log_lead_agent_insights(
+            org_id=org_id,
+            prospect_id=prospect_id,
+            business_name=prospect_data["business_name"],
+            pain_points_count=len(pain_points),
+            tokens_used=0,  # Token tracking would require modifying ai_lead_agent.py
+            execution_time_ms=timer.execution_time_ms
+        )
 
         print(f"[LeadAgent] AI insights generated for prospect {prospect_id}")
 
@@ -331,10 +344,11 @@ async def scrape_prospect(
     # Initialize URL scraper service (GPT-4o-mini)
     scraper = URLScraperService(settings.openai_api_key)
 
-    # Scrape business info from URL
+    # Scrape business info from URL with timing
     print(f"[LeadAgent] Scraping URL: {data.url}")
     try:
-        business = await scraper.scrape_business(data.url)
+        with TaskTimer() as scrape_timer:
+            business = await scraper.scrape_business(data.url)
     except ScraperError as e:
         print(f"[LeadAgent] Scraper error: {e.technical_detail}")
         raise HTTPException(
@@ -372,6 +386,15 @@ async def scrape_prospect(
 
     result = db.table("lead_agent_prospects").insert(prospect_data).execute()
     prospect = result.data[0]
+
+    # Log bot task for reporting
+    BotTaskLogger.log_lead_agent_scrape(
+        org_id=org_id,
+        user_id=user_id,
+        business_name=business.business_name,
+        source="url_scrape",
+        execution_time_ms=scrape_timer.execution_time_ms
+    )
 
     # Queue AI insights generation (Tier 2: GPT-4o)
     # Pass the business description from GPT-4o-mini to GPT-4o for better context
@@ -551,11 +574,13 @@ async def get_call_script(
 
     # Generate call script using AI
     ai = LeadAgentAI(api_key=settings.openai_api_key)
-    script_items = await ai.generate_call_script(
-        business_name=prospect["business_name"],
-        pain_points=pain_points,
-        products=products
-    )
+
+    with TaskTimer() as script_timer:
+        script_items = await ai.generate_call_script(
+            business_name=prospect["business_name"],
+            pain_points=pain_points,
+            products=products
+        )
 
     if not script_items:
         raise HTTPException(
@@ -567,6 +592,20 @@ async def get_call_script(
     db.table("lead_agent_prospects").update({
         "call_script": script_items
     }).eq("id", prospect_id).execute()
+
+    # Get user_id for task logging
+    user_result = db.table("users").select("id").eq("telegram_id", tg_user.id).single().execute()
+    user_id = user_result.data["id"] if user_result.data else None
+
+    # Log bot task for reporting
+    BotTaskLogger.log_lead_agent_call_script(
+        org_id=org_id,
+        prospect_id=prospect_id,
+        business_name=prospect["business_name"],
+        user_id=user_id,
+        tokens_used=0,  # Token tracking would require modifying ai_lead_agent.py
+        execution_time_ms=script_timer.execution_time_ms
+    )
 
     return {
         "business_name": prospect["business_name"],

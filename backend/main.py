@@ -11,26 +11,36 @@ from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pathlib import Path
 
-from api.bots import hub, lead_agent
+from api.bots import hub, lead_agent, reports
 from config import settings
 from services.notification_scheduler import notification_scheduler_loop
+from services.report_scheduler import report_scheduler_loop
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Startup and shutdown events."""
     # Start notification scheduler in background
-    scheduler_task = asyncio.create_task(notification_scheduler_loop(poll_interval_seconds=60))
+    notification_task = asyncio.create_task(notification_scheduler_loop(poll_interval_seconds=60))
     print("[Startup] Notification scheduler started")
+
+    # Start report scheduler in background (runs hourly)
+    report_task = asyncio.create_task(report_scheduler_loop(poll_interval_seconds=3600))
+    print("[Startup] Report scheduler started")
 
     yield
 
-    # Cancel scheduler on shutdown
-    scheduler_task.cancel()
+    # Cancel schedulers on shutdown
+    notification_task.cancel()
+    report_task.cancel()
     try:
-        await scheduler_task
+        await notification_task
     except asyncio.CancelledError:
         print("[Shutdown] Notification scheduler stopped")
+    try:
+        await report_task
+    except asyncio.CancelledError:
+        print("[Shutdown] Report scheduler stopped")
 
 
 # Create app
@@ -56,6 +66,7 @@ app.add_middleware(
 
 app.include_router(hub.router, prefix="/api/hub", tags=["Hub Bot"])
 app.include_router(lead_agent.router, prefix="/api/lead-agent", tags=["Lead Agent"])
+app.include_router(reports.router, prefix="/api/hub", tags=["Reports"])
 
 
 # ─────────────────────────────────────────────────────────────────────────────
