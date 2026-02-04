@@ -2027,6 +2027,28 @@
         };
 
         /* ─────────────────────────────────────────────────────────────────────
+           SECURITY: Authorization Error Handler
+           ───────────────────────────────────────────────────────────────────── */
+
+        /**
+         * Check if an error is an authorization failure (403)
+         * and redirect to member dashboard if so.
+         * @param {Error} error - The error to check
+         * @returns {boolean} - True if it was an auth error and redirect was triggered
+         */
+        const handleAuthError = (error) => {
+            if (error.message && (error.message.includes('Admin access required') || error.message.includes('403'))) {
+                console.warn('[Security] Admin access denied by server, redirecting to member dashboard');
+                if (state.currentMembership) {
+                    state.currentMembership.role = 'member';
+                }
+                loadMemberDashboard();
+                return true;
+            }
+            return false;
+        };
+
+        /* ─────────────────────────────────────────────────────────────────────
            API
            ───────────────────────────────────────────────────────────────────── */
 
@@ -2276,24 +2298,37 @@
            ───────────────────────────────────────────────────────────────────── */
 
         const loadAdminDashboard = async () => {
+            // SECURITY: Verify admin access server-side BEFORE showing admin UI
+            // This prevents client-side role manipulation attacks
+            try {
+                // getOrgDetails requires admin role - use it as access control gate
+                const orgDetails = await api.getOrgDetails(state.currentOrg.id);
+                state.orgDetails = orgDetails;
+            } catch (error) {
+                // If we get 403 (Admin access required), redirect to member dashboard
+                console.warn('[Security] Admin access denied by server, redirecting to member dashboard');
+                state.currentMembership.role = 'member'; // Correct the local state
+                await loadMemberDashboard();
+                return;
+            }
+
+            // Only show admin page AFTER server verification succeeds
             showPage('admin');
 
-            // Load data in parallel
-            const [orgDetails, inviteLink, requests, members, bots] = await Promise.all([
-                api.getOrgDetails(state.currentOrg.id),
+            // Load remaining data in parallel (orgDetails already loaded above)
+            const [inviteLink, requests, members, bots] = await Promise.all([
                 api.getInviteLink(state.currentOrg.id),
                 api.getMembershipRequests(state.currentOrg.id),
                 api.getMembers(state.currentOrg.id),
                 api.getBots().catch(() => [])
             ]);
 
-            state.orgDetails = orgDetails;
             state.inviteLink = inviteLink;
             state.membershipRequests = requests;
             state.members = members;
             state.availableBots = bots;
 
-            updateOrgHeader(orgDetails);
+            updateOrgHeader(state.orgDetails);
             updateInviteLinkDisplay(inviteLink);
             renderRequests();
             renderMembers();
@@ -2848,6 +2883,9 @@
                 state.teamAnalytics = analytics;
                 renderTeamAnalytics(analytics);
             } catch (error) {
+                // SECURITY: Check for authorization failure
+                if (handleAuthError(error)) return;
+
                 console.error('Failed to load team analytics:', error);
                 // Show default values
                 document.getElementById('team-active-count').textContent = state.members?.length || 0;
@@ -2902,6 +2940,9 @@
                 state.agentAnalytics = analytics;
                 renderAgentAnalytics(analytics);
             } catch (error) {
+                // SECURITY: Check for authorization failure
+                if (handleAuthError(error)) return;
+
                 console.error('Failed to load agent analytics:', error);
                 document.getElementById('analytics-total-tasks').textContent = '0';
                 document.getElementById('analytics-active-agents').textContent = '0';
@@ -2966,6 +3007,9 @@
                 state.activityReports = response;
                 renderReports(response);
             } catch (error) {
+                // SECURITY: Check for authorization failure
+                if (handleAuthError(error)) return;
+
                 console.error('Failed to load reports:', error);
                 renderReportsError();
             }
@@ -3120,6 +3164,9 @@
                 state.billingOverview = billing;
                 renderBillingOverview(billing);
             } catch (error) {
+                // SECURITY: Check for authorization failure
+                if (handleAuthError(error)) return;
+
                 console.error('Failed to load billing:', error);
             }
         };
