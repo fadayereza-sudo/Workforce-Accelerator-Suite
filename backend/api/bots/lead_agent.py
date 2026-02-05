@@ -22,6 +22,7 @@ from models import (
     JournalEntryCreate, JournalEntryUpdate, JournalEntry
 )
 from services import get_supabase_admin, get_telegram_user
+from services.cache import cache_get, cache_set, cache_delete, cache_invalidate
 from services.url_scraper import URLScraperService, ScraperError
 from services.ai_lead_agent import LeadAgentAI
 from services.bot_task_logger import BotTaskLogger, TaskTimer
@@ -42,21 +43,32 @@ async def get_current_user(x_telegram_init_data: str = Header(...)) -> TelegramU
 async def verify_org_member(user_telegram_id: int, org_id: str) -> tuple[str, str]:
     """
     Verify user is a member of the organization.
-    Returns (user_id, role).
+    Returns (user_id, role). Uses auth cache.
     """
+    # Cached user lookup
+    user_cache_key = f"user:{user_telegram_id}"
+    user_id = cache_get("auth", user_cache_key)
+
+    if user_id is None:
+        db = get_supabase_admin()
+        user_result = db.table("users").select("id").eq(
+            "telegram_id", user_telegram_id
+        ).execute()
+
+        if not user_result.data:
+            raise HTTPException(404, "User not found")
+
+        user_id = user_result.data[0]["id"]
+        cache_set("auth", user_cache_key, user_id)
+
+    # Cached membership lookup
+    membership_cache_key = f"membership:{user_id}:{org_id}"
+    cached_membership = cache_get("auth", membership_cache_key)
+
+    if cached_membership is not None:
+        return user_id, cached_membership.get("role", "member")
+
     db = get_supabase_admin()
-
-    # Get user
-    user_result = db.table("users").select("id").eq(
-        "telegram_id", user_telegram_id
-    ).execute()
-
-    if not user_result.data:
-        raise HTTPException(404, "User not found")
-
-    user_id = user_result.data[0]["id"]
-
-    # Check membership
     membership = db.table("memberships").select("role").eq(
         "user_id", user_id
     ).eq("org_id", org_id).execute()
@@ -64,6 +76,7 @@ async def verify_org_member(user_telegram_id: int, org_id: str) -> tuple[str, st
     if not membership.data:
         raise HTTPException(403, "Not a member of this organization")
 
+    cache_set("auth", membership_cache_key, membership.data[0])
     return user_id, membership.data[0]["role"]
 
 
@@ -164,12 +177,20 @@ async def list_products(
     tg_user = get_telegram_user(x_telegram_init_data)
     await verify_org_member(tg_user.id, org_id)
 
+    # Check cache
+    cache_key = f"products:{org_id}"
+    cached = cache_get("catalog", cache_key)
+    if cached is not None:
+        return cached
+
     db = get_supabase_admin()
     result = db.table("lead_agent_products").select("*").eq(
         "org_id", org_id
     ).order("created_at", desc=True).execute()
 
-    return [Product(**p) for p in result.data]
+    products = [Product(**p) for p in result.data]
+    cache_set("catalog", cache_key, products)
+    return products
 
 
 @router.post("/products")
@@ -192,6 +213,7 @@ async def create_product(
     }
 
     result = db.table("lead_agent_products").insert(product_data).execute()
+    cache_delete("catalog", f"products:{org_id}")
     return Product(**result.data[0])
 
 
@@ -230,6 +252,7 @@ async def update_product(
         "id", product_id
     ).execute()
 
+    cache_delete("catalog", f"products:{product_result.data['org_id']}")
     return Product(**result.data[0])
 
 
@@ -254,6 +277,7 @@ async def delete_product(
 
     db.table("lead_agent_products").delete().eq("id", product_id).execute()
 
+    cache_delete("catalog", f"products:{product_result.data['org_id']}")
     return {"status": "deleted"}
 
 
@@ -407,6 +431,8 @@ async def scrape_prospect(
 
     print(f"[LeadAgent] Created prospect: {business.business_name}")
 
+    cache_delete("analytics", f"la_dashboard:{org_id}")
+
     return ProspectCard(
         id=prospect["id"],
         business_name=prospect["business_name"],
@@ -498,6 +524,8 @@ async def create_prospect_manually(
     )
 
     print(f"[LeadAgent] Manually created prospect: {data.business_name}")
+
+    cache_delete("analytics", f"la_dashboard:{org_id}")
 
     return ProspectCard(
         id=prospect["id"],
@@ -683,6 +711,8 @@ async def update_prospect_status(
         "status": data.status
     }).eq("id", prospect_id).execute()
 
+    cache_delete("analytics", f"la_dashboard:{prospect_result.data['org_id']}")
+
     prospect = result.data[0]
     return ProspectCard(
         id=prospect["id"],
@@ -774,6 +804,8 @@ async def delete_prospect(
 
     # Delete prospect
     db.table("lead_agent_prospects").delete().eq("id", prospect_id).execute()
+
+    cache_delete("analytics", f"la_dashboard:{prospect_result.data['org_id']}")
 
     return {"status": "deleted"}
 
@@ -1012,6 +1044,12 @@ async def get_dashboard(
     tg_user = get_telegram_user(x_telegram_init_data)
     await verify_org_member(tg_user.id, org_id)
 
+    # Check cache
+    cache_key = f"la_dashboard:{org_id}"
+    cached = cache_get("analytics", cache_key)
+    if cached is not None:
+        return cached
+
     db = get_supabase_admin()
 
     # Get org settings for currency
@@ -1047,13 +1085,15 @@ async def get_dashboard(
 
     recent_searches = [SearchHistory(**s) for s in searches_result.data]
 
-    return LeadAgentDashboard(
+    result = LeadAgentDashboard(
         total_prospects=len(prospects.data),
         by_status=by_status,
         products_count=products.count or 0,
         recent_searches=recent_searches,
         currency=currency
     )
+    cache_set("analytics", cache_key, result)
+    return result
 
 
 @router.get("/searches")

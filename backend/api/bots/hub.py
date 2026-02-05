@@ -27,6 +27,7 @@ from models import (
     ProductCreate, ProductUpdate, Product
 )
 from services import get_supabase_admin, get_telegram_user
+from services.cache import cache_get, cache_set, cache_delete, cache_invalidate, cache_invalidate_multi
 from services.notifications import (
     notify_admin_new_request,
     notify_user_approved,
@@ -45,6 +46,71 @@ router = APIRouter()
 async def get_current_user(x_telegram_init_data: str = Header(...)) -> TelegramUser:
     """Extract and verify Telegram user from initData header."""
     return get_telegram_user(x_telegram_init_data)
+
+
+def _cached_get_user_id(telegram_id: int) -> str:
+    """Get user ID from telegram_id, with caching."""
+    cache_key = f"user:{telegram_id}"
+    cached = cache_get("auth", cache_key)
+    if cached is not None:
+        return cached
+
+    db = get_supabase_admin()
+    result = db.table("users").select("id").eq("telegram_id", telegram_id).single().execute()
+    if not result.data:
+        raise HTTPException(404, "User not found")
+
+    user_id = result.data["id"]
+    cache_set("auth", cache_key, user_id)
+    return user_id
+
+
+def _cached_verify_admin(telegram_id: int, org_id: str) -> str:
+    """Verify user is admin of org, return user_id. Cached."""
+    user_id = _cached_get_user_id(telegram_id)
+
+    cache_key = f"membership:{user_id}:{org_id}"
+    cached = cache_get("auth", cache_key)
+    if cached is not None:
+        if cached.get("role") != "admin":
+            raise HTTPException(403, "Admin access required")
+        return user_id
+
+    db = get_supabase_admin()
+    membership = db.table("memberships").select("role").eq(
+        "user_id", user_id
+    ).eq("org_id", org_id).single().execute()
+
+    if not membership.data:
+        raise HTTPException(403, "Not a member of this organization")
+
+    cache_set("auth", cache_key, membership.data)
+
+    if membership.data["role"] != "admin":
+        raise HTTPException(403, "Admin access required")
+
+    return user_id
+
+
+def _cached_verify_member(telegram_id: int, org_id: str) -> tuple:
+    """Verify user is member of org, return (user_id, role). Cached."""
+    user_id = _cached_get_user_id(telegram_id)
+
+    cache_key = f"membership:{user_id}:{org_id}"
+    cached = cache_get("auth", cache_key)
+    if cached is not None:
+        return user_id, cached.get("role", "member")
+
+    db = get_supabase_admin()
+    membership = db.table("memberships").select("role").eq(
+        "user_id", user_id
+    ).eq("org_id", org_id).execute()
+
+    if not membership.data:
+        raise HTTPException(403, "Not a member of this organization")
+
+    cache_set("auth", cache_key, membership.data[0])
+    return user_id, membership.data[0]["role"]
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -166,6 +232,9 @@ async def create_organization(
     }
     db.table("memberships").insert(membership_data).execute()
 
+    # Invalidate auth cache for this user (new membership)
+    cache_delete("auth", f"user:{tg_user.id}")
+
     return org
 
 
@@ -176,22 +245,15 @@ async def get_organization(
 ) -> dict:
     """Get organization details (must be a member)."""
     tg_user = get_telegram_user(x_telegram_init_data)
+    user_id, role = _cached_verify_member(tg_user.id, org_id)
     db = get_supabase_admin()
-
-    # Verify membership
-    user = db.table("users").select("id").eq("telegram_id", tg_user.id).single().execute()
-    if not user.data:
-        raise HTTPException(404, "User not found")
-
-    membership = db.table("memberships").select("*").eq(
-        "user_id", user.data["id"]
-    ).eq("org_id", org_id).execute()
-
-    if not membership.data:
-        raise HTTPException(403, "Not a member of this organization")
 
     # Get org
     org = db.table("organizations").select("*").eq("id", org_id).single().execute()
+
+    membership = db.table("memberships").select("*").eq(
+        "user_id", user_id
+    ).eq("org_id", org_id).execute()
 
     return {
         "organization": org.data,
@@ -206,19 +268,15 @@ async def get_organization_details(
 ) -> OrgDetails:
     """Get organization details with stats (admin only)."""
     tg_user = get_telegram_user(x_telegram_init_data)
+    _cached_verify_admin(tg_user.id, org_id)
+
+    # Check cache
+    cache_key = f"org_details:{org_id}"
+    cached = cache_get("org", cache_key)
+    if cached is not None:
+        return cached
+
     db = get_supabase_admin()
-
-    # Verify admin
-    user = db.table("users").select("id").eq("telegram_id", tg_user.id).single().execute()
-    if not user.data:
-        raise HTTPException(404, "User not found")
-
-    membership = db.table("memberships").select("role").eq(
-        "user_id", user.data["id"]
-    ).eq("org_id", org_id).single().execute()
-
-    if not membership.data or membership.data["role"] != "admin":
-        raise HTTPException(403, "Admin access required")
 
     # Get org
     org = db.table("organizations").select("*").eq("id", org_id).single().execute()
@@ -246,7 +304,7 @@ async def get_organization_details(
         active_bots_count=unique_bots
     )
 
-    return OrgDetails(
+    result = OrgDetails(
         id=org.data["id"],
         name=org.data["name"],
         description=org.data.get("description"),
@@ -254,6 +312,8 @@ async def get_organization_details(
         created_at=org.data["created_at"],
         stats=stats
     )
+    cache_set("org", cache_key, result)
+    return result
 
 
 @router.patch("/orgs/{org_id}")
@@ -264,19 +324,8 @@ async def update_organization(
 ) -> dict:
     """Update organization details (admin only)."""
     tg_user = get_telegram_user(x_telegram_init_data)
+    _cached_verify_admin(tg_user.id, org_id)
     db = get_supabase_admin()
-
-    # Verify admin
-    user = db.table("users").select("id").eq("telegram_id", tg_user.id).single().execute()
-    if not user.data:
-        raise HTTPException(404, "User not found")
-
-    membership = db.table("memberships").select("role").eq(
-        "user_id", user.data["id"]
-    ).eq("org_id", org_id).single().execute()
-
-    if not membership.data or membership.data["role"] != "admin":
-        raise HTTPException(403, "Admin access required")
 
     # Build update data
     update_data = {}
@@ -291,6 +340,7 @@ async def update_organization(
     # Update org
     result = db.table("organizations").update(update_data).eq("id", org_id).execute()
 
+    cache_invalidate("org", f"org_details:{org_id}")
     return {"status": "updated", "organization": result.data[0]}
 
 
@@ -305,16 +355,15 @@ async def get_invite_code(
 ) -> InviteCode:
     """Get the invite code for an organization (admin only)."""
     tg_user = get_telegram_user(x_telegram_init_data)
+    _cached_verify_admin(tg_user.id, org_id)
+
+    # Check cache
+    invite_cache_key = f"invite:{org_id}"
+    cached = cache_get("org", invite_cache_key)
+    if cached is not None:
+        return cached
+
     db = get_supabase_admin()
-
-    # Verify admin
-    user = db.table("users").select("id").eq("telegram_id", tg_user.id).single().execute()
-    membership = db.table("memberships").select("role").eq(
-        "user_id", user.data["id"]
-    ).eq("org_id", org_id).single().execute()
-
-    if not membership.data or membership.data["role"] != "admin":
-        raise HTTPException(403, "Admin access required")
 
     # Get org
     org = db.table("organizations").select("name, invite_code, invite_code_expires_at").eq(
@@ -340,7 +389,7 @@ async def get_invite_code(
 
 This code expires in 24 hours."""
 
-    return InviteCode(
+    result = InviteCode(
         code=org.data["invite_code"],
         org_name=org.data["name"],
         bot_url=app_url,
@@ -348,6 +397,8 @@ This code expires in 24 hours."""
         expires_at=expires_at,
         is_expired=is_expired
     )
+    cache_set("org", invite_cache_key, result)
+    return result
 
 
 @router.post("/orgs/{org_id}/regenerate-invite")
@@ -357,16 +408,8 @@ async def regenerate_invite_code(
 ) -> InviteCode:
     """Regenerate the invite code for an organization (admin only)."""
     tg_user = get_telegram_user(x_telegram_init_data)
+    _cached_verify_admin(tg_user.id, org_id)
     db = get_supabase_admin()
-
-    # Verify admin
-    user = db.table("users").select("id").eq("telegram_id", tg_user.id).single().execute()
-    membership = db.table("memberships").select("role").eq(
-        "user_id", user.data["id"]
-    ).eq("org_id", org_id).single().execute()
-
-    if not membership.data or membership.data["role"] != "admin":
-        raise HTTPException(403, "Admin access required")
 
     # Generate new invite code with 24-hour expiration
     new_code = secrets.token_urlsafe(8)
@@ -396,6 +439,7 @@ async def regenerate_invite_code(
 
 This code expires in 24 hours."""
 
+    cache_delete("org", f"invite:{org_id}")
     return InviteCode(
         code=new_code,
         org_name=org.data["name"],
@@ -418,16 +462,8 @@ async def send_invite_link(
     If the current code is expired, a new one is generated automatically.
     """
     tg_user = get_telegram_user(x_telegram_init_data)
+    _cached_verify_admin(tg_user.id, org_id)
     db = get_supabase_admin()
-
-    # Verify admin
-    user = db.table("users").select("id").eq("telegram_id", tg_user.id).single().execute()
-    membership = db.table("memberships").select("role").eq(
-        "user_id", user.data["id"]
-    ).eq("org_id", org_id).single().execute()
-
-    if not membership.data or membership.data["role"] != "admin":
-        raise HTTPException(403, "Admin access required")
 
     # Get org details
     org = db.table("organizations").select("name, invite_code, invite_code_expires_at").eq(
@@ -447,6 +483,7 @@ async def send_invite_link(
             "invite_code_expires_at": expires_at.isoformat()
         }).eq("id", org_id).execute()
         invite_code = new_code
+        cache_delete("org", f"invite:{org_id}")
     else:
         invite_code = org.data["invite_code"]
 
@@ -596,6 +633,9 @@ async def create_membership_request(
             org_data["name"]
         )
 
+    # Invalidate requests cache for this org
+    cache_invalidate("org", f"requests:{org_data['id']}")
+
     return MembershipRequestResponse(
         request_id=request["id"],
         org_name=org_data["name"],
@@ -612,16 +652,15 @@ async def list_membership_requests(
 ) -> List[MembershipRequest]:
     """List membership requests for an organization (admin only)."""
     tg_user = get_telegram_user(x_telegram_init_data)
+    _cached_verify_admin(tg_user.id, org_id)
+
+    # Check cache (only for default pending status)
+    cache_key = f"requests:{org_id}:{status or 'all'}"
+    cached = cache_get("org", cache_key)
+    if cached is not None:
+        return cached
+
     db = get_supabase_admin()
-
-    # Verify admin
-    user = db.table("users").select("id").eq("telegram_id", tg_user.id).single().execute()
-    membership = db.table("memberships").select("role").eq(
-        "user_id", user.data["id"]
-    ).eq("org_id", org_id).single().execute()
-
-    if not membership.data or membership.data["role"] != "admin":
-        raise HTTPException(403, "Admin access required")
 
     # Get requests
     query = db.table("membership_requests").select("*").eq("org_id", org_id)
@@ -630,6 +669,7 @@ async def list_membership_requests(
 
     requests = query.order("created_at", desc=True).execute()
 
+    cache_set("org", cache_key, requests.data)
     return requests.data
 
 
@@ -655,13 +695,7 @@ async def approve_membership_request(
     request_data = request.data
 
     # Verify admin of this org
-    user = db.table("users").select("id").eq("telegram_id", tg_user.id).single().execute()
-    membership = db.table("memberships").select("role").eq(
-        "user_id", user.data["id"]
-    ).eq("org_id", request_data["org_id"]).single().execute()
-
-    if not membership.data or membership.data["role"] != "admin":
-        raise HTTPException(403, "Admin access required")
+    admin_user_id = _cached_verify_admin(tg_user.id, request_data["org_id"])
 
     if data.approved:
         # Create membership
@@ -678,7 +712,7 @@ async def approve_membership_request(
             access_data = {
                 "membership_id": new_membership.data[0]["id"],
                 "bot_id": bot_id,
-                "granted_by": user.data["id"]
+                "granted_by": admin_user_id
             }
             db.table("bot_member_access").insert(access_data).execute()
 
@@ -705,6 +739,12 @@ async def approve_membership_request(
                 bot_names
             )
 
+        # Invalidate caches: requests, members, org details (member count changed)
+        org_id = request_data["org_id"]
+        cache_invalidate("org", f"requests:{org_id}")
+        cache_invalidate("org", f"members:{org_id}")
+        cache_invalidate("org", f"org_details:{org_id}")
+
         return {"status": "approved", "bot_access": bot_names}
 
     else:
@@ -712,6 +752,8 @@ async def approve_membership_request(
         db.table("membership_requests").update({
             "status": "rejected"
         }).eq("id", request_id).execute()
+
+        cache_invalidate("org", f"requests:{request_data['org_id']}")
 
         # Notify user
         requester = db.table("users").select("telegram_id").eq(
@@ -739,16 +781,15 @@ async def list_members(
 ) -> List[Member]:
     """List all members of an organization."""
     tg_user = get_telegram_user(x_telegram_init_data)
+    _cached_verify_member(tg_user.id, org_id)
+
+    # Check cache
+    cache_key = f"members:{org_id}"
+    cached = cache_get("org", cache_key)
+    if cached is not None:
+        return cached
+
     db = get_supabase_admin()
-
-    # Verify membership
-    user = db.table("users").select("id").eq("telegram_id", tg_user.id).single().execute()
-    membership = db.table("memberships").select("*").eq(
-        "user_id", user.data["id"]
-    ).eq("org_id", org_id).execute()
-
-    if not membership.data:
-        raise HTTPException(403, "Not a member of this organization")
 
     # Get all members with their user info
     members = db.table("memberships").select(
@@ -782,6 +823,7 @@ async def list_members(
             last_active_at=m.get("last_active_at")
         ))
 
+    cache_set("org", cache_key, result)
     return result
 
 
@@ -793,19 +835,8 @@ async def remove_member(
 ) -> dict:
     """Remove a member from an organization (admin only). Cannot remove admins."""
     tg_user = get_telegram_user(x_telegram_init_data)
+    _cached_verify_admin(tg_user.id, org_id)
     db = get_supabase_admin()
-
-    # Verify admin
-    user = db.table("users").select("id").eq("telegram_id", tg_user.id).single().execute()
-    if not user.data:
-        raise HTTPException(404, "User not found")
-
-    admin_membership = db.table("memberships").select("role").eq(
-        "user_id", user.data["id"]
-    ).eq("org_id", org_id).single().execute()
-
-    if not admin_membership.data or admin_membership.data["role"] != "admin":
-        raise HTTPException(403, "Admin access required")
 
     # Get the target membership
     target = db.table("memberships").select("*, users(full_name)").eq(
@@ -825,6 +856,12 @@ async def remove_member(
     # Delete membership
     db.table("memberships").delete().eq("id", member_id).execute()
 
+    # Invalidate members and org details caches
+    cache_invalidate("org", f"members:{org_id}")
+    cache_invalidate("org", f"org_details:{org_id}")
+    # Invalidate removed user's auth cache
+    cache_invalidate("auth", f"membership:{target.data['user_id']}")
+
     return {
         "status": "removed",
         "member_name": target.data["users"]["full_name"]
@@ -840,19 +877,8 @@ async def update_member_bots(
 ) -> dict:
     """Update bot access for a member (admin only)."""
     tg_user = get_telegram_user(x_telegram_init_data)
+    admin_user_id = _cached_verify_admin(tg_user.id, org_id)
     db = get_supabase_admin()
-
-    # Verify admin
-    user = db.table("users").select("id").eq("telegram_id", tg_user.id).single().execute()
-    if not user.data:
-        raise HTTPException(404, "User not found")
-
-    admin_membership = db.table("memberships").select("role").eq(
-        "user_id", user.data["id"]
-    ).eq("org_id", org_id).single().execute()
-
-    if not admin_membership.data or admin_membership.data["role"] != "admin":
-        raise HTTPException(403, "Admin access required")
 
     # Verify target membership exists and belongs to this org
     target = db.table("memberships").select("id").eq(
@@ -883,7 +909,7 @@ async def update_member_bots(
         db.table("bot_member_access").insert({
             "membership_id": member_id,
             "bot_id": bot_id,
-            "granted_by": user.data["id"]
+            "granted_by": admin_user_id
         }).execute()
 
     # Get updated bot names
@@ -891,6 +917,8 @@ async def update_member_bots(
     if data.bot_ids:
         bots = db.table("bot_registry").select("id, name").in_("id", data.bot_ids).execute()
         bot_names = [b["name"] for b in bots.data]
+
+    cache_delete("org", f"members:{org_id}")
 
     return {
         "status": "updated",
@@ -904,10 +932,16 @@ async def list_available_bots(
 ) -> List[dict]:
     """List all available bots in the registry."""
     get_telegram_user(x_telegram_init_data)  # Verify auth
-    db = get_supabase_admin()
 
+    # Check cache
+    cached = cache_get("catalog", "bots:active")
+    if cached is not None:
+        return cached
+
+    db = get_supabase_admin()
     bots = db.table("bot_registry").select("*").eq("is_active", True).execute()
 
+    cache_set("catalog", "bots:active", bots.data)
     return bots.data
 
 
@@ -922,24 +956,18 @@ async def log_activity(
 ) -> dict:
     """Log member activity (called from mini-apps)."""
     tg_user = get_telegram_user(x_telegram_init_data)
+    user_id, _ = _cached_verify_member(tg_user.id, data.org_id)
     db = get_supabase_admin()
 
-    # Get user and membership
-    user = db.table("users").select("id").eq("telegram_id", tg_user.id).single().execute()
-    if not user.data:
-        raise HTTPException(404, "User not found")
-
+    # Get membership id for logging
     membership = db.table("memberships").select("id").eq(
-        "user_id", user.data["id"]
+        "user_id", user_id
     ).eq("org_id", data.org_id).single().execute()
-
-    if not membership.data:
-        raise HTTPException(403, "Not a member of this organization")
 
     # Log the activity
     activity_data = {
         "membership_id": membership.data["id"],
-        "user_id": user.data["id"],
+        "user_id": user_id,
         "org_id": data.org_id,
         "bot_id": data.bot_id,
         "action_type": data.action_type,
@@ -963,19 +991,15 @@ async def get_team_analytics(
 ) -> TeamAnalytics:
     """Get team activity analytics (admin only)."""
     tg_user = get_telegram_user(x_telegram_init_data)
+    _cached_verify_admin(tg_user.id, org_id)
+
+    # Check cache (keyed by org + period)
+    cache_key = f"team_analytics:{org_id}:{period}"
+    cached = cache_get("analytics", cache_key)
+    if cached is not None:
+        return cached
+
     db = get_supabase_admin()
-
-    # Verify admin
-    user = db.table("users").select("id").eq("telegram_id", tg_user.id).single().execute()
-    if not user.data:
-        raise HTTPException(404, "User not found")
-
-    membership = db.table("memberships").select("role").eq(
-        "user_id", user.data["id"]
-    ).eq("org_id", org_id).single().execute()
-
-    if not membership.data or membership.data["role"] != "admin":
-        raise HTTPException(403, "Admin access required")
 
     # Calculate period bounds
     now = datetime.now(timezone.utc)
@@ -1044,7 +1068,7 @@ async def get_team_analytics(
     # Sort by activity count (most active first)
     member_activities.sort(key=lambda x: x.activity_count, reverse=True)
 
-    return TeamAnalytics(
+    result = TeamAnalytics(
         period=period,
         period_start=period_start,
         period_end=period_end,
@@ -1053,6 +1077,8 @@ async def get_team_analytics(
         total_activities=total_activities,
         members=member_activities
     )
+    cache_set("analytics", cache_key, result)
+    return result
 
 
 @router.get("/orgs/{org_id}/analytics/agents")
@@ -1063,19 +1089,15 @@ async def get_agent_analytics(
 ) -> AgentAnalytics:
     """Get agent usage analytics (admin only)."""
     tg_user = get_telegram_user(x_telegram_init_data)
+    _cached_verify_admin(tg_user.id, org_id)
+
+    # Check cache
+    cache_key = f"agent_analytics:{org_id}:{period}"
+    cached = cache_get("analytics", cache_key)
+    if cached is not None:
+        return cached
+
     db = get_supabase_admin()
-
-    # Verify admin
-    user = db.table("users").select("id").eq("telegram_id", tg_user.id).single().execute()
-    if not user.data:
-        raise HTTPException(404, "User not found")
-
-    membership = db.table("memberships").select("role").eq(
-        "user_id", user.data["id"]
-    ).eq("org_id", org_id).single().execute()
-
-    if not membership.data or membership.data["role"] != "admin":
-        raise HTTPException(403, "Admin access required")
 
     # Calculate period bounds
     now = datetime.now(timezone.utc)
@@ -1128,13 +1150,15 @@ async def get_agent_analytics(
     # Sort by task count (most used first)
     agent_usage.sort(key=lambda x: x.task_count, reverse=True)
 
-    return AgentAnalytics(
+    result = AgentAnalytics(
         period=period,
         period_start=period_start,
         period_end=period_end,
         total_tasks=total_tasks,
         agents=agent_usage
     )
+    cache_set("analytics", cache_key, result)
+    return result
 
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -1152,19 +1176,8 @@ async def list_customers(
 ) -> CustomerList:
     """List customers for an organization (admin only)."""
     tg_user = get_telegram_user(x_telegram_init_data)
+    _cached_verify_admin(tg_user.id, org_id)
     db = get_supabase_admin()
-
-    # Verify admin
-    user = db.table("users").select("id").eq("telegram_id", tg_user.id).single().execute()
-    if not user.data:
-        raise HTTPException(404, "User not found")
-
-    membership = db.table("memberships").select("role").eq(
-        "user_id", user.data["id"]
-    ).eq("org_id", org_id).single().execute()
-
-    if not membership.data or membership.data["role"] != "admin":
-        raise HTTPException(403, "Admin access required")
 
     # Build query
     query = db.table("customers").select("*", count="exact").eq("org_id", org_id)
@@ -1214,19 +1227,8 @@ async def create_customer(
 ) -> Customer:
     """Create a new customer (admin only)."""
     tg_user = get_telegram_user(x_telegram_init_data)
+    admin_user_id = _cached_verify_admin(tg_user.id, org_id)
     db = get_supabase_admin()
-
-    # Verify admin
-    user = db.table("users").select("id").eq("telegram_id", tg_user.id).single().execute()
-    if not user.data:
-        raise HTTPException(404, "User not found")
-
-    membership = db.table("memberships").select("role").eq(
-        "user_id", user.data["id"]
-    ).eq("org_id", org_id).single().execute()
-
-    if not membership.data or membership.data["role"] != "admin":
-        raise HTTPException(403, "Admin access required")
 
     # Create customer
     customer_data = {
@@ -1246,7 +1248,7 @@ async def create_customer(
         "tags": data.tags,
         "notes": data.notes,
         "source": "manual",
-        "created_by": user.data["id"]
+        "created_by": admin_user_id
     }
 
     result = db.table("customers").insert(customer_data).execute()
@@ -1280,19 +1282,8 @@ async def get_customer(
 ) -> Customer:
     """Get a customer by ID (admin only)."""
     tg_user = get_telegram_user(x_telegram_init_data)
+    _cached_verify_admin(tg_user.id, org_id)
     db = get_supabase_admin()
-
-    # Verify admin
-    user = db.table("users").select("id").eq("telegram_id", tg_user.id).single().execute()
-    if not user.data:
-        raise HTTPException(404, "User not found")
-
-    membership = db.table("memberships").select("role").eq(
-        "user_id", user.data["id"]
-    ).eq("org_id", org_id).single().execute()
-
-    if not membership.data or membership.data["role"] != "admin":
-        raise HTTPException(403, "Admin access required")
 
     # Get customer
     result = db.table("customers").select("*").eq("id", customer_id).eq("org_id", org_id).single().execute()
@@ -1329,19 +1320,8 @@ async def update_customer(
 ) -> Customer:
     """Update a customer (admin only)."""
     tg_user = get_telegram_user(x_telegram_init_data)
+    _cached_verify_admin(tg_user.id, org_id)
     db = get_supabase_admin()
-
-    # Verify admin
-    user = db.table("users").select("id").eq("telegram_id", tg_user.id).single().execute()
-    if not user.data:
-        raise HTTPException(404, "User not found")
-
-    membership = db.table("memberships").select("role").eq(
-        "user_id", user.data["id"]
-    ).eq("org_id", org_id).single().execute()
-
-    if not membership.data or membership.data["role"] != "admin":
-        raise HTTPException(403, "Admin access required")
 
     # Build update data
     update_data = {}
@@ -1388,19 +1368,8 @@ async def delete_customer(
 ) -> dict:
     """Delete a customer (admin only)."""
     tg_user = get_telegram_user(x_telegram_init_data)
+    _cached_verify_admin(tg_user.id, org_id)
     db = get_supabase_admin()
-
-    # Verify admin
-    user = db.table("users").select("id").eq("telegram_id", tg_user.id).single().execute()
-    if not user.data:
-        raise HTTPException(404, "User not found")
-
-    membership = db.table("memberships").select("role").eq(
-        "user_id", user.data["id"]
-    ).eq("org_id", org_id).single().execute()
-
-    if not membership.data or membership.data["role"] != "admin":
-        raise HTTPException(403, "Admin access required")
 
     # Delete customer
     result = db.table("customers").delete().eq("id", customer_id).eq("org_id", org_id).execute()
@@ -1417,19 +1386,8 @@ async def export_customers(
 ) -> dict:
     """Export customers as CSV data (admin only)."""
     tg_user = get_telegram_user(x_telegram_init_data)
+    _cached_verify_admin(tg_user.id, org_id)
     db = get_supabase_admin()
-
-    # Verify admin
-    user = db.table("users").select("id").eq("telegram_id", tg_user.id).single().execute()
-    if not user.data:
-        raise HTTPException(404, "User not found")
-
-    membership = db.table("memberships").select("role").eq(
-        "user_id", user.data["id"]
-    ).eq("org_id", org_id).single().execute()
-
-    if not membership.data or membership.data["role"] != "admin":
-        raise HTTPException(403, "Admin access required")
 
     # Get all customers
     result = db.table("customers").select("*").eq("org_id", org_id).order("created_at", desc=True).execute()
@@ -1465,11 +1423,16 @@ async def export_customers(
 @router.get("/plans")
 async def list_subscription_plans() -> List[SubscriptionPlan]:
     """List available subscription plans (public)."""
+    # Check cache (plans rarely change)
+    cached = cache_get("plans", "active_plans")
+    if cached is not None:
+        return cached
+
     db = get_supabase_admin()
 
     result = db.table("subscription_plans").select("*").eq("is_active", True).order("sort_order").execute()
 
-    return [SubscriptionPlan(
+    plans = [SubscriptionPlan(
         id=p["id"],
         name=p["name"],
         description=p.get("description"),
@@ -1480,6 +1443,8 @@ async def list_subscription_plans() -> List[SubscriptionPlan]:
         features=p.get("features", []),
         is_active=p["is_active"]
     ) for p in result.data]
+    cache_set("plans", "active_plans", plans)
+    return plans
 
 
 @router.get("/orgs/{org_id}/billing")
@@ -1489,19 +1454,15 @@ async def get_billing_overview(
 ) -> BillingOverview:
     """Get billing overview for an organization (admin only)."""
     tg_user = get_telegram_user(x_telegram_init_data)
+    _cached_verify_admin(tg_user.id, org_id)
+
+    # Check cache
+    cache_key = f"billing:{org_id}"
+    cached = cache_get("org", cache_key)
+    if cached is not None:
+        return cached
+
     db = get_supabase_admin()
-
-    # Verify admin
-    user = db.table("users").select("id").eq("telegram_id", tg_user.id).single().execute()
-    if not user.data:
-        raise HTTPException(404, "User not found")
-
-    membership = db.table("memberships").select("role").eq(
-        "user_id", user.data["id"]
-    ).eq("org_id", org_id).single().execute()
-
-    if not membership.data or membership.data["role"] != "admin":
-        raise HTTPException(403, "Admin access required")
 
     # Get subscription
     sub_result = db.table("org_subscriptions").select(
@@ -1579,11 +1540,13 @@ async def get_billing_overview(
         pdf_url=i.get("pdf_url")
     ) for i in invoices_result.data]
 
-    return BillingOverview(
+    result = BillingOverview(
         subscription=subscription,
         usage=usage,
         invoices=invoices
     )
+    cache_set("org", cache_key, result)
+    return result
 
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -1600,26 +1563,24 @@ async def list_products(
     Viewable by all members, but only editable by admins.
     """
     tg_user = get_telegram_user(x_telegram_init_data)
+    _cached_verify_member(tg_user.id, org_id)
+
+    # Check cache
+    cache_key = f"products:{org_id}"
+    cached = cache_get("catalog", cache_key)
+    if cached is not None:
+        return cached
+
     db = get_supabase_admin()
-
-    # Verify membership (any member can view)
-    user = db.table("users").select("id").eq("telegram_id", tg_user.id).single().execute()
-    if not user.data:
-        raise HTTPException(404, "User not found")
-
-    membership = db.table("memberships").select("role").eq(
-        "user_id", user.data["id"]
-    ).eq("org_id", org_id).execute()
-
-    if not membership.data:
-        raise HTTPException(403, "Not a member of this organization")
 
     # Get all products
     result = db.table("lead_agent_products").select("*").eq(
         "org_id", org_id
     ).order("created_at", desc=True).execute()
 
-    return [Product(**p) for p in result.data]
+    products = [Product(**p) for p in result.data]
+    cache_set("catalog", cache_key, products)
+    return products
 
 
 @router.post("/orgs/{org_id}/products")
@@ -1630,19 +1591,8 @@ async def create_product(
 ) -> Product:
     """Create a new product/service (admin only)."""
     tg_user = get_telegram_user(x_telegram_init_data)
+    _cached_verify_admin(tg_user.id, org_id)
     db = get_supabase_admin()
-
-    # Verify admin
-    user = db.table("users").select("id").eq("telegram_id", tg_user.id).single().execute()
-    if not user.data:
-        raise HTTPException(404, "User not found")
-
-    membership = db.table("memberships").select("role").eq(
-        "user_id", user.data["id"]
-    ).eq("org_id", org_id).single().execute()
-
-    if not membership.data or membership.data["role"] != "admin":
-        raise HTTPException(403, "Admin access required")
 
     # Create product
     product_data = {
@@ -1654,6 +1604,7 @@ async def create_product(
     }
 
     result = db.table("lead_agent_products").insert(product_data).execute()
+    cache_delete("catalog", f"products:{org_id}")
     return Product(**result.data[0])
 
 
@@ -1666,19 +1617,8 @@ async def update_product(
 ) -> Product:
     """Update a product/service (admin only)."""
     tg_user = get_telegram_user(x_telegram_init_data)
+    _cached_verify_admin(tg_user.id, org_id)
     db = get_supabase_admin()
-
-    # Verify admin
-    user = db.table("users").select("id").eq("telegram_id", tg_user.id).single().execute()
-    if not user.data:
-        raise HTTPException(404, "User not found")
-
-    membership = db.table("memberships").select("role").eq(
-        "user_id", user.data["id"]
-    ).eq("org_id", org_id).single().execute()
-
-    if not membership.data or membership.data["role"] != "admin":
-        raise HTTPException(403, "Admin access required")
 
     # Verify product belongs to this org
     product_check = db.table("lead_agent_products").select("id").eq(
@@ -1706,6 +1646,7 @@ async def update_product(
         "id", product_id
     ).execute()
 
+    cache_delete("catalog", f"products:{org_id}")
     return Product(**result.data[0])
 
 
@@ -1717,19 +1658,8 @@ async def delete_product(
 ) -> dict:
     """Delete a product/service (admin only)."""
     tg_user = get_telegram_user(x_telegram_init_data)
+    _cached_verify_admin(tg_user.id, org_id)
     db = get_supabase_admin()
-
-    # Verify admin
-    user = db.table("users").select("id").eq("telegram_id", tg_user.id).single().execute()
-    if not user.data:
-        raise HTTPException(404, "User not found")
-
-    membership = db.table("memberships").select("role").eq(
-        "user_id", user.data["id"]
-    ).eq("org_id", org_id).single().execute()
-
-    if not membership.data or membership.data["role"] != "admin":
-        raise HTTPException(403, "Admin access required")
 
     # Verify product belongs to this org and get name for response
     product = db.table("lead_agent_products").select("id, name").eq(
@@ -1742,4 +1672,5 @@ async def delete_product(
     # Delete product
     db.table("lead_agent_products").delete().eq("id", product_id).execute()
 
+    cache_delete("catalog", f"products:{org_id}")
     return {"status": "deleted", "product_id": product_id, "name": product.data[0]["name"]}

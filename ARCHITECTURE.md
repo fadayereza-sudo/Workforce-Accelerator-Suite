@@ -723,3 +723,203 @@ While agents share the same Python process and database, isolation is achieved t
 7. **Background jobs** - Isolated task queues per agent (optional)
 
 This provides **logical isolation** without the overhead of microservices.
+
+## Caching Architecture
+
+Two-layer in-memory caching eliminates redundant database queries and makes the app feel instant. No Redis — just Python `cachetools.TTLCache` on the backend and a simple JS cache object on the frontend.
+
+### Layer 1: Backend (Server-Side)
+
+All caching goes through `backend/services/cache.py`. It provides named **cache pools**, each with a max size and TTL appropriate for how frequently that data changes.
+
+#### Cache Pools
+
+| Pool | TTL | Max Size | What's Cached |
+|------|-----|----------|---------------|
+| `auth` | 60s | 512 | User ID lookups by `telegram_id`, membership/role checks |
+| `org` | 120s | 256 | Org details, invite codes, member lists, membership requests, billing |
+| `catalog` | 120s | 256 | Products, bots registry |
+| `plans` | 600s | 32 | Subscription plans (rarely change) |
+| `analytics` | 30s | 256 | Team/agent analytics, dashboards (changes frequently) |
+| `reports` | 60s | 128 | Activity reports |
+
+#### API: `cache_get`, `cache_set`, `cache_delete`, `cache_invalidate`
+
+```python
+from services.cache import cache_get, cache_set, cache_delete, cache_invalidate
+
+# Read from cache
+cached = cache_get("org", f"org_details:{org_id}")
+if cached is not None:
+    return cached
+
+# Fetch from DB, then cache
+result = db.table("organizations").select("*").eq("id", org_id).single().execute()
+cache_set("org", f"org_details:{org_id}", result.data)
+
+# Invalidate after mutation
+cache_delete("org", f"org_details:{org_id}")
+
+# Invalidate by prefix (e.g., all keys starting with "requests:abc")
+cache_invalidate("org", f"requests:{org_id}")
+```
+
+#### Auth Caching Pattern
+
+Every request requires two DB queries for auth: user lookup + membership check. These are cached via helper functions so endpoints don't repeat this work.
+
+**Hub** (`hub.py`) uses sync helpers:
+```python
+def _cached_get_user_id(telegram_id: int) -> str:
+    """Cache user ID lookup. Used by all auth helpers."""
+
+def _cached_verify_admin(telegram_id: int, org_id: str) -> str:
+    """Verify admin role, return user_id. Cached."""
+
+def _cached_verify_member(telegram_id: int, org_id: str) -> tuple:
+    """Verify membership, return (user_id, role). Cached."""
+```
+
+**Lead Agent** and **Reports** (`lead_agent.py`, `reports.py`) use async helpers:
+```python
+async def verify_org_member(user_telegram_id: int, org_id: str) -> tuple[str, str]:
+    """Verify membership, return (user_id, role). Cached."""
+
+async def verify_org_admin(user_telegram_id: int, org_id: str) -> str:
+    """Verify admin role, return user_id. Cached."""
+```
+
+All helpers use the `auth` cache pool with key patterns `user:{telegram_id}` and `membership:{user_id}:{org_id}`.
+
+#### Cache Key Convention
+
+Keys are scoped by entity and org/user ID to avoid cross-org leakage:
+
+```
+user:{telegram_id}              → user UUID
+membership:{user_id}:{org_id}   → {role: "admin"|"member"}
+org_details:{org_id}            → OrgDetails object
+invite:{org_id}                 → InviteCode object
+members:{org_id}                → List[Member]
+requests:{org_id}:{status}      → List[MembershipRequest]
+products:{org_id}               → List[Product]
+team_analytics:{org_id}:{period} → TeamAnalytics
+agent_analytics:{org_id}:{period} → AgentAnalytics
+billing:{org_id}                → BillingOverview
+la_dashboard:{org_id}           → LeadAgentDashboard
+latest_reports:{org_id}:{period} → ReportSummaryResponse
+active_plans                    → List[SubscriptionPlan]
+bots:active                     → List[dict]
+```
+
+#### When Adding a New Endpoint
+
+1. **GET endpoints** — Check cache before querying DB. Cache the result after fetching.
+2. **POST/PUT/PATCH/DELETE endpoints** — Call `cache_delete()` or `cache_invalidate()` for any keys affected by the mutation.
+3. **Auth** — Use the cached auth helpers (`_cached_verify_admin`, `verify_org_member`, etc.) instead of inline user+membership queries.
+
+```python
+# Template for a new cached GET endpoint
+@router.get("/orgs/{org_id}/things")
+async def list_things(org_id: str, x_telegram_init_data: str = Header(...)):
+    tg_user = get_telegram_user(x_telegram_init_data)
+    _cached_verify_admin(tg_user.id, org_id)        # Step 1: cached auth
+
+    cache_key = f"things:{org_id}"                   # Step 2: check cache
+    cached = cache_get("org", cache_key)
+    if cached is not None:
+        return cached
+
+    db = get_supabase_admin()                        # Step 3: fetch from DB
+    result = db.table("things").select("*").eq("org_id", org_id).execute()
+
+    cache_set("org", cache_key, result.data)         # Step 4: store in cache
+    return result.data
+
+
+# Template for a mutation endpoint
+@router.post("/orgs/{org_id}/things")
+async def create_thing(org_id: str, data: ThingCreate, x_telegram_init_data: str = Header(...)):
+    tg_user = get_telegram_user(x_telegram_init_data)
+    _cached_verify_admin(tg_user.id, org_id)
+
+    db = get_supabase_admin()
+    result = db.table("things").insert({...}).execute()
+
+    cache_delete("org", f"things:{org_id}")          # Invalidate the list cache
+    return result.data[0]
+```
+
+#### What NOT to Cache
+
+- **Telegram initData verification** — HMAC check must run every request (security)
+- **Mutation responses** — POST/PUT/PATCH/DELETE results are not cached
+- **File exports** — CSV exports, one-off downloads
+- **AI-generated content** — Call scripts, insights (already stored in DB)
+- **Background task results** — Scheduler outputs
+
+### Layer 2: Frontend (Client-Side)
+
+Both mini-apps maintain a JS cache object that stores API responses with per-key TTLs. This eliminates re-fetching when users navigate between sections.
+
+#### Hub Cache (`static/mini-apps/hub/index.html`)
+
+```javascript
+const cache = {
+    data: {},
+    timestamps: {},
+    ttls: {
+        orgDetails: 120000,     // 2 min
+        inviteCode: 120000,
+        members: 60000,         // 1 min
+        requests: 30000,        // 30s
+        bots: 300000,           // 5 min
+        teamAnalytics: 30000,
+        agentAnalytics: 30000,
+        reports: 60000,
+        billing: 60000,
+        products: 120000,
+        plans: 600000           // 10 min
+    },
+    get(key) { /* returns data if within TTL, else null */ },
+    set(key, value) { /* stores data + timestamp */ },
+    invalidate(key) { /* deletes single key */ },
+    invalidatePrefix(prefix) { /* deletes keys matching prefix */ },
+    invalidateAll() { /* clears everything */ }
+};
+```
+
+#### Lead Agent Cache (`static/mini-apps/lead-agent/index.html`)
+
+```javascript
+const cache = {
+    timestamps: {},
+    ttls: {
+        products: 120000,       // 2 min - rarely changes
+        prospects: 30000,       // 30s - changes frequently
+        dashboard: 30000,
+        searches: 60000,
+        journal: 30000,
+        prospect: 30000
+    },
+    isValid(key) { /* checks if key is within its TTL */ },
+    invalidate(key) { /* deletes key timestamp + data */ },
+    invalidatePrefix(prefix) { /* batch invalidation */ }
+};
+```
+
+#### Frontend Cache Rules
+
+1. **Before every API GET call** — check `cache.get(key)`. If valid, use cached data and skip the fetch.
+2. **After every successful fetch** — call `cache.set(key, data)`.
+3. **After every mutation** (create, update, delete) — call `cache.invalidate(key)` for affected data so the next navigation triggers a fresh fetch.
+4. **Smart parallel fetching** — When loading a dashboard section that needs multiple data sources, only fetch what's missing from cache:
+   ```javascript
+   const cachedMembers = cache.get('members');
+   const cachedBots = cache.get('bots');
+   const fetches = [];
+   if (!cachedMembers) fetches.push(api.getMembers(orgId));
+   if (!cachedBots) fetches.push(api.getBots());
+   const results = await Promise.all(fetches);
+   // Merge cached + fresh data
+   ```

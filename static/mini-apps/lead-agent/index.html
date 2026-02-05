@@ -1856,11 +1856,20 @@
 
         const cache = {
             timestamps: {},
-            TTL: 30000, // 30 seconds cache validity
+            ttls: {
+                products: 120000,    // 2 min - rarely changes
+                prospects: 30000,    // 30s - changes frequently
+                dashboard: 30000,    // 30s
+                searches: 60000,     // 1 min
+                journal: 30000,      // 30s
+                prospect: 30000      // 30s - individual prospect detail
+            },
 
             isValid(key) {
                 const ts = this.timestamps[key];
-                return ts && (Date.now() - ts) < this.TTL;
+                const baseKey = key.split('_')[0];
+                const ttl = this.ttls[baseKey] || 30000;
+                return ts && (Date.now() - ts) < ttl;
             },
 
             set(key) {
@@ -1869,6 +1878,14 @@
 
             invalidate(key) {
                 delete this.timestamps[key];
+            },
+
+            invalidatePrefix(prefix) {
+                Object.keys(this.timestamps).forEach(k => {
+                    if (k.startsWith(prefix)) {
+                        delete this.timestamps[k];
+                    }
+                });
             },
 
             invalidateAll() {

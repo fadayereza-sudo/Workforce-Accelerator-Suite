@@ -2124,6 +2124,61 @@
         };
 
         /* ─────────────────────────────────────────────────────────────────────
+           CACHE LAYER - Prevents redundant API calls on navigation
+           ───────────────────────────────────────────────────────────────────── */
+
+        const cache = {
+            data: {},
+            timestamps: {},
+            ttls: {
+                orgDetails: 120000,
+                inviteCode: 120000,
+                members: 60000,
+                requests: 30000,
+                bots: 300000,
+                teamAnalytics: 30000,
+                agentAnalytics: 30000,
+                reports: 60000,
+                billing: 60000,
+                products: 120000,
+                plans: 600000
+            },
+
+            get(key) {
+                const ts = this.timestamps[key];
+                const ttl = this.ttls[key.split('_')[0]] || 60000;
+                if (ts && (Date.now() - ts) < ttl) {
+                    return this.data[key];
+                }
+                return null;
+            },
+
+            set(key, value) {
+                this.data[key] = value;
+                this.timestamps[key] = Date.now();
+            },
+
+            invalidate(key) {
+                delete this.data[key];
+                delete this.timestamps[key];
+            },
+
+            invalidatePrefix(prefix) {
+                Object.keys(this.timestamps).forEach(k => {
+                    if (k.startsWith(prefix)) {
+                        delete this.data[k];
+                        delete this.timestamps[k];
+                    }
+                });
+            },
+
+            invalidateAll() {
+                this.data = {};
+                this.timestamps = {};
+            }
+        };
+
+        /* ─────────────────────────────────────────────────────────────────────
            SECURITY: Authorization Error Handler
            ───────────────────────────────────────────────────────────────────── */
 
@@ -2409,12 +2464,20 @@
            ───────────────────────────────────────────────────────────────────── */
 
         const loadAdminDashboard = async () => {
+            const orgId = state.currentOrg.id;
+
             // SECURITY: Verify admin access server-side BEFORE showing admin UI
             // This prevents client-side role manipulation attacks
             try {
                 // getOrgDetails requires admin role - use it as access control gate
-                const orgDetails = await api.getOrgDetails(state.currentOrg.id);
-                state.orgDetails = orgDetails;
+                const cachedDetails = cache.get('orgDetails');
+                if (cachedDetails) {
+                    state.orgDetails = cachedDetails;
+                } else {
+                    const orgDetails = await api.getOrgDetails(orgId);
+                    state.orgDetails = orgDetails;
+                    cache.set('orgDetails', orgDetails);
+                }
             } catch (error) {
                 // If we get 403 (Admin access required), redirect to member dashboard
                 console.warn('[Security] Admin access denied by server, redirecting to member dashboard');
@@ -2426,21 +2489,32 @@
             // Only show admin page AFTER server verification succeeds
             showPage('admin');
 
-            // Load remaining data in parallel (orgDetails already loaded above)
-            const [inviteCode, requests, members, bots] = await Promise.all([
-                api.getInviteCode(state.currentOrg.id),
-                api.getMembershipRequests(state.currentOrg.id),
-                api.getMembers(state.currentOrg.id),
-                api.getBots().catch(() => [])
-            ]);
+            // Use cache for parallel data loads — only fetch what's missing
+            const cachedInvite = cache.get('inviteCode');
+            const cachedRequests = cache.get('requests');
+            const cachedMembers = cache.get('members');
+            const cachedBots = cache.get('bots');
 
-            state.inviteCode = inviteCode;
-            state.membershipRequests = requests;
-            state.members = members;
-            state.availableBots = bots;
+            const fetches = [];
+            const fetchKeys = [];
+
+            if (!cachedInvite) { fetches.push(api.getInviteCode(orgId)); fetchKeys.push('inviteCode'); }
+            if (!cachedRequests) { fetches.push(api.getMembershipRequests(orgId)); fetchKeys.push('requests'); }
+            if (!cachedMembers) { fetches.push(api.getMembers(orgId)); fetchKeys.push('members'); }
+            if (!cachedBots) { fetches.push(api.getBots().catch(() => [])); fetchKeys.push('bots'); }
+
+            if (fetches.length > 0) {
+                const results = await Promise.all(fetches);
+                fetchKeys.forEach((key, i) => cache.set(key, results[i]));
+            }
+
+            state.inviteCode = cache.get('inviteCode') || cachedInvite;
+            state.membershipRequests = cache.get('requests') || cachedRequests;
+            state.members = cache.get('members') || cachedMembers;
+            state.availableBots = cache.get('bots') || cachedBots;
 
             updateOrgHeader(state.orgDetails);
-            updateInviteCodeDisplay(inviteCode);
+            updateInviteCodeDisplay(state.inviteCode);
             renderRequests();
             renderMembers();
 
@@ -2448,7 +2522,7 @@
             await loadTeamAnalytics();
 
             // Log page view activity
-            api.logActivity(state.currentOrg.id, null, 'page_view', { section: 'team' }).catch(() => {});
+            api.logActivity(orgId, null, 'page_view', { section: 'team' }).catch(() => {});
         };
 
         const updateOrgHeader = (details) => {
@@ -2521,8 +2595,10 @@
 
                 // If code was regenerated, refresh the display
                 if (result.code_regenerated) {
+                    cache.invalidate('inviteCode');
                     const newCode = await api.getInviteCode(state.currentOrg.id);
                     state.inviteCode = newCode;
+                    cache.set('inviteCode', newCode);
                     updateInviteCodeDisplay(newCode);
                 }
 
@@ -2687,6 +2763,11 @@
             try {
                 await api.approveRequest(state.selectedRequest.id, true, state.selectedBotIds);
 
+                // Invalidate caches affected by membership change
+                cache.invalidate('requests');
+                cache.invalidate('members');
+                cache.invalidate('orgDetails');
+
                 // Remove from list and refresh
                 state.membershipRequests = state.membershipRequests.filter(
                     r => r.id !== state.selectedRequest.id
@@ -2697,6 +2778,7 @@
                 // Refresh members
                 const members = await api.getMembers(state.currentOrg.id);
                 state.members = members;
+                cache.set('members', members);
                 renderMembers();
 
             } catch (error) {
@@ -2711,6 +2793,8 @@
 
             try {
                 await api.approveRequest(state.selectedRequest.id, false, []);
+
+                cache.invalidate('requests');
 
                 state.membershipRequests = state.membershipRequests.filter(
                     r => r.id !== state.selectedRequest.id
@@ -2850,9 +2934,12 @@
                     state.selectedMemberBotIds
                 );
 
+                cache.invalidate('members');
+
                 // Refresh members list
                 const members = await api.getMembers(state.currentOrg.id);
                 state.members = members;
+                cache.set('members', members);
                 renderMembers();
 
                 closeMemberModal();
@@ -2873,6 +2960,9 @@
             try {
                 await api.removeMember(state.currentOrg.id, state.selectedMember.id);
 
+                cache.invalidate('members');
+                cache.invalidate('orgDetails');
+
                 // Refresh members list and org details
                 const [members, orgDetails] = await Promise.all([
                     api.getMembers(state.currentOrg.id),
@@ -2880,6 +2970,8 @@
                 ]);
                 state.members = members;
                 state.orgDetails = orgDetails;
+                cache.set('members', members);
+                cache.set('orgDetails', orgDetails);
                 renderMembers();
                 updateOrgHeader(orgDetails);
 
@@ -2996,8 +3088,17 @@
             if (!state.currentOrg) return;
 
             try {
+                const cacheKey = `teamAnalytics_${state.teamPeriod}`;
+                const cached = cache.get(cacheKey);
+                if (cached) {
+                    state.teamAnalytics = cached;
+                    renderTeamAnalytics(cached);
+                    return;
+                }
+
                 const analytics = await api.getTeamAnalytics(state.currentOrg.id, state.teamPeriod);
                 state.teamAnalytics = analytics;
+                cache.set(cacheKey, analytics);
                 renderTeamAnalytics(analytics);
             } catch (error) {
                 // SECURITY: Check for authorization failure
@@ -3053,8 +3154,17 @@
             if (!state.currentOrg) return;
 
             try {
+                const cacheKey = `agentAnalytics_${state.analyticsPeriod}`;
+                const cached = cache.get(cacheKey);
+                if (cached) {
+                    state.agentAnalytics = cached;
+                    renderAgentAnalytics(cached);
+                    return;
+                }
+
                 const analytics = await api.getAgentAnalytics(state.currentOrg.id, state.analyticsPeriod);
                 state.agentAnalytics = analytics;
+                cache.set(cacheKey, analytics);
                 renderAgentAnalytics(analytics);
             } catch (error) {
                 // SECURITY: Check for authorization failure
@@ -3120,8 +3230,17 @@
             if (!state.currentOrg) return;
 
             try {
+                const cacheKey = `reports_${reportsPeriod}`;
+                const cached = cache.get(cacheKey);
+                if (cached) {
+                    state.activityReports = cached;
+                    renderReports(cached);
+                    return;
+                }
+
                 const response = await api.getLatestReports(state.currentOrg.id, reportsPeriod);
                 state.activityReports = response;
+                cache.set(cacheKey, response);
                 renderReports(response);
             } catch (error) {
                 // SECURITY: Check for authorization failure
@@ -3230,6 +3349,8 @@
                     period_start: periodStart.toISOString().split('T')[0]
                 });
 
+                cache.invalidatePrefix('reports');
+
                 // Show generating message
                 document.getElementById('team-report-summary').textContent = 'Generating report... This may take a few seconds.';
 
@@ -3277,8 +3398,16 @@
             if (!state.currentOrg) return;
 
             try {
+                const cached = cache.get('billing');
+                if (cached) {
+                    state.billingOverview = cached;
+                    renderBillingOverview(cached);
+                    return;
+                }
+
                 const billing = await api.getBillingOverview(state.currentOrg.id);
                 state.billingOverview = billing;
+                cache.set('billing', billing);
                 renderBillingOverview(billing);
             } catch (error) {
                 // SECURITY: Check for authorization failure
@@ -3365,8 +3494,16 @@
             if (!state.currentOrg) return;
 
             try {
+                const cached = cache.get('products');
+                if (cached) {
+                    state.products = cached;
+                    renderProducts(cached);
+                    return;
+                }
+
                 const products = await api.getProducts(state.currentOrg.id);
                 state.products = products;
+                cache.set('products', products);
                 renderProducts(products);
             } catch (error) {
                 // SECURITY: Check for authorization failure
@@ -3467,6 +3604,7 @@
                     tg.showPopup({ message: 'Product added successfully' });
                 }
 
+                cache.invalidate('products');
                 closeProductModal();
                 await loadProducts();
             } catch (error) {
@@ -3517,6 +3655,7 @@
         const deleteProduct = async (productId) => {
             try {
                 await api.deleteProduct(state.currentOrg.id, productId);
+                cache.invalidate('products');
                 tg.showPopup({ message: 'Product deleted' });
                 closeProductViewModal();
                 await loadProducts();

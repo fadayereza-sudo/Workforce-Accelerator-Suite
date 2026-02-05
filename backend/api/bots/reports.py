@@ -16,6 +16,7 @@ from models.reports import (
     BotTaskLogEntry
 )
 from services import get_supabase_admin, get_telegram_user
+from services.cache import cache_get, cache_set, cache_delete
 from services.report_scheduler import generate_team_report, generate_agent_report
 
 router = APIRouter()
@@ -26,21 +27,38 @@ router = APIRouter()
 # ─────────────────────────────────────────────────────────────────────────────
 
 async def verify_org_admin(user_telegram_id: int, org_id: str) -> str:
-    """Verify user is an admin of the organization. Returns user_id."""
+    """Verify user is an admin of the organization. Returns user_id. Cached."""
+    # Cached user lookup
+    user_cache_key = f"user:{user_telegram_id}"
+    user_id = cache_get("auth", user_cache_key)
+
+    if user_id is None:
+        db = get_supabase_admin()
+        user = db.table("users").select("id").eq("telegram_id", user_telegram_id).single().execute()
+        if not user.data:
+            raise HTTPException(404, "User not found")
+        user_id = user.data["id"]
+        cache_set("auth", user_cache_key, user_id)
+
+    # Cached membership lookup
+    membership_cache_key = f"membership:{user_id}:{org_id}"
+    cached_membership = cache_get("auth", membership_cache_key)
+
+    if cached_membership is not None:
+        if cached_membership.get("role") != "admin":
+            raise HTTPException(403, "Admin access required")
+        return user_id
+
     db = get_supabase_admin()
-
-    user = db.table("users").select("id").eq("telegram_id", user_telegram_id).single().execute()
-    if not user.data:
-        raise HTTPException(404, "User not found")
-
     membership = db.table("memberships").select("role").eq(
-        "user_id", user.data["id"]
+        "user_id", user_id
     ).eq("org_id", org_id).single().execute()
 
     if not membership.data or membership.data["role"] != "admin":
         raise HTTPException(403, "Admin access required")
 
-    return user.data["id"]
+    cache_set("auth", membership_cache_key, membership.data)
+    return user_id
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -104,6 +122,12 @@ async def get_latest_reports(
     tg_user = get_telegram_user(x_telegram_init_data)
     await verify_org_admin(tg_user.id, org_id)
 
+    # Check cache
+    cache_key = f"latest_reports:{org_id}:{period_type}"
+    cached = cache_get("reports", cache_key)
+    if cached is not None:
+        return cached
+
     db = get_supabase_admin()
 
     # Get latest team report
@@ -134,11 +158,13 @@ async def get_latest_reports(
             agent_reports.append(ActivityReport(**r))
             seen_bots.add(r["bot_id"])
 
-    return ReportSummaryResponse(
+    result = ReportSummaryResponse(
         team_report=team_report,
         agent_reports=agent_reports,
         has_data=team_report is not None or len(agent_reports) > 0
     )
+    cache_set("reports", cache_key, result)
+    return result
 
 
 @router.get("/orgs/{org_id}/reports/{report_id}")
@@ -219,6 +245,9 @@ async def generate_report_on_demand(
         )
     else:
         raise HTTPException(400, "Invalid report_type. Must be 'team' or 'agent'")
+
+    # Invalidate reports cache for this org
+    cache_delete("reports", f"latest_reports:{org_id}:{data.period_type}")
 
     return {
         "status": "generating",
