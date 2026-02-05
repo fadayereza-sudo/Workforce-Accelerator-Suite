@@ -66,3 +66,8 @@ class Member(BaseModel):
 class MemberBotsUpdate(BaseModel):
     """Update bot access for a member."""
     bot_ids: List[str]
+
+
+class MemberRoleUpdate(BaseModel):
+    """Update role for a member."""
+    role: str  # 'admin' or 'member'

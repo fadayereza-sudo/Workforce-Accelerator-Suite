@@ -10,7 +10,8 @@ from .membership import (
     MembershipApproval,
     Member,
     BotAccess,
-    MemberBotsUpdate
+    MemberBotsUpdate,
+    MemberRoleUpdate
 )
 from .lead_agent import (
     ProductCreate,
@@ -36,6 +37,7 @@ from .lead_agent import (
 from .admin import (
     ActivityLogCreate,
     MemberActivity,
+    LeadAgentOverview,
     TeamAnalytics,
     AgentUsage,
     AgentAnalytics,
@@ -79,6 +81,7 @@ __all__ = [
     "Member",
     "BotAccess",
     "MemberBotsUpdate",
+    "MemberRoleUpdate",
     "ProductCreate",
     "ProductUpdate",
     "Product",
@@ -101,6 +104,7 @@ __all__ = [
     # Admin models
     "ActivityLogCreate",
     "MemberActivity",
+    "LeadAgentOverview",
     "TeamAnalytics",
     "AgentUsage",
     "AgentAnalytics",

@@ -2045,17 +2045,39 @@
         };
 
         // ═══════════════════════════════════════════════════════════════
-        // PAGE NAVIGATION
+        // PAGE NAVIGATION + TELEGRAM BACK BUTTON
         // ═══════════════════════════════════════════════════════════════
 
-        function showPage(pageName) {
+        const mainTabs = ['dashboard', 'search', 'prospects', 'products'];
+        const navHistory = [];
+        // Detect if we were opened from the Hub (browser has a page to go back to)
+        const canGoBackToHub = window.history.length > 1;
+
+        function showPage(pageName, { pushHistory = true } = {}) {
+            const currentPage = document.querySelector('.page.active')?.id?.replace('page-', '');
+
+            if (mainTabs.includes(pageName) || pageName === 'loading') {
+                // Navigating to any main tab or loading page resets in-app history
+                navHistory.length = 0;
+            } else if (pushHistory && currentPage && currentPage !== pageName) {
+                // Sub-page (e.g. prospect-detail) — push parent into history
+                navHistory.push(currentPage);
+            }
+
             document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
             document.getElementById(`page-${pageName}`).classList.add('active');
 
             document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-            const navIndex = ['dashboard', 'search', 'prospects', 'products'].indexOf(pageName);
+            const navIndex = mainTabs.indexOf(pageName);
             if (navIndex >= 0) {
                 document.querySelectorAll('.nav-item')[navIndex].classList.add('active');
+            }
+
+            // Show/hide Telegram BackButton
+            if (navHistory.length > 0 || canGoBackToHub) {
+                tg.BackButton.show();
+            } else {
+                tg.BackButton.hide();
             }
 
             // Load data when page is shown - with caching to avoid redundant calls
@@ -2076,6 +2098,17 @@
             }
             if (pageName === 'search' && !cache.isValid('products')) loadProducts();
         }
+
+        tg.BackButton.onClick(() => {
+            if (navHistory.length > 0) {
+                // Navigate back within the app (e.g. prospect-detail → prospects)
+                const prevPage = navHistory.pop();
+                showPage(prevPage, { pushHistory: false });
+            } else if (canGoBackToHub) {
+                // On a main tab — go back to Hub
+                window.history.back();
+            }
+        });
 
         // ═══════════════════════════════════════════════════════════════
         // INITIALIZATION

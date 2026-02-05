@@ -18,9 +18,10 @@ from models import (
     TelegramUser, User,
     Organization, OrgCreate, InviteCode, OrgStats, OrgDetails, OrgUpdate,
     MembershipRequest, MembershipRequestCreate, MembershipRequestResponse,
-    MembershipApproval, Member, BotAccess, MemberBotsUpdate,
+    MembershipApproval, Member, BotAccess, MemberBotsUpdate, MemberRoleUpdate,
     # Admin models
-    ActivityLogCreate, MemberActivity, TeamAnalytics, AgentUsage, AgentAnalytics,
+    ActivityLogCreate, MemberActivity, LeadAgentOverview, TeamAnalytics,
+    AgentUsage, AgentAnalytics,
     SubscriptionPlan, OrgSubscription, Invoice, InvoiceList, BillingOverview,
     # Product models
     ProductCreate, ProductUpdate, Product
@@ -925,6 +926,48 @@ async def update_member_bots(
     }
 
 
+@router.put("/orgs/{org_id}/members/{member_id}/role")
+async def update_member_role(
+    org_id: str,
+    member_id: str,
+    data: MemberRoleUpdate,
+    x_telegram_init_data: str = Header(...)
+) -> dict:
+    """Update role for a member (admin only)."""
+    tg_user = get_telegram_user(x_telegram_init_data)
+    _cached_verify_admin(tg_user.id, org_id)
+    db = get_supabase_admin()
+
+    # Validate role
+    if data.role not in ["admin", "member"]:
+        raise HTTPException(400, "Invalid role. Must be 'admin' or 'member'")
+
+    # Verify target membership exists and belongs to this org
+    target = db.table("memberships").select("id, user_id, users(full_name)").eq(
+        "id", member_id
+    ).eq("org_id", org_id).single().execute()
+
+    if not target.data:
+        raise HTTPException(404, "Member not found")
+
+    # Update the role
+    db.table("memberships").update({
+        "role": data.role,
+        "updated_at": datetime.now(timezone.utc).isoformat()
+    }).eq("id", member_id).execute()
+
+    # Invalidate members and org details caches
+    cache_delete("org", f"members:{org_id}")
+    cache_delete("org", f"orgDetails:{org_id}")
+
+    return {
+        "status": "updated",
+        "member_id": member_id,
+        "new_role": data.role,
+        "member_name": target.data["users"]["full_name"]
+    }
+
+
 @router.get("/bots")
 async def list_available_bots(
     x_telegram_init_data: str = Header(...)
@@ -1040,6 +1083,37 @@ async def get_team_analytics(
         ).not_.is_("bot_id", "null").execute()
         bots_accessed[m["id"]] = list(set(b["bot_id"] for b in bots_result.data if b["bot_id"]))
 
+    # Get leads generated and diary entries per member for this period
+    leads_by_user = {}
+    diary_by_user = {}
+
+    leads_result = db.table("lead_agent_prospects").select(
+        "created_by"
+    ).eq("org_id", org_id).gte(
+        "created_at", period_start.isoformat()
+    ).not_.is_("created_by", "null").execute()
+
+    for p in leads_result.data:
+        uid = p["created_by"]
+        leads_by_user[uid] = leads_by_user.get(uid, 0) + 1
+
+    # Get all prospect IDs for this org to filter journal entries
+    org_prospect_ids = db.table("lead_agent_prospects").select(
+        "id"
+    ).eq("org_id", org_id).execute()
+    prospect_ids = [p["id"] for p in org_prospect_ids.data]
+
+    if prospect_ids:
+        diary_result = db.table("lead_agent_journal_entries").select(
+            "user_id"
+        ).in_("prospect_id", prospect_ids).gte(
+            "created_at", period_start.isoformat()
+        ).execute()
+
+        for d in diary_result.data:
+            uid = d["user_id"]
+            diary_by_user[uid] = diary_by_user.get(uid, 0) + 1
+
     # Build member activity list
     member_activities = []
     active_count = 0
@@ -1061,7 +1135,9 @@ async def get_team_analytics(
             role=m["role"],
             last_active_at=m.get("last_active_at"),
             activity_count=count,
-            bots_accessed=bots_accessed.get(m["id"], [])
+            bots_accessed=bots_accessed.get(m["id"], []),
+            leads_generated=leads_by_user.get(m["user_id"], 0),
+            diary_entries=diary_by_user.get(m["user_id"], 0)
         ))
 
     # Sort by activity count (most active first)
@@ -1155,6 +1231,78 @@ async def get_agent_analytics(
         period_end=period_end,
         total_tasks=total_tasks,
         agents=agent_usage
+    )
+    cache_set("analytics", cache_key, result)
+    return result
+
+
+@router.get("/orgs/{org_id}/analytics/lead-agent-overview")
+async def get_lead_agent_overview(
+    org_id: str,
+    x_telegram_init_data: str = Header(...)
+) -> LeadAgentOverview:
+    """Get lead agent overview stats for admin dashboard."""
+    tg_user = get_telegram_user(x_telegram_init_data)
+    _cached_verify_admin(tg_user.id, org_id)
+
+    cache_key = f"la_overview:{org_id}"
+    cached = cache_get("analytics", cache_key)
+    if cached is not None:
+        return cached
+
+    db = get_supabase_admin()
+
+    # Count active leads (all statuses except closed)
+    prospects = db.table("lead_agent_prospects").select(
+        "status"
+    ).eq("org_id", org_id).execute()
+
+    active_leads = sum(1 for p in prospects.data if p["status"] != "closed")
+
+    # Count pending scheduled follow-ups
+    followups = db.table("lead_agent_scheduled_notifications").select(
+        "id", count="exact"
+    ).eq("status", "pending").execute()
+
+    # Filter to only this org's prospects
+    org_prospect_ids = [p["id"] for p in db.table("lead_agent_prospects").select(
+        "id"
+    ).eq("org_id", org_id).execute().data]
+
+    scheduled_count = 0
+    if org_prospect_ids:
+        org_followups = db.table("lead_agent_scheduled_notifications").select(
+            "id", count="exact"
+        ).eq("status", "pending").in_(
+            "prospect_id", org_prospect_ids
+        ).execute()
+        scheduled_count = org_followups.count or 0
+
+    # Get today's bot task events for lead agent
+    now = datetime.now(timezone.utc)
+    today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+
+    tasks_result = db.table("bot_task_log").select(
+        "task_type, task_detail"
+    ).eq("org_id", org_id).gte(
+        "created_at", today_start.isoformat()
+    ).order("created_at", desc=True).limit(20).execute()
+
+    today_events = []
+    for t in tasks_result.data:
+        detail = t.get("task_detail")
+        if isinstance(detail, str):
+            today_events.append(f"{t['task_type']}: {detail[:80]}")
+        elif isinstance(detail, dict):
+            summary = detail.get("business_name") or detail.get("summary", "")
+            today_events.append(f"{t['task_type']}: {summary[:80]}" if summary else t["task_type"])
+        else:
+            today_events.append(t["task_type"])
+
+    result = LeadAgentOverview(
+        active_leads=active_leads,
+        scheduled_followups=scheduled_count,
+        today_events=today_events
     )
     cache_set("analytics", cache_key, result)
     return result

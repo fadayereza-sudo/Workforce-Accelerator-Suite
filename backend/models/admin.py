@@ -29,6 +29,8 @@ class MemberActivity(BaseModel):
     last_active_at: Optional[datetime] = None
     activity_count: int = 0
     bots_accessed: List[str] = []
+    leads_generated: int = 0
+    diary_entries: int = 0
 
     class Config:
         from_attributes = True
@@ -43,6 +45,13 @@ class TeamAnalytics(BaseModel):
     active_members: int
     total_activities: int
     members: List[MemberActivity]
+
+
+class LeadAgentOverview(BaseModel):
+    """Lead agent overview stats for admin dashboard."""
+    active_leads: int = 0
+    scheduled_followups: int = 0
+    today_events: List[str] = []
 
 
 class AgentUsage(BaseModel):
