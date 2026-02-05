@@ -1187,24 +1187,6 @@
            ADMIN DASHBOARD: COMING SOON BADGE
            ───────────────────────────────────────────────────────────────────── */
 
-        .coming-soon-banner {
-            background: var(--gradient-warm);
-            color: white;
-            padding: var(--space-lg);
-            border-radius: var(--radius-lg);
-            text-align: center;
-            margin-bottom: var(--space-lg);
-        }
-
-        .coming-soon-banner h3 {
-            font-size: 18px;
-            margin-bottom: var(--space-sm);
-        }
-
-        .coming-soon-banner p {
-            opacity: 0.9;
-            font-size: 14px;
-        }
 
         /* ─────────────────────────────────────────────────────────────────────
            ADMIN DASHBOARD: HELP LINKS
@@ -1429,9 +1411,44 @@
         </div>
 
         <!-- ─────────────────────────────────────────────────────────────────
+             PAGE: ADMIN AGENT HOME
+             ───────────────────────────────────────────────────────────────── -->
+        <div id="page-admin-home" class="page">
+            <div class="page-header" style="display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <h1 class="page-title" id="admin-home-org-name">Organization</h1>
+                    <p class="page-subtitle">Your Agents</p>
+                </div>
+                <button class="btn btn-sm btn-secondary" onclick="openAdminDashboard()" style="display: flex; align-items: center; gap: 6px;">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+                    Dashboard
+                </button>
+            </div>
+
+            <div id="admin-bots-list" class="list">
+                <!-- Populated by JS - ALL active bots for the org -->
+            </div>
+
+            <div id="admin-no-bots" class="empty-state hidden">
+                <div class="empty-state-icon">
+                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="10" rx="2"></rect><circle cx="12" cy="5" r="2"></circle><path d="M12 7v4"></path><line x1="8" y1="16" x2="8" y2="16"></line><line x1="16" y1="16" x2="16" y2="16"></line></svg>
+                </div>
+                <p class="empty-state-title">No active agents</p>
+                <p>Register agents in the system to get started</p>
+            </div>
+        </div>
+
+        <!-- ─────────────────────────────────────────────────────────────────
              PAGE: ADMIN DASHBOARD
              ───────────────────────────────────────────────────────────────── -->
         <div id="page-admin" class="page">
+            <!-- Back to Agents button -->
+            <div style="padding: var(--space-md) var(--space-md) 0;">
+                <button class="btn btn-sm btn-secondary" onclick="backToAdminHome()" style="display: flex; align-items: center; gap: 6px;">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+                    Agents
+                </button>
+            </div>
             <div class="admin-content">
 
                 <!-- ═══════════════════════════════════════════════════════════
@@ -1469,25 +1486,6 @@
                         </button>
                     </div>
 
-                    <!-- Period Filter -->
-                    <div class="tabs" id="team-period-tabs">
-                        <button class="tab active" onclick="setTeamPeriod('day')">Today</button>
-                        <button class="tab" onclick="setTeamPeriod('week')">This Week</button>
-                        <button class="tab" onclick="setTeamPeriod('month')">This Month</button>
-                    </div>
-
-                    <!-- Team Stats -->
-                    <div class="stats-grid">
-                        <div class="stat-card">
-                            <div class="stat-value" id="team-active-count">0</div>
-                            <div class="stat-label">Active Members</div>
-                        </div>
-                        <div class="stat-card">
-                            <div class="stat-value" id="team-activities-count">0</div>
-                            <div class="stat-label">Activities</div>
-                        </div>
-                    </div>
-
                     <!-- Tabs -->
                     <div class="tabs">
                         <button class="tab active" onclick="switchAdminTab('requests')">
@@ -1521,136 +1519,49 @@
                 </div>
 
                 <!-- ═══════════════════════════════════════════════════════════
-                     SECTION: ANALYTICS
-                     ═══════════════════════════════════════════════════════════ -->
-                <div id="section-analytics" class="admin-section">
-                    <div class="page-header">
-                        <h1 class="page-title">Analytics</h1>
-                        <p class="page-subtitle">Agent performance & usage</p>
-                    </div>
-
-                    <!-- Period Filter -->
-                    <div class="tabs" id="analytics-period-tabs">
-                        <button class="tab active" onclick="setAnalyticsPeriod('day')">Today</button>
-                        <button class="tab" onclick="setAnalyticsPeriod('week')">This Week</button>
-                        <button class="tab" onclick="setAnalyticsPeriod('month')">This Month</button>
-                    </div>
-
-                    <!-- Summary Stats -->
-                    <div class="stats-grid">
-                        <div class="stat-card">
-                            <div class="stat-value" id="analytics-total-tasks">0</div>
-                            <div class="stat-label">Tasks Completed</div>
-                        </div>
-                        <div class="stat-card">
-                            <div class="stat-value" id="analytics-active-agents">0</div>
-                            <div class="stat-label">Active Agents</div>
-                        </div>
-                    </div>
-
-                    <!-- Agent Performance -->
-                    <div class="section-title">Agent Performance</div>
-                    <div id="agent-stats-list">
-                        <!-- Populated by JS -->
-                    </div>
-                    <div id="agent-stats-empty" class="empty-state hidden">
-                        <div class="empty-state-icon">📊</div>
-                        <p class="empty-state-title">No activity yet</p>
-                        <p>Agent usage will appear here</p>
-                    </div>
-                </div>
-
-                <!-- ═══════════════════════════════════════════════════════════
                      SECTION: REPORTS
                      ═══════════════════════════════════════════════════════════ -->
                 <div id="section-reports" class="admin-section">
                     <div class="page-header">
-                        <h1 class="page-title">Activity Reports</h1>
-                        <p class="page-subtitle">AI-generated productivity insights</p>
+                        <h1 class="page-title">Reports</h1>
+                        <p class="page-subtitle">Agent and member activity insights</p>
                     </div>
 
-                    <!-- Period Filter -->
-                    <div class="tabs" id="reports-period-tabs">
-                        <button class="tab" onclick="setReportsPeriod('daily')">Daily</button>
-                        <button class="tab active" onclick="setReportsPeriod('weekly')">Weekly</button>
-                        <button class="tab" onclick="setReportsPeriod('monthly')">Monthly</button>
+                    <!-- Sub-tabs: Agents | Members -->
+                    <div class="tabs" id="reports-sub-tabs">
+                        <button class="tab active" onclick="switchReportsTab('agents')">Agents</button>
+                        <button class="tab" onclick="switchReportsTab('members')">Members</button>
                     </div>
 
-                    <!-- Team Report Card -->
-                    <div id="team-report-card" class="report-card">
-                        <div class="report-card-header">
-                            <div class="report-card-icon">👥</div>
-                            <div class="report-card-title">Team Activity Report</div>
-                            <div class="report-card-period" id="team-report-period">This Week</div>
+                    <!-- AGENTS SUB-TAB -->
+                    <div id="reports-tab-agents" class="tab-content">
+                        <div id="agent-reports-container">
+                            <!-- Each agent gets a card -->
                         </div>
-                        <div class="report-card-body">
-                            <p class="report-summary" id="team-report-summary">
-                                Loading report...
-                            </p>
-                            <div class="report-highlights" id="team-report-highlights">
-                                <!-- Populated by JS -->
+                        <div id="agent-reports-empty" class="empty-state hidden">
+                            <div class="empty-state-icon">
+                                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="10" rx="2"></rect><circle cx="12" cy="5" r="2"></circle><path d="M12 7v4"></path></svg>
                             </div>
-                        </div>
-                        <div class="report-card-footer">
-                            <button class="btn btn-sm btn-secondary" onclick="regenerateReport('team')">
-                                Regenerate
-                            </button>
+                            <p class="empty-state-title">No agent data yet</p>
+                            <p>Agent reports will appear once agents have activity</p>
                         </div>
                     </div>
 
-                    <!-- Agent Reports -->
-                    <div class="section-title" style="margin-top: var(--space-lg);">Agent Reports</div>
-                    <div id="agent-reports-list">
-                        <!-- Populated by JS -->
-                    </div>
-                    <div id="agent-reports-empty" class="empty-state hidden">
-                        <div class="empty-state-icon">🤖</div>
-                        <p class="empty-state-title">No agent reports yet</p>
-                        <p>Reports will appear once agents have activity to summarize</p>
+                    <!-- MEMBERS SUB-TAB -->
+                    <div id="reports-tab-members" class="tab-content hidden">
+                        <div id="member-reports-container">
+                            <!-- Each member gets a card -->
+                        </div>
+                        <div id="member-reports-empty" class="empty-state hidden">
+                            <div class="empty-state-icon">
+                                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle></svg>
+                            </div>
+                            <p class="empty-state-title">No member data yet</p>
+                            <p>Member activity will appear here</p>
+                        </div>
                     </div>
                 </div>
 
-                <!-- ═══════════════════════════════════════════════════════════
-                     SECTION: CUSTOMERS
-                     ═══════════════════════════════════════════════════════════ -->
-                <div id="section-customers" class="admin-section">
-                    <div class="page-header">
-                        <h1 class="page-title">Customers</h1>
-                        <p class="page-subtitle">Customer database</p>
-                    </div>
-
-                    <!-- Coming Soon Banner -->
-                    <div class="coming-soon-banner">
-                        <h3>🚧 Coming Soon</h3>
-                        <p>Customer database is under development. You'll be able to manage customers, import/export CSV files, and track customer data.</p>
-                    </div>
-
-                    <!-- Preview of what's coming -->
-                    <div class="section-title">Features Coming</div>
-                    <div class="list">
-                        <div class="list-item">
-                            <div class="list-item-avatar" style="background: var(--color-success);">📋</div>
-                            <div class="list-item-content">
-                                <div class="list-item-title">Customer List</div>
-                                <div class="list-item-subtitle">View and manage all your customers</div>
-                            </div>
-                        </div>
-                        <div class="list-item">
-                            <div class="list-item-avatar" style="background: var(--color-warning);">📥</div>
-                            <div class="list-item-content">
-                                <div class="list-item-title">CSV Import</div>
-                                <div class="list-item-subtitle">Bulk import customers from spreadsheets</div>
-                            </div>
-                        </div>
-                        <div class="list-item">
-                            <div class="list-item-avatar" style="background: var(--color-cyan-500);">📤</div>
-                            <div class="list-item-content">
-                                <div class="list-item-title">CSV Export</div>
-                                <div class="list-item-subtitle">Export your customer data anytime</div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
 
                 <!-- ═══════════════════════════════════════════════════════════
                      SECTION: BILLING
@@ -1685,15 +1596,6 @@
                             </div>
                             <div class="usage-bar">
                                 <div class="usage-fill" id="usage-members-bar" style="width: 0%"></div>
-                            </div>
-                        </div>
-                        <div class="usage-item">
-                            <div class="usage-header">
-                                <span class="usage-label">Customers</span>
-                                <span class="usage-value" id="usage-customers-text">0 / 100</span>
-                            </div>
-                            <div class="usage-bar">
-                                <div class="usage-fill" id="usage-customers-bar" style="width: 0%"></div>
                             </div>
                         </div>
                     </div>
@@ -1801,23 +1703,11 @@
                     </div>
                     <span class="nav-item-label">Team</span>
                 </div>
-                <div class="nav-item" onclick="switchAdminSection('analytics')">
-                    <div class="nav-item-icon">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>
-                    </div>
-                    <span class="nav-item-label">Analytics</span>
-                </div>
                 <div class="nav-item" onclick="switchAdminSection('reports')">
                     <div class="nav-item-icon">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
                     </div>
                     <span class="nav-item-label">Reports</span>
-                </div>
-                <div class="nav-item" onclick="switchAdminSection('customers')">
-                    <div class="nav-item-icon">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"></ellipse><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path></svg>
-                    </div>
-                    <span class="nav-item-label">Customers</span>
                 </div>
                 <div class="nav-item" onclick="switchAdminSection('billing')">
                     <div class="nav-item-icon">
@@ -2112,11 +2002,10 @@
             selectedMemberBotIds: [],
             // Admin dashboard sections
             currentAdminSection: 'team',
-            teamPeriod: 'week',
-            analyticsPeriod: 'week',
-            teamAnalytics: null,
-            agentAnalytics: null,
             billingOverview: null,
+            // Reports
+            agentReportsLoaded: false,
+            memberReportsLoaded: false,
             // Products
             products: [],
             selectedProduct: null,
@@ -2137,7 +2026,6 @@
                 requests: 30000,
                 bots: 300000,
                 teamAnalytics: 30000,
-                agentAnalytics: 30000,
                 reports: 60000,
                 billing: 60000,
                 products: 120000,
@@ -2263,13 +2151,9 @@
             }),
             // Admin analytics
             getTeamAnalytics: (orgId, period = 'week') => api.fetch(`/orgs/${orgId}/analytics/team?period=${period}`),
-            getAgentAnalytics: (orgId, period = 'week') => api.fetch(`/orgs/${orgId}/analytics/agents?period=${period}`),
-            // Activity Reports
+            // Reports
             getLatestReports: (orgId, periodType = 'weekly') => api.fetch(`/orgs/${orgId}/reports/latest?period_type=${periodType}`),
-            generateReport: (orgId, data) => api.fetch(`/orgs/${orgId}/reports/generate`, {
-                method: 'POST',
-                body: JSON.stringify(data)
-            }),
+            getBotTasks: (orgId) => api.fetch(`/orgs/${orgId}/bot-tasks?limit=100`),
             // Billing
             getBillingOverview: (orgId) => api.fetch(`/orgs/${orgId}/billing`),
             getPlans: () => api.fetch('/plans'),
@@ -2354,8 +2238,8 @@
 
                     clearTimeout(safetyTimeout);
                     if (membership.role === 'admin') {
-                        console.log('[Hub Init] Loading admin dashboard');
-                        await loadAdminDashboard();
+                        console.log('[Hub Init] Loading admin agent home');
+                        await loadAdminHome();
                     } else {
                         console.log('[Hub Init] Loading member dashboard (bot assignments)');
                         await loadMemberDashboard();
@@ -2453,23 +2337,21 @@
                 const org = await api.createOrg(orgName, adminName);
                 state.currentOrg = org;
                 state.currentMembership = { role: 'admin' };
-                await loadAdminDashboard();
+                await loadAdminHome();
             } catch (error) {
                 alert(error.message);
             }
         };
 
         /* ─────────────────────────────────────────────────────────────────────
-           ADMIN DASHBOARD
+           ADMIN AGENT HOME
            ───────────────────────────────────────────────────────────────────── */
 
-        const loadAdminDashboard = async () => {
+        const loadAdminHome = async () => {
             const orgId = state.currentOrg.id;
 
-            // SECURITY: Verify admin access server-side BEFORE showing admin UI
-            // This prevents client-side role manipulation attacks
+            // SECURITY: Verify admin access server-side
             try {
-                // getOrgDetails requires admin role - use it as access control gate
                 const cachedDetails = cache.get('orgDetails');
                 if (cachedDetails) {
                     state.orgDetails = cachedDetails;
@@ -2479,14 +2361,78 @@
                     cache.set('orgDetails', orgDetails);
                 }
             } catch (error) {
-                // If we get 403 (Admin access required), redirect to member dashboard
-                console.warn('[Security] Admin access denied by server, redirecting to member dashboard');
-                state.currentMembership.role = 'member'; // Correct the local state
+                console.warn('[Security] Admin access denied, redirecting to member dashboard');
+                state.currentMembership.role = 'member';
                 await loadMemberDashboard();
                 return;
             }
 
-            // Only show admin page AFTER server verification succeeds
+            showPage('admin-home');
+            document.getElementById('admin-home-org-name').textContent = state.currentOrg.name;
+
+            // Fetch all active bots (ALL org bots, not member-specific)
+            const cachedBots = cache.get('bots');
+            let bots;
+            if (cachedBots) {
+                bots = cachedBots;
+            } else {
+                bots = await api.getBots().catch(() => []);
+                cache.set('bots', bots);
+            }
+            state.availableBots = bots;
+
+            if (bots && bots.length > 0) {
+                document.getElementById('admin-no-bots').classList.add('hidden');
+                document.getElementById('admin-bots-list').innerHTML = bots.map(bot => `
+                    <div class="list-item list-item-clickable" onclick="openAgent('${bot.id}')">
+                        <div class="list-item-avatar" style="background: var(--color-success);">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="10" rx="2"></rect><circle cx="12" cy="5" r="2"></circle><path d="M12 7v4"></path><circle cx="8" cy="16" r="1" fill="currentColor"></circle><circle cx="16" cy="16" r="1" fill="currentColor"></circle></svg>
+                        </div>
+                        <div class="list-item-content">
+                            <div class="list-item-title">${escapeHtml(bot.name)}</div>
+                            <div class="list-item-subtitle">Active</div>
+                        </div>
+                        <span class="chip chip-success">Open</span>
+                    </div>
+                `).join('');
+            } else {
+                document.getElementById('admin-bots-list').innerHTML = '';
+                document.getElementById('admin-no-bots').classList.remove('hidden');
+            }
+
+            // Log page view
+            api.logActivity(orgId, null, 'page_view', { section: 'admin-home' }).catch(() => {});
+        };
+
+        const openAdminDashboard = async () => {
+            await loadAdminDashboard();
+        };
+
+        const backToAdminHome = () => {
+            showPage('admin-home');
+        };
+
+        /* ─────────────────────────────────────────────────────────────────────
+           ADMIN DASHBOARD
+           ───────────────────────────────────────────────────────────────────── */
+
+        const loadAdminDashboard = async () => {
+            const orgId = state.currentOrg.id;
+
+            // SECURITY: Verify admin access server-side if not already verified
+            if (!state.orgDetails) {
+                try {
+                    const orgDetails = await api.getOrgDetails(orgId);
+                    state.orgDetails = orgDetails;
+                    cache.set('orgDetails', orgDetails);
+                } catch (error) {
+                    console.warn('[Security] Admin access denied by server, redirecting to member dashboard');
+                    state.currentMembership.role = 'member';
+                    await loadMemberDashboard();
+                    return;
+                }
+            }
+
             showPage('admin');
 
             // Use cache for parallel data loads — only fetch what's missing
@@ -2517,9 +2463,6 @@
             updateInviteCodeDisplay(state.inviteCode);
             renderRequests();
             renderMembers();
-
-            // Load team analytics for the default section
-            await loadTeamAnalytics();
 
             // Log page view activity
             api.logActivity(orgId, null, 'page_view', { section: 'team' }).catch(() => {});
@@ -3052,12 +2995,8 @@
             document.getElementById(`section-${section}`)?.classList.add('active');
 
             // Load section-specific data
-            if (section === 'team' && !state.teamAnalytics) {
-                await loadTeamAnalytics();
-            } else if (section === 'analytics' && !state.agentAnalytics) {
-                await loadAgentAnalytics();
-            } else if (section === 'reports' && !state.activityReports) {
-                await loadReports();
+            if (section === 'reports' && !state.agentReportsLoaded) {
+                await loadAgentReports();
             } else if (section === 'billing' && !state.billingOverview) {
                 await loadBillingOverview();
             } else if (section === 'products') {
@@ -3071,323 +3010,166 @@
         };
 
         /* ─────────────────────────────────────────────────────────────────────
-           ADMIN DASHBOARD: TEAM ANALYTICS
+           ADMIN DASHBOARD: REPORTS (Agents + Members)
            ───────────────────────────────────────────────────────────────────── */
 
-        const setTeamPeriod = async (period) => {
-            state.teamPeriod = period;
+        const switchReportsTab = (tab) => {
+            document.querySelectorAll('#reports-sub-tabs .tab').forEach(t => t.classList.remove('active'));
+            document.querySelector(`#reports-sub-tabs .tab[onclick="switchReportsTab('${tab}')"]`)?.classList.add('active');
 
-            // Update tab visuals
-            document.querySelectorAll('#team-period-tabs .tab').forEach(t => t.classList.remove('active'));
-            document.querySelector(`#team-period-tabs .tab[onclick="setTeamPeriod('${period}')"]`)?.classList.add('active');
+            document.getElementById('reports-tab-agents').classList.toggle('hidden', tab !== 'agents');
+            document.getElementById('reports-tab-members').classList.toggle('hidden', tab !== 'members');
 
-            await loadTeamAnalytics();
+            if (tab === 'agents' && !state.agentReportsLoaded) {
+                loadAgentReports();
+            } else if (tab === 'members' && !state.memberReportsLoaded) {
+                loadMemberReports();
+            }
         };
 
-        const loadTeamAnalytics = async () => {
+        const loadAgentReports = async () => {
             if (!state.currentOrg) return;
+            const orgId = state.currentOrg.id;
 
             try {
-                const cacheKey = `teamAnalytics_${state.teamPeriod}`;
-                const cached = cache.get(cacheKey);
-                if (cached) {
-                    state.teamAnalytics = cached;
-                    renderTeamAnalytics(cached);
-                    return;
-                }
+                const bots = state.availableBots || await api.getBots().catch(() => []);
+                state.availableBots = bots;
 
-                const analytics = await api.getTeamAnalytics(state.currentOrg.id, state.teamPeriod);
-                state.teamAnalytics = analytics;
-                cache.set(cacheKey, analytics);
-                renderTeamAnalytics(analytics);
+                // Fetch today's bot tasks and latest weekly AI reports in parallel
+                const [todayTasks, latestReports] = await Promise.all([
+                    api.getBotTasks(orgId).catch(() => []),
+                    api.getLatestReports(orgId, 'weekly').catch(() => ({ agent_reports: [] }))
+                ]);
+
+                state.agentReportsLoaded = true;
+                renderAgentReports(bots, latestReports, todayTasks);
             } catch (error) {
-                // SECURITY: Check for authorization failure
                 if (handleAuthError(error)) return;
-
-                console.error('Failed to load team analytics:', error);
-                // Show default values
-                document.getElementById('team-active-count').textContent = state.members?.length || 0;
-                document.getElementById('team-activities-count').textContent = '0';
+                console.error('Failed to load agent reports:', error);
+                document.getElementById('agent-reports-container').innerHTML = '';
+                document.getElementById('agent-reports-empty').classList.remove('hidden');
             }
         };
 
-        const renderTeamAnalytics = (analytics) => {
-            document.getElementById('team-active-count').textContent = analytics.active_members;
-            document.getElementById('team-activities-count').textContent = analytics.total_activities;
+        const renderAgentReports = (bots, latestReports, todayTasks) => {
+            const container = document.getElementById('agent-reports-container');
+            const empty = document.getElementById('agent-reports-empty');
 
-            // Update members list with activity data
-            if (analytics.members && analytics.members.length > 0) {
-                renderMembersWithActivity(analytics.members);
-            }
-        };
-
-        const renderMembersWithActivity = (memberActivities) => {
-            // Merge activity data with members
-            const memberMap = new Map(memberActivities.map(m => [m.membership_id, m]));
-
-            state.members.forEach(member => {
-                const activity = memberMap.get(member.id);
-                if (activity) {
-                    member.activity_count = activity.activity_count;
-                    member.bots_accessed = activity.bots_accessed;
-                }
-            });
-
-            renderMembers();
-        };
-
-        /* ─────────────────────────────────────────────────────────────────────
-           ADMIN DASHBOARD: AGENT ANALYTICS
-           ───────────────────────────────────────────────────────────────────── */
-
-        const setAnalyticsPeriod = async (period) => {
-            state.analyticsPeriod = period;
-
-            // Update tab visuals
-            document.querySelectorAll('#analytics-period-tabs .tab').forEach(t => t.classList.remove('active'));
-            document.querySelector(`#analytics-period-tabs .tab[onclick="setAnalyticsPeriod('${period}')"]`)?.classList.add('active');
-
-            await loadAgentAnalytics();
-        };
-
-        const loadAgentAnalytics = async () => {
-            if (!state.currentOrg) return;
-
-            try {
-                const cacheKey = `agentAnalytics_${state.analyticsPeriod}`;
-                const cached = cache.get(cacheKey);
-                if (cached) {
-                    state.agentAnalytics = cached;
-                    renderAgentAnalytics(cached);
-                    return;
-                }
-
-                const analytics = await api.getAgentAnalytics(state.currentOrg.id, state.analyticsPeriod);
-                state.agentAnalytics = analytics;
-                cache.set(cacheKey, analytics);
-                renderAgentAnalytics(analytics);
-            } catch (error) {
-                // SECURITY: Check for authorization failure
-                if (handleAuthError(error)) return;
-
-                console.error('Failed to load agent analytics:', error);
-                document.getElementById('analytics-total-tasks').textContent = '0';
-                document.getElementById('analytics-active-agents').textContent = '0';
-                document.getElementById('agent-stats-list').innerHTML = '';
-                document.getElementById('agent-stats-empty').classList.remove('hidden');
-            }
-        };
-
-        const renderAgentAnalytics = (analytics) => {
-            document.getElementById('analytics-total-tasks').textContent = analytics.total_tasks;
-
-            const activeAgents = analytics.agents.filter(a => a.active_users > 0).length;
-            document.getElementById('analytics-active-agents').textContent = activeAgents;
-
-            const list = document.getElementById('agent-stats-list');
-            const empty = document.getElementById('agent-stats-empty');
-
-            if (analytics.agents.length === 0) {
-                list.innerHTML = '';
+            if (!bots || bots.length === 0) {
+                container.innerHTML = '';
                 empty.classList.remove('hidden');
                 return;
             }
-
             empty.classList.add('hidden');
-            list.innerHTML = analytics.agents.map(agent => `
-                <div class="agent-stat-item">
-                    <div class="agent-stat-icon">${agent.bot_icon || '🤖'}</div>
-                    <div class="agent-stat-info">
-                        <div class="agent-stat-name">${escapeHtml(agent.bot_name)}</div>
-                        <div class="agent-stat-meta">${agent.active_users} active user${agent.active_users !== 1 ? 's' : ''}</div>
+
+            // Group tasks by bot
+            const tasksByBot = {};
+            (todayTasks || []).forEach(t => {
+                if (!tasksByBot[t.bot_id]) tasksByBot[t.bot_id] = [];
+                tasksByBot[t.bot_id].push(t);
+            });
+
+            // Map AI reports by bot_id
+            const reportsByBot = {};
+            if (latestReports.agent_reports) {
+                latestReports.agent_reports.forEach(r => {
+                    reportsByBot[r.bot_id] = r;
+                });
+            }
+
+            container.innerHTML = bots.map(bot => {
+                const tasks = tasksByBot[bot.id] || [];
+                const report = reportsByBot[bot.id];
+
+                return `
+                    <div class="report-card" style="margin-bottom: var(--space-md);">
+                        <div class="report-card-header">
+                            <div class="report-card-icon">${bot.icon || '🤖'}</div>
+                            <div class="report-card-title">${escapeHtml(bot.name)}</div>
+                            <div class="report-card-period">${tasks.length} tasks today</div>
+                        </div>
+                        <div class="report-card-body">
+                            ${tasks.length > 0 ? `
+                                <div class="section-title" style="margin-bottom: 8px; font-size: 13px;">Today's Tasks</div>
+                                <div class="report-highlights">
+                                    ${tasks.slice(0, 10).map(t =>
+                                        `<div class="report-highlight">${escapeHtml(t.task_type)}${t.task_detail ? ': ' + escapeHtml(typeof t.task_detail === 'string' ? t.task_detail.substring(0, 80) : JSON.stringify(t.task_detail).substring(0, 80)) : ''}</div>`
+                                    ).join('')}
+                                    ${tasks.length > 10 ? `<div class="text-muted" style="font-size: 12px;">+${tasks.length - 10} more tasks</div>` : ''}
+                                </div>
+                            ` : '<p class="text-muted" style="font-size: 13px;">No tasks performed today</p>'}
+                            ${report ? `
+                                <div class="section-title" style="margin-top: 12px; margin-bottom: 8px; font-size: 13px;">Weekly Summary</div>
+                                <p class="report-summary">${escapeHtml(report.summary_text.substring(0, 300))}${report.summary_text.length > 300 ? '...' : ''}</p>
+                            ` : ''}
+                        </div>
                     </div>
-                    <div class="agent-stat-count">
-                        <div class="agent-stat-value">${agent.task_count}</div>
-                        <div class="agent-stat-label">tasks</div>
+                `;
+            }).join('');
+        };
+
+        const loadMemberReports = async () => {
+            if (!state.currentOrg) return;
+
+            try {
+                // Fetch team analytics for all three periods in parallel
+                const [dayData, weekData, monthData] = await Promise.all([
+                    api.getTeamAnalytics(state.currentOrg.id, 'day'),
+                    api.getTeamAnalytics(state.currentOrg.id, 'week'),
+                    api.getTeamAnalytics(state.currentOrg.id, 'month')
+                ]);
+
+                state.memberReportsLoaded = true;
+                renderMemberReports(dayData, weekData, monthData);
+            } catch (error) {
+                if (handleAuthError(error)) return;
+                console.error('Failed to load member reports:', error);
+                document.getElementById('member-reports-container').innerHTML = '';
+                document.getElementById('member-reports-empty').classList.remove('hidden');
+            }
+        };
+
+        const renderMemberReports = (dayData, weekData, monthData) => {
+            const container = document.getElementById('member-reports-container');
+            const empty = document.getElementById('member-reports-empty');
+
+            const allMembers = weekData.members || [];
+
+            if (allMembers.length === 0) {
+                container.innerHTML = '';
+                empty.classList.remove('hidden');
+                return;
+            }
+            empty.classList.add('hidden');
+
+            // Build lookup maps for day and month
+            const dayMap = new Map((dayData.members || []).map(m => [m.membership_id, m.activity_count]));
+            const monthMap = new Map((monthData.members || []).map(m => [m.membership_id, m.activity_count]));
+
+            container.innerHTML = allMembers.map(member => `
+                <div class="list-item" style="padding: var(--space-md);">
+                    <div class="list-item-avatar">${member.full_name.charAt(0).toUpperCase()}</div>
+                    <div class="list-item-content">
+                        <div class="list-item-title">${escapeHtml(member.full_name)}</div>
+                        <div class="list-item-subtitle">${escapeHtml(member.role || 'member')}</div>
+                    </div>
+                    <div style="text-align: right; font-size: 12px; color: var(--text-secondary); line-height: 1.6;">
+                        <div><strong>${dayMap.get(member.membership_id) || 0}</strong> today</div>
+                        <div><strong>${member.activity_count || 0}</strong> this week</div>
+                        <div><strong>${monthMap.get(member.membership_id) || 0}</strong> this month</div>
                     </div>
                 </div>
             `).join('');
         };
 
-        /* ─────────────────────────────────────────────────────────────────────
-           ADMIN DASHBOARD: ACTIVITY REPORTS
-           ───────────────────────────────────────────────────────────────────── */
-
-        let reportsPeriod = 'weekly';
-
-        const setReportsPeriod = async (period) => {
-            reportsPeriod = period;
-
-            // Update tab UI
-            document.querySelectorAll('#reports-period-tabs .tab').forEach(t => t.classList.remove('active'));
-            document.querySelector(`#reports-period-tabs .tab[onclick="setReportsPeriod('${period}')"]`)?.classList.add('active');
-
-            // Reload reports
-            await loadReports();
-        };
-
-        const loadReports = async () => {
-            if (!state.currentOrg) return;
-
-            try {
-                const cacheKey = `reports_${reportsPeriod}`;
-                const cached = cache.get(cacheKey);
-                if (cached) {
-                    state.activityReports = cached;
-                    renderReports(cached);
-                    return;
-                }
-
-                const response = await api.getLatestReports(state.currentOrg.id, reportsPeriod);
-                state.activityReports = response;
-                cache.set(cacheKey, response);
-                renderReports(response);
-            } catch (error) {
-                // SECURITY: Check for authorization failure
-                if (handleAuthError(error)) return;
-
-                console.error('Failed to load reports:', error);
-                renderReportsError();
-            }
-        };
-
-        const renderReports = (data) => {
-            // Render team report
-            const teamSummary = document.getElementById('team-report-summary');
-            const teamHighlights = document.getElementById('team-report-highlights');
-            const teamPeriod = document.getElementById('team-report-period');
-
-            if (data.team_report) {
-                teamPeriod.textContent = formatReportPeriod(data.team_report.period_type, data.team_report.period_start);
-                teamSummary.textContent = data.team_report.summary_text;
-
-                if (data.team_report.highlights && data.team_report.highlights.length > 0) {
-                    teamHighlights.innerHTML = data.team_report.highlights.map(h =>
-                        `<div class="report-highlight">${escapeHtml(h)}</div>`
-                    ).join('');
-                } else {
-                    teamHighlights.innerHTML = '';
-                }
-            } else {
-                teamSummary.textContent = 'No team report available for this period. Click "Regenerate" to create one.';
-                teamHighlights.innerHTML = '';
-                teamPeriod.textContent = getPeriodLabel(reportsPeriod);
-            }
-
-            // Render agent reports
-            const agentList = document.getElementById('agent-reports-list');
-            const agentEmpty = document.getElementById('agent-reports-empty');
-
-            if (data.agent_reports && data.agent_reports.length > 0) {
-                agentList.innerHTML = data.agent_reports.map(report => `
-                    <div class="agent-report-item" onclick="openAgentReport('${report.id}')">
-                        <div class="agent-report-header">
-                            <div class="agent-report-icon">${getBotIcon(report.bot_id)}</div>
-                            <div class="agent-report-name">${getBotName(report.bot_id)}</div>
-                            <div class="agent-report-tasks">${report.raw_metrics?.total_tasks || 0} tasks</div>
-                        </div>
-                        <div class="agent-report-preview">${escapeHtml(report.summary_text.substring(0, 150))}...</div>
-                    </div>
-                `).join('');
-                agentList.classList.remove('hidden');
-                agentEmpty.classList.add('hidden');
-            } else {
-                agentList.innerHTML = '';
-                agentList.classList.add('hidden');
-                agentEmpty.classList.remove('hidden');
-            }
-        };
-
-        const renderReportsError = () => {
-            document.getElementById('team-report-summary').textContent = 'Failed to load reports. Please try again.';
-            document.getElementById('team-report-highlights').innerHTML = '';
-            document.getElementById('agent-reports-list').innerHTML = '';
-            document.getElementById('agent-reports-empty').classList.remove('hidden');
-        };
-
-        const formatReportPeriod = (periodType, periodStart) => {
-            const start = new Date(periodStart);
-            if (periodType === 'daily') {
-                return start.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
-            } else if (periodType === 'weekly') {
-                const end = new Date(start);
-                end.setDate(end.getDate() + 6);
-                return `${start.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - ${end.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`;
-            } else if (periodType === 'monthly') {
-                return start.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
-            }
-            return periodStart;
-        };
-
-        const getPeriodLabel = (periodType) => {
-            if (periodType === 'daily') return 'Today';
-            if (periodType === 'weekly') return 'This Week';
-            if (periodType === 'monthly') return 'This Month';
-            return periodType;
-        };
-
-        const regenerateReport = async (reportType) => {
-            if (!state.currentOrg) return;
-
-            const today = new Date();
-            let periodStart;
-
-            if (reportsPeriod === 'daily') {
-                periodStart = new Date(today);
-                periodStart.setDate(periodStart.getDate() - 1);
-            } else if (reportsPeriod === 'weekly') {
-                periodStart = new Date(today);
-                periodStart.setDate(periodStart.getDate() - 7);
-            } else if (reportsPeriod === 'monthly') {
-                periodStart = new Date(today.getFullYear(), today.getMonth() - 1, 1);
-            }
-
-            try {
-                await api.generateReport(state.currentOrg.id, {
-                    report_type: reportType,
-                    period_type: reportsPeriod,
-                    period_start: periodStart.toISOString().split('T')[0]
-                });
-
-                cache.invalidatePrefix('reports');
-
-                // Show generating message
-                document.getElementById('team-report-summary').textContent = 'Generating report... This may take a few seconds.';
-
-                // Reload after delay
-                setTimeout(() => loadReports(), 5000);
-            } catch (error) {
-                console.error('Failed to regenerate report:', error);
-                tg.showAlert('Failed to regenerate report. Please try again.');
-            }
-        };
-
-        const openAgentReport = async (reportId) => {
-            // For now, just show an alert. Could open a modal with full report details.
-            console.log('Opening agent report:', reportId);
-            tg.showAlert('Full report view coming soon!');
-        };
-
         const getBotIcon = (botId) => {
-            const icons = {
-                'lead-agent': '🎯',
-                'crm-assistant': '💼',
-                'calendar-sync': '📅',
-                'task-manager': '✅',
-                'knowledge-base': '🧠'
-            };
-            return icons[botId] || '🤖';
+            const bot = (state.availableBots || []).find(b => b.id === botId);
+            return bot?.icon || '🤖';
         };
 
         const getBotName = (botId) => {
-            const names = {
-                'lead-agent': 'B2B Lead Agent',
-                'crm-assistant': 'CRM Assistant',
-                'calendar-sync': 'Calendar Sync',
-                'task-manager': 'Task Manager',
-                'knowledge-base': 'Knowledge Base'
-            };
-            return names[botId] || botId;
+            const bot = (state.availableBots || []).find(b => b.id === botId);
+            return bot?.name || botId;
         };
 
         /* ─────────────────────────────────────────────────────────────────────
@@ -3432,12 +3214,8 @@
 
             // Usage
             const membersLimit = usage.members_limit || 'Unlimited';
-            const customersLimit = usage.customers_limit || 'Unlimited';
-
             document.getElementById('usage-members-text').textContent =
                 `${usage.members_used} / ${membersLimit}`;
-            document.getElementById('usage-customers-text').textContent =
-                `${usage.customers_used} / ${customersLimit}`;
 
             // Calculate percentages
             if (usage.members_limit) {
@@ -3449,14 +3227,6 @@
                 document.getElementById('usage-members-bar').style.width = '30%';
             }
 
-            if (usage.customers_limit) {
-                const percent = Math.min(100, (usage.customers_used / usage.customers_limit) * 100);
-                const bar = document.getElementById('usage-customers-bar');
-                bar.style.width = `${percent}%`;
-                bar.className = 'usage-fill' + (percent > 90 ? ' danger' : percent > 70 ? ' warning' : '');
-            } else {
-                document.getElementById('usage-customers-bar').style.width = '10%';
-            }
 
             // Invoices
             const invoicesList = document.getElementById('invoices-list');
