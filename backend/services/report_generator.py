@@ -93,11 +93,7 @@ AI AGENT USAGE:
 {bots_text}
 
 TASK:
-Write a professional but engaging summary (2-3 paragraphs) that:
-1. Highlights team productivity and engagement
-2. Celebrates top contributors without being excessive
-3. Notes which AI agents are driving value
-4. Sounds impressive to business stakeholders while being factual
+Write a single brief sentence (max 20 words) summarizing the team's activity this period. Be direct, factual, and to the point. No fluff.
 
 Also provide 3-5 KEY HIGHLIGHTS as brief bullet points (achievements, milestones).
 
@@ -113,13 +109,13 @@ Respond ONLY with valid JSON:
             messages=[
                 {
                     "role": "system",
-                    "content": "You are a business analytics assistant. Write clear, factual, and professional reports. Avoid hype but make achievements sound meaningful. Respond only with valid JSON."
+                    "content": "You are a business analytics assistant. Write brief, factual one-sentence summaries. Respond only with valid JSON."
                 },
                 {"role": "user", "content": prompt}
             ],
             response_format={"type": "json_object"},
             temperature=0.7,
-            max_tokens=800
+            max_tokens=400
         )
 
         result = json.loads(response.choices[0].message.content)
@@ -183,11 +179,7 @@ NOTABLE ACHIEVEMENTS:
 {highlights_text}
 
 TASK:
-Write a compelling summary (2-3 paragraphs) that:
-1. Quantifies the value this AI agent delivered
-2. Highlights autonomous work the agent performed
-3. Shows ROI through time saved or leads generated
-4. Impresses business stakeholders while sticking to facts
+Write a single brief sentence (max 20 words) summarizing this agent's activity and value delivered this period. Be direct, factual, and to the point. No fluff.
 
 Also provide 3-5 KEY HIGHLIGHTS as brief achievement bullet points.
 
@@ -202,13 +194,13 @@ Respond ONLY with valid JSON:
             messages=[
                 {
                     "role": "system",
-                    "content": "You are a business analytics assistant specializing in AI productivity metrics. Write factual, impressive reports that demonstrate ROI. Respond only with valid JSON."
+                    "content": "You are a business analytics assistant. Write brief, factual one-sentence summaries. Respond only with valid JSON."
                 },
                 {"role": "user", "content": prompt}
             ],
             response_format={"type": "json_object"},
             temperature=0.7,
-            max_tokens=600
+            max_tokens=400
         )
 
         result = json.loads(response.choices[0].message.content)

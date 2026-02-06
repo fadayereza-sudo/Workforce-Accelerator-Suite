@@ -893,7 +893,23 @@ async def list_journal_entries(
         "prospect_id", prospect_id
     ).order("created_at", desc=True).execute()
 
-    return [JournalEntry(**e) for e in result.data]
+    # Look up author names from memberships
+    org_id = prospect.data["org_id"]
+    user_ids = list({e["user_id"] for e in result.data})
+    name_map = {}
+    if user_ids:
+        members = db.table("memberships").select(
+            "user_id, users(full_name)"
+        ).eq("org_id", org_id).in_("user_id", user_ids).execute()
+        name_map = {m["user_id"]: m["users"]["full_name"] for m in members.data}
+
+    entries = []
+    for e in result.data:
+        entry = JournalEntry(**e)
+        entry.author_name = name_map.get(e["user_id"])
+        entries.append(entry)
+
+    return entries
 
 
 @router.post("/prospects/{prospect_id}/journal")

@@ -3015,6 +3015,7 @@
                         <span class="journal-entry-type">${icon} ${entry.interaction_type}</span>
                         <span class="journal-entry-date">${date}</span>
                     </div>
+                    ${entry.author_name ? `<div style="font-size: 12px; color: var(--tg-theme-hint-color); margin-bottom: 4px;">${escapeHtml(entry.author_name)}</div>` : ''}
                     <div class="journal-entry-content">${escapeHtml(entry.content)}</div>
                     <div class="journal-entry-actions">
                         <button class="btn btn-ghost btn-sm" onclick="editJournalEntry('${entry.id}')">Edit</button>

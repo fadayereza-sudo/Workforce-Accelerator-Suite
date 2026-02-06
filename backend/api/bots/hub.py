@@ -1289,20 +1289,47 @@ async def get_lead_agent_overview(
     ).order("created_at", desc=True).limit(20).execute()
 
     today_events = []
+    # Track task types and business names for summary
+    task_counts = {}
+    businesses = set()
     for t in tasks_result.data:
+        task_type = t["task_type"]
         detail = t.get("task_detail")
+        biz_name = None
         if isinstance(detail, str):
-            today_events.append(f"{t['task_type']}: {detail[:80]}")
+            today_events.append(f"{task_type}: {detail[:80]}")
+            biz_name = detail[:80]
         elif isinstance(detail, dict):
-            summary = detail.get("business_name") or detail.get("summary", "")
-            today_events.append(f"{t['task_type']}: {summary[:80]}" if summary else t["task_type"])
+            biz_name = detail.get("business_name") or detail.get("summary", "")
+            today_events.append(f"{task_type}: {biz_name[:80]}" if biz_name else task_type)
         else:
-            today_events.append(t["task_type"])
+            today_events.append(task_type)
+        # Collect for summary
+        friendly = task_type.replace("_", " ")
+        task_counts[friendly] = task_counts.get(friendly, 0) + 1
+        if biz_name:
+            businesses.add(biz_name.strip()[:40])
+
+    # Build natural language summary
+    today_summary = ""
+    if task_counts:
+        parts = [f"{count} {name}" for name, count in task_counts.items()]
+        summary_parts = ", ".join(parts)
+        if businesses:
+            biz_list = list(businesses)
+            if len(biz_list) <= 3:
+                biz_str = ", ".join(biz_list[:-1]) + (" and " + biz_list[-1] if len(biz_list) > 1 else biz_list[0])
+            else:
+                biz_str = ", ".join(biz_list[:3]) + f" and {len(biz_list) - 3} more"
+            today_summary = f"{summary_parts} for {biz_str}."
+        else:
+            today_summary = f"{summary_parts} today."
 
     result = LeadAgentOverview(
         active_leads=active_leads,
         scheduled_followups=scheduled_count,
-        today_events=today_events
+        today_events=today_events,
+        today_summary=today_summary
     )
     cache_set("analytics", cache_key, result)
     return result

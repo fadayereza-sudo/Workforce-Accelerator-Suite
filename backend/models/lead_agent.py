@@ -224,6 +224,7 @@ class JournalEntry(BaseModel):
     user_id: str
     content: str
     interaction_type: str
+    author_name: Optional[str] = None
     created_at: datetime
     updated_at: datetime
 

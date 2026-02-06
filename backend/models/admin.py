@@ -52,6 +52,7 @@ class LeadAgentOverview(BaseModel):
     active_leads: int = 0
     scheduled_followups: int = 0
     today_events: List[str] = []
+    today_summary: str = ""
 
 
 class AgentUsage(BaseModel):
