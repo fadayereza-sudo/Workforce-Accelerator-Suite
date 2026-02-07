@@ -76,22 +76,29 @@ TASKS:
    - Explain the pain point in 1-2 sentences
    - If applicable, mention which of our products would help (use exact product name or null)
 
-3. Create a CALL SCRIPT based on the pain points. For each pain point, create:
-   - A SHORT, conversational question (like you're chatting with a friend)
-     * Use casual language: "you guys", "finding it hard", "struggling with"
-     * Keep it under 15 words
-     * Sound genuinely curious, not salesy
-     * Example: "Are you guys finding it hard to discover talented young players?"
-   - A brief answer showing how we can help (1-2 sentences max)
-     * Reference our specific product/service if relevant
-     * Keep it conversational and benefit-focused
-     * Example: "We specialize in discovering children's sport talent using science-based methods."
+3. Create a CALL SCRIPT with 3 conversational Q&A's based on the pain points.
 
-IMPORTANT RULES FOR CALL SCRIPT:
-- Questions should sound human, not corporate
-- Avoid jargon and buzzwords
-- The question should invite the prospect to share their experience
-- Answers should be solutions, not product pitches
+Each Q&A has 3 parts:
+   a) YOUR OPENING QUESTION - Frame it positively, inviting their opinion. Never assume a problem or imply incompetence. Sound like you're asking a loved one their take on something. Keep it simple, straight to the point, and genuinely curious. The question should make them think "of course I want that, it's a no-brainer".
+   b) THEIR EXPECTED RESPONSE - What the prospect will likely say back (a short, natural reply).
+   c) OUR VALUE RESPONSE - How we deliver value in response. Reference our specific product/service. Keep it conversational and benefit-focused.
+
+EXAMPLE (for a fitness club prospect, pain point: "hard to identify sports talent"):
+   BAD question: "Do you find it hard to identify sports talent in the UAE?"
+   (This implies they're not competent. People expect strangers to help them, not question them.)
+
+   GOOD question: "Would you guys be interested in finding new players?"
+   Their response: "Sure, what kind of players?"
+   Our response: "We use rigorous testing methods to identify talented young players in Dubai and when we know which sport they are good at, we send them to you."
+
+   WHY THIS WORKS: It doesn't sound salesy. It doesn't sound scripted. It sounds like something a person who cares about you would ask. It immediately brings down a person's guard and invites them to engage.
+
+RULES FOR CALL SCRIPT:
+- Never assume the person will run away - no emotionally sticky opening lines
+- Questions should invite their opinion, not point out a weakness
+- Frame questions so the value is obvious: "would you be interested in X?"
+- Keep questions under 15 words
+- Sound like a person who genuinely cares, not a salesperson
 
 Respond ONLY with valid JSON in this exact format:
 {{
@@ -115,8 +122,8 @@ Respond ONLY with valid JSON in this exact format:
     ],
     "call_script": [
         {{
-            "question": "Are you guys finding it hard to...?",
-            "answer": "We specialize in... using..."
+            "question": "Would you guys be interested in...?",
+            "answer": "We use... to help you..."
         }},
         {{
             "question": "...",
@@ -135,7 +142,7 @@ Respond ONLY with valid JSON in this exact format:
                 messages=[
                     {
                         "role": "system",
-                        "content": "You are a B2B sales intelligence assistant with expertise in identifying business pain points and matching them to solutions. You also help sales reps sound natural and human on calls - avoiding corporate speak and helping people connect authentically. Respond only with valid JSON."
+                        "content": "You are a B2B sales intelligence assistant. You identify business pain points and match them to solutions. For call scripts, you help sales reps sound like someone who genuinely cares - not a salesperson. You frame questions positively to invite opinion, never assuming problems or incompetence. Respond only with valid JSON."
                     },
                     {
                         "role": "user",
@@ -144,7 +151,7 @@ Respond ONLY with valid JSON in this exact format:
                 ],
                 response_format={"type": "json_object"},
                 temperature=0.7,
-                max_tokens=900
+                max_tokens=1100
             )
 
             result = json.loads(response.choices[0].message.content)
@@ -208,7 +215,7 @@ Respond ONLY with valid JSON in this exact format:
             for i, pp in enumerate(pain_points[:3])
         ])
 
-        prompt = f"""You are a B2B sales coach. Transform these technical pain points into natural, conversational questions for a cold call.
+        prompt = f"""Transform these pain points into a conversational call script for reaching out to a prospect.
 
 PROSPECT: {business_name}
 
@@ -219,28 +226,29 @@ OUR PRODUCTS/SERVICES:
 {products_context}
 
 TASK:
-For each pain point, create:
-1. A SHORT, conversational question (like you're chatting with a friend)
-   - Use casual language: "you guys", "finding it hard", "struggling with"
-   - Keep it under 15 words
-   - Sound genuinely curious, not salesy
+For each pain point, create a Q&A pair:
 
-2. A brief answer showing how we can help (1-2 sentences max)
-   - Reference our specific product/service if relevant
-   - Keep it conversational and benefit-focused
+- QUESTION: Frame it positively, inviting their opinion. Never assume a problem or imply incompetence. Sound like you're asking a loved one their take on something. Make them think "of course I want that". Keep it under 15 words.
 
-IMPORTANT RULES:
-- Questions should sound human, not corporate
-- Avoid jargon and buzzwords
-- The question should invite the prospect to share their experience
-- Answers should be solutions, not product pitches
+- ANSWER: How we deliver value. Reference our product/service. Keep it conversational (1-2 sentences).
 
-Respond ONLY with valid JSON in this exact format:
+EXAMPLE (pain point: "hard to identify sports talent"):
+   BAD question: "Do you find it hard to identify sports talent?" (implies incompetence)
+   GOOD question: "Would you guys be interested in finding new players?"
+   Answer: "We use rigorous testing methods to identify talented young players in Dubai and when we know which sport they're good at, we send them to you."
+
+RULES:
+- Never assume the person will run away
+- Questions invite opinion, not point out weakness
+- Simple and straight to the point
+- Sound like someone who genuinely cares, not a salesperson
+
+Respond ONLY with valid JSON:
 {{
     "script_items": [
         {{
-            "question": "Are you guys finding it hard to...?",
-            "answer": "We specialize in... using..."
+            "question": "Would you guys be interested in...?",
+            "answer": "We use... to help you..."
         }},
         {{
             "question": "...",
@@ -259,7 +267,7 @@ Respond ONLY with valid JSON in this exact format:
                 messages=[
                     {
                         "role": "system",
-                        "content": "You are a B2B sales coach who helps reps sound natural and human on calls. You avoid corporate speak and help people connect authentically. Respond only with valid JSON."
+                        "content": "You are a B2B sales coach. You help reps sound like someone who genuinely cares - not a salesperson. You frame questions positively to invite opinion, never assuming problems. Respond only with valid JSON."
                     },
                     {
                         "role": "user",
@@ -268,7 +276,7 @@ Respond ONLY with valid JSON in this exact format:
                 ],
                 response_format={"type": "json_object"},
                 temperature=0.8,  # Slightly higher for natural language variation
-                max_tokens=500
+                max_tokens=700
             )
 
             result = json.loads(response.choices[0].message.content)

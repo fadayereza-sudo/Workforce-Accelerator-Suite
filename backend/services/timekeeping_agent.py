@@ -74,12 +74,15 @@ NOTIFICATION MESSAGE GUIDELINES:
 - Sound like a helpful assistant, not a robot
 - Example: "Time to follow up with Acme Corp - you sent them pricing details 5 days ago."
 
+Also write a brief MANAGEMENT SUMMARY (2-3 sentences) that describes how this lead has been managed so far. Mention key interactions, current status, and what the next step should be. Write it as if briefing a colleague who is taking over.
+
 Respond ONLY with valid JSON:
 {{
     "should_notify": true,
     "days_from_now": 7,
     "message": "notification message here",
-    "reasoning": "brief explanation of your decision"
+    "reasoning": "brief explanation of your decision",
+    "management_summary": "2-3 sentence summary of how this lead has been managed so far"
 }}
 
 If should_notify is false, set days_from_now to 0 and message to empty string."""
@@ -99,7 +102,7 @@ If should_notify is false, set days_from_now to 0 and message to empty string.""
                 ],
                 response_format={"type": "json_object"},
                 temperature=0.3,
-                max_tokens=300
+                max_tokens=450
             )
 
             result = json.loads(response.choices[0].message.content)
@@ -112,7 +115,8 @@ If should_notify is false, set days_from_now to 0 and message to empty string.""
                 "should_notify": result.get("should_notify", True),
                 "scheduled_for": scheduled_for.isoformat(),
                 "message": result.get("message", ""),
-                "reasoning": result.get("reasoning", "")
+                "reasoning": result.get("reasoning", ""),
+                "management_summary": result.get("management_summary", "")
             }
 
         except Exception as e:
@@ -163,6 +167,12 @@ async def process_timekeeping_agent(
         if not result:
             print(f"[TimekeepingAgent] AI analysis failed for prospect {prospect_id}")
             return
+
+        # Update AI overview on the prospect
+        if result.get("management_summary"):
+            db.table("lead_agent_prospects").update({
+                "ai_overview": result["management_summary"]
+            }).eq("id", prospect_id).execute()
 
         # Cancel existing pending notification for this user/prospect
         db.table("lead_agent_scheduled_notifications").update({

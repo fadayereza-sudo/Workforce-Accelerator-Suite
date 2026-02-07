@@ -667,6 +667,22 @@ async def get_prospect(
     pain_points = [PainPoint(**pp) for pp in prospect.get("pain_points", [])]
     call_script = prospect.get("call_script", [])
 
+    # Get latest pending follow-up notification for this prospect
+    next_follow_up = None
+    notif_result = db.table("lead_agent_scheduled_notifications").select(
+        "scheduled_for, message, ai_reasoning"
+    ).eq("prospect_id", prospect_id).eq(
+        "status", "pending"
+    ).order("scheduled_for", desc=False).limit(1).execute()
+
+    if notif_result.data:
+        n = notif_result.data[0]
+        next_follow_up = {
+            "date": n["scheduled_for"],
+            "message": n["message"],
+            "reasoning": n.get("ai_reasoning", "")
+        }
+
     return ProspectCard(
         id=prospect["id"],
         business_name=prospect["business_name"],
@@ -678,6 +694,8 @@ async def get_prospect(
         summary=prospect.get("business_summary"),
         pain_points=pain_points,
         call_script=call_script,
+        ai_overview=prospect.get("ai_overview"),
+        next_follow_up=next_follow_up,
         status=prospect["status"],
         search_query=prospect.get("search_query"),
         source=prospect.get("source", "gemini_search"),

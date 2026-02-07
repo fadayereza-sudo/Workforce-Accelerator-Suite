@@ -113,7 +113,7 @@ class Prospect(BaseModel):
 
 
 class CallScriptItem(BaseModel):
-    """A single item in the call script (question + answer format)."""
+    """A single Q&A item in the call script."""
     question: str
     answer: str
 
@@ -130,6 +130,8 @@ class ProspectCard(BaseModel):
     summary: Optional[str] = None
     pain_points: List[PainPoint] = []
     call_script: List[CallScriptItem] = []
+    ai_overview: Optional[str] = None
+    next_follow_up: Optional[dict] = None
     status: str
     search_query: Optional[str] = None  # Optional for URL-scraped prospects
     source: str = "gemini_search"
