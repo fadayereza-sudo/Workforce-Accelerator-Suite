@@ -1604,6 +1604,32 @@
                 </div>
 
                 <!-- ═══════════════════════════════════════════════════════════
+                     SECTION: APP SUBSCRIPTIONS
+                     ═══════════════════════════════════════════════════════════ -->
+                <div id="section-apps" class="admin-section">
+                    <div class="page-header">
+                        <h1 class="page-title">Apps</h1>
+                        <p class="page-subtitle">Manage your app subscriptions</p>
+                    </div>
+
+                    <div class="section-title">Your Subscriptions</div>
+                    <div id="subscribed-apps-list" class="list"></div>
+                    <div id="subscribed-apps-empty" class="empty-state hidden">
+                        <div class="empty-state-icon">
+                            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"></rect><rect x="14" y="3" width="7" height="7" rx="1"></rect><rect x="3" y="14" width="7" height="7" rx="1"></rect><rect x="14" y="14" width="7" height="7" rx="1"></rect></svg>
+                        </div>
+                        <p class="empty-state-title">No subscriptions yet</p>
+                        <p>Browse available apps below to get started</p>
+                    </div>
+
+                    <div class="section-title" style="margin-top: var(--space-lg);">Available Apps</div>
+                    <div id="available-apps-list" class="list"></div>
+                    <div id="available-apps-empty" class="empty-state hidden">
+                        <p class="text-muted">No additional apps available</p>
+                    </div>
+                </div>
+
+                <!-- ═══════════════════════════════════════════════════════════
                      SECTION: HELP
                      ═══════════════════════════════════════════════════════════ -->
                 <div id="section-help" class="admin-section">
@@ -1679,6 +1705,12 @@
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect><line x1="1" y1="10" x2="23" y2="10"></line></svg>
                     </div>
                     <span class="nav-item-label">Billing</span>
+                </div>
+                <div class="nav-item" onclick="switchAdminSection('apps')">
+                    <div class="nav-item-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"></rect><rect x="14" y="3" width="7" height="7" rx="1"></rect><rect x="3" y="14" width="7" height="7" rx="1"></rect><rect x="14" y="14" width="7" height="7" rx="1"></rect></svg>
+                    </div>
+                    <span class="nav-item-label">Apps</span>
                 </div>
                 <div class="nav-item" onclick="switchAdminSection('help')">
                     <div class="nav-item-icon">
@@ -1879,6 +1911,41 @@
     </div>
 
     <!-- ═══════════════════════════════════════════════════════════════════════
+         MODAL: APP DETAIL
+         ═══════════════════════════════════════════════════════════════════════ -->
+    <div id="modal-app-detail" class="modal-backdrop">
+        <div class="modal-sheet">
+            <div class="modal-handle"></div>
+
+            <div style="text-align: center; margin-bottom: var(--space-lg);">
+                <div class="list-item-avatar" id="app-detail-icon" style="width: 64px; height: 64px; font-size: 28px; margin: 0 auto var(--space-md); background: var(--color-success);">
+                </div>
+                <h2 class="modal-title" id="app-detail-name" style="margin-bottom: 0;">App Name</h2>
+                <p class="text-muted" id="app-detail-description" style="margin-top: var(--space-sm);">
+                    App description goes here
+                </p>
+            </div>
+
+            <div class="card" style="text-align: center; margin-bottom: var(--space-lg);">
+                <div class="section-title" style="margin-bottom: var(--space-sm);">Pricing</div>
+                <p style="font-size: 24px; font-weight: 700; color: var(--color-success);">Free for testing</p>
+                <p class="text-muted text-sm" style="margin-top: var(--space-xs);">No credit card required</p>
+            </div>
+
+            <button class="btn btn-primary btn-block" id="app-detail-subscribe-btn" onclick="handleAppSubscribe()">
+                Subscribe
+            </button>
+            <button class="btn btn-danger btn-block hidden" id="app-detail-unsubscribe-btn" onclick="handleAppUnsubscribe()">
+                Unsubscribe
+            </button>
+
+            <button class="btn btn-secondary btn-block" style="margin-top: var(--space-sm);" onclick="closeAppDetailModal()">
+                Close
+            </button>
+        </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════════════════════
          APPLICATION LOGIC
          ═══════════════════════════════════════════════════════════════════════ -->
     <script>
@@ -1930,7 +1997,11 @@
             billingOverview: null,
             // Reports
             agentReportsLoaded: false,
-            memberReportsLoaded: false
+            memberReportsLoaded: false,
+            // App subscriptions
+            subscribedApps: [],
+            appCatalog: [],
+            appsLoaded: false
         };
 
         /* ─────────────────────────────────────────────────────────────────────
@@ -1949,7 +2020,9 @@
                 teamAnalytics: 30000,
                 reports: 60000,
                 billing: 60000,
-                plans: 600000
+                plans: 600000,
+                orgApps: 120000,
+                appCatalog: 120000
             },
 
             get(key) {
@@ -2069,6 +2142,15 @@
                 body: JSON.stringify({ role })
             }),
             getBots: () => api.fetch('/bots'),
+            // App catalog & subscriptions
+            getOrgApps: (orgId) => api.fetch(`/orgs/${orgId}/apps`),
+            getAppCatalog: () => api.fetch('/apps/catalog'),
+            subscribeToApp: (orgId, appId) => api.fetch(`/orgs/${orgId}/apps/${appId}/subscribe`, {
+                method: 'POST'
+            }),
+            unsubscribeFromApp: (orgId, appId) => api.fetch(`/orgs/${orgId}/apps/${appId}/subscribe`, {
+                method: 'DELETE'
+            }),
             approveRequest: (requestId, approved, botIds) => api.fetch(`/membership-requests/${requestId}/approve`, {
                 method: 'POST',
                 body: JSON.stringify({ request_id: requestId, approved, bot_ids: botIds })
@@ -3026,6 +3108,8 @@
                 await loadAgentReports();
             } else if (section === 'billing' && !state.billingOverview) {
                 await loadBillingOverview();
+            } else if (section === 'apps' && !state.appsLoaded) {
+                await loadAppsSection();
             }
 
             // Log activity
@@ -3326,6 +3410,206 @@
                 currency: currency
             }).format(cents / 100);
         };
+
+        /* ─────────────────────────────────────────────────────────────────────
+           ADMIN DASHBOARD: APP SUBSCRIPTIONS
+           ───────────────────────────────────────────────────────────────────── */
+
+        const getAppIcon = (icon) => {
+            const icons = {
+                briefcase: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path></svg>',
+                chart: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>',
+                users: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>'
+            };
+            return icons[icon] || icons.briefcase;
+        };
+
+        const loadAppsSection = async () => {
+            if (!state.currentOrg) return;
+
+            try {
+                const cachedCatalog = cache.get('appCatalog');
+                const cachedOrgApps = cache.get('orgApps');
+
+                const fetches = [];
+                const fetchKeys = [];
+
+                if (!cachedCatalog) {
+                    fetches.push(api.getAppCatalog());
+                    fetchKeys.push('appCatalog');
+                }
+                if (!cachedOrgApps) {
+                    fetches.push(api.getOrgApps(state.currentOrg.id));
+                    fetchKeys.push('orgApps');
+                }
+
+                if (fetches.length > 0) {
+                    const results = await Promise.all(fetches);
+                    fetchKeys.forEach((key, i) => cache.set(key, results[i]));
+                }
+
+                state.appCatalog = cache.get('appCatalog') || cachedCatalog || [];
+                state.subscribedApps = cache.get('orgApps') || cachedOrgApps || [];
+                state.appsLoaded = true;
+
+                renderAppsSection();
+            } catch (error) {
+                if (handleAuthError(error)) return;
+                console.error('Failed to load apps:', error);
+            }
+        };
+
+        const renderAppsSection = () => {
+            const subscribedList = document.getElementById('subscribed-apps-list');
+            const subscribedEmpty = document.getElementById('subscribed-apps-empty');
+            const availableList = document.getElementById('available-apps-list');
+            const availableEmpty = document.getElementById('available-apps-empty');
+
+            const subscribedIds = new Set(state.subscribedApps.map(a => a.id));
+
+            if (state.subscribedApps.length === 0) {
+                subscribedList.innerHTML = '';
+                subscribedEmpty.classList.remove('hidden');
+            } else {
+                subscribedEmpty.classList.add('hidden');
+                subscribedList.innerHTML = state.subscribedApps.map(app => `
+                    <div class="list-item list-item-clickable" onclick="openAppDetailModal('${app.id}')">
+                        <div class="list-item-avatar" style="background: var(--color-success);">
+                            ${getAppIcon(app.icon)}
+                        </div>
+                        <div class="list-item-content">
+                            <div class="list-item-title">${escapeHtml(app.name)}</div>
+                            <div class="list-item-subtitle">${escapeHtml(app.description || 'Active subscription')}</div>
+                        </div>
+                        <span class="chip chip-success">Active</span>
+                    </div>
+                `).join('');
+            }
+
+            const unsubscribedApps = state.appCatalog.filter(a => !subscribedIds.has(a.id));
+
+            if (unsubscribedApps.length === 0) {
+                availableList.innerHTML = '';
+                availableEmpty.classList.remove('hidden');
+            } else {
+                availableEmpty.classList.add('hidden');
+                availableList.innerHTML = unsubscribedApps.map(app => `
+                    <div class="list-item list-item-clickable" onclick="openAppDetailModal('${app.id}')">
+                        <div class="list-item-avatar" style="background: var(--color-cyan-500);">
+                            ${getAppIcon(app.icon)}
+                        </div>
+                        <div class="list-item-content">
+                            <div class="list-item-title">${escapeHtml(app.name)}</div>
+                            <div class="list-item-subtitle">${escapeHtml(app.description || '')}</div>
+                        </div>
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--tg-theme-hint-color)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                    </div>
+                `).join('');
+            }
+        };
+
+        let selectedAppDetail = null;
+
+        const openAppDetailModal = (appId) => {
+            const app = state.appCatalog.find(a => a.id === appId)
+                || state.subscribedApps.find(a => a.id === appId);
+            if (!app) return;
+
+            selectedAppDetail = app;
+            const isSubscribed = state.subscribedApps.some(a => a.id === appId);
+
+            document.getElementById('app-detail-icon').innerHTML = getAppIcon(app.icon);
+            document.getElementById('app-detail-name').textContent = app.name;
+            document.getElementById('app-detail-description').textContent =
+                app.description || 'No description available';
+
+            const subscribeBtn = document.getElementById('app-detail-subscribe-btn');
+            const unsubscribeBtn = document.getElementById('app-detail-unsubscribe-btn');
+
+            if (isSubscribed) {
+                subscribeBtn.classList.add('hidden');
+                unsubscribeBtn.classList.remove('hidden');
+            } else {
+                subscribeBtn.classList.remove('hidden');
+                unsubscribeBtn.classList.add('hidden');
+            }
+
+            document.getElementById('modal-app-detail').classList.add('active');
+        };
+
+        const closeAppDetailModal = () => {
+            document.getElementById('modal-app-detail').classList.remove('active');
+            selectedAppDetail = null;
+        };
+
+        const handleAppSubscribe = async () => {
+            if (!selectedAppDetail || !state.currentOrg) return;
+
+            const appName = selectedAppDetail.name;
+            const appId = selectedAppDetail.id;
+            const btn = document.getElementById('app-detail-subscribe-btn');
+            btn.disabled = true;
+            btn.textContent = 'Subscribing...';
+
+            try {
+                await api.subscribeToApp(state.currentOrg.id, appId);
+
+                cache.invalidate('orgApps');
+                state.appsLoaded = false;
+
+                closeAppDetailModal();
+                await loadAppsSection();
+
+                tg.showAlert(`Subscribed to ${appName}!`);
+            } catch (error) {
+                if (handleAuthError(error)) return;
+                tg.showAlert(error.message || 'Failed to subscribe');
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Subscribe';
+            }
+        };
+
+        const handleAppUnsubscribe = async () => {
+            if (!selectedAppDetail || !state.currentOrg) return;
+            const appName = selectedAppDetail.name;
+            const appId = selectedAppDetail.id;
+
+            tg.showConfirm(
+                `Unsubscribe from ${appName}? Team members will lose access.`,
+                async (confirmed) => {
+                    if (!confirmed) return;
+
+                    const btn = document.getElementById('app-detail-unsubscribe-btn');
+                    btn.disabled = true;
+                    btn.textContent = 'Unsubscribing...';
+
+                    try {
+                        await api.unsubscribeFromApp(state.currentOrg.id, appId);
+
+                        cache.invalidate('orgApps');
+                        state.appsLoaded = false;
+
+                        closeAppDetailModal();
+                        await loadAppsSection();
+
+                        tg.showAlert(`Unsubscribed from ${appName}`);
+                    } catch (error) {
+                        if (handleAuthError(error)) return;
+                        tg.showAlert(error.message || 'Failed to unsubscribe');
+                    } finally {
+                        btn.disabled = false;
+                        btn.textContent = 'Unsubscribe';
+                    }
+                }
+            );
+        };
+
+        document.getElementById('modal-app-detail')?.addEventListener('click', (e) => {
+            if (e.target.classList.contains('modal-backdrop')) {
+                closeAppDetailModal();
+            }
+        });
 
         /* ─────────────────────────────────────────────────────────────────────
            ADMIN DASHBOARD: HELP

@@ -10,7 +10,9 @@ from .membership import (
     MembershipApproval,
     Member,
     BotAccess,
+    AppAccess,
     MemberBotsUpdate,
+    MemberAppsUpdate,
     MemberRoleUpdate
 )
 from .billing import (
@@ -38,7 +40,7 @@ __all__ = [
     "Organization", "OrgCreate", "InviteCode", "OrgStats", "OrgDetails", "OrgUpdate",
     # Membership
     "MembershipRequest", "MembershipRequestCreate", "MembershipRequestResponse",
-    "MembershipApproval", "Member", "BotAccess", "MemberBotsUpdate", "MemberRoleUpdate",
+    "MembershipApproval", "Member", "BotAccess", "AppAccess", "MemberBotsUpdate", "MemberAppsUpdate", "MemberRoleUpdate",
     # Billing
     "SubscriptionPlan", "OrgSubscription", "SubscriptionUpgrade",
     "Invoice", "InvoiceLineItem", "InvoiceList", "BillingOverview",

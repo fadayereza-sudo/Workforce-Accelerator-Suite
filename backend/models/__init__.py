@@ -14,7 +14,9 @@ from core.models.membership import (
     MembershipApproval,
     Member,
     BotAccess,
+    AppAccess,
     MemberBotsUpdate,
+    MemberAppsUpdate,
     MemberRoleUpdate
 )
 from core.models.billing import (
@@ -79,7 +81,7 @@ __all__ = [
     "Organization", "OrgCreate", "InviteCode", "OrgStats", "OrgDetails", "OrgUpdate",
     # Core — Membership
     "MembershipRequest", "MembershipRequestCreate", "MembershipRequestResponse",
-    "MembershipApproval", "Member", "BotAccess", "MemberBotsUpdate", "MemberRoleUpdate",
+    "MembershipApproval", "Member", "BotAccess", "AppAccess", "MemberBotsUpdate", "MemberAppsUpdate", "MemberRoleUpdate",
     # Core — Billing
     "SubscriptionPlan", "OrgSubscription", "SubscriptionUpgrade",
     "Invoice", "InvoiceLineItem", "InvoiceList", "BillingOverview",

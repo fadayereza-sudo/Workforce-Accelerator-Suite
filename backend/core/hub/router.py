@@ -813,3 +813,133 @@ async def list_available_bots(
 
     cache_set("catalog", "bots:active", bots.data)
     return bots.data
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# APP CATALOG & SUBSCRIPTIONS
+# ─────────────────────────────────────────────────────────────────────────────
+
+@router.get("/apps/catalog")
+async def list_app_catalog(
+    x_telegram_init_data: str = Header(...)
+) -> List[dict]:
+    """List all available apps on the platform."""
+    get_telegram_user(x_telegram_init_data)
+
+    cached = cache_get("catalog", "apps:active")
+    if cached is not None:
+        return cached
+
+    db = get_supabase_admin()
+    result = db.table("app_registry").select(
+        "id, name, description, icon, monthly_price, annual_price"
+    ).eq("is_active", True).order("sort_order").execute()
+
+    cache_set("catalog", "apps:active", result.data)
+    return result.data
+
+
+@router.get("/orgs/{org_id}/apps")
+async def list_org_apps(
+    org_id: str,
+    x_telegram_init_data: str = Header(...)
+) -> List[dict]:
+    """List apps the organization is subscribed to."""
+    tg_user = get_telegram_user(x_telegram_init_data)
+    verify_org_member(tg_user.id, org_id)
+
+    cache_key = f"org_apps:{org_id}"
+    cached = cache_get("org", cache_key)
+    if cached is not None:
+        return cached
+
+    db = get_supabase_admin()
+    subs = db.table("org_app_subscriptions").select(
+        "app_id, app_registry(id, name, description, icon)"
+    ).eq("org_id", org_id).eq("active", True).execute()
+
+    apps = [s["app_registry"] for s in subs.data if s.get("app_registry")]
+    cache_set("org", cache_key, apps)
+    return apps
+
+
+@router.post("/orgs/{org_id}/apps/{app_id}/subscribe")
+async def subscribe_to_app(
+    org_id: str,
+    app_id: str,
+    x_telegram_init_data: str = Header(...)
+) -> dict:
+    """Subscribe organization to an app (admin only)."""
+    tg_user = get_telegram_user(x_telegram_init_data)
+    verify_org_admin(tg_user.id, org_id)
+    db = get_supabase_admin()
+
+    app = db.table("app_registry").select("id, name").eq(
+        "id", app_id
+    ).eq("is_active", True).execute()
+
+    if not app.data:
+        raise HTTPException(404, "App not found")
+
+    existing = db.table("org_app_subscriptions").select("id, active").eq(
+        "org_id", org_id
+    ).eq("app_id", app_id).execute()
+
+    if existing.data:
+        if existing.data[0]["active"]:
+            raise HTTPException(400, "Already subscribed to this app")
+        db.table("org_app_subscriptions").update({
+            "active": True,
+            "canceled_at": None,
+            "started_at": datetime.now(timezone.utc).isoformat()
+        }).eq("id", existing.data[0]["id"]).execute()
+    else:
+        db.table("org_app_subscriptions").insert({
+            "org_id": org_id,
+            "app_id": app_id,
+            "active": True,
+            "billing_cycle": "monthly"
+        }).execute()
+
+    cache_delete("org", f"org_apps:{org_id}")
+
+    return {
+        "status": "subscribed",
+        "app_id": app_id,
+        "app_name": app.data[0]["name"]
+    }
+
+
+@router.delete("/orgs/{org_id}/apps/{app_id}/subscribe")
+async def unsubscribe_from_app(
+    org_id: str,
+    app_id: str,
+    x_telegram_init_data: str = Header(...)
+) -> dict:
+    """Unsubscribe organization from an app (admin only)."""
+    tg_user = get_telegram_user(x_telegram_init_data)
+    verify_org_admin(tg_user.id, org_id)
+    db = get_supabase_admin()
+
+    sub = db.table("org_app_subscriptions").select("id").eq(
+        "org_id", org_id
+    ).eq("app_id", app_id).eq("active", True).execute()
+
+    if not sub.data:
+        raise HTTPException(404, "No active subscription found for this app")
+
+    db.table("org_app_subscriptions").update({
+        "active": False,
+        "canceled_at": datetime.now(timezone.utc).isoformat()
+    }).eq("id", sub.data[0]["id"]).execute()
+
+    app = db.table("app_registry").select("name").eq("id", app_id).execute()
+    app_name = app.data[0]["name"] if app.data else app_id
+
+    cache_delete("org", f"org_apps:{org_id}")
+
+    return {
+        "status": "unsubscribed",
+        "app_id": app_id,
+        "app_name": app_name
+    }

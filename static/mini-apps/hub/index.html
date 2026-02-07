@@ -838,6 +838,25 @@
             transform: translateX(20px);
         }
 
+        /* App members panel (expandable under each app card on landing page) */
+        .app-members-panel {
+            background: var(--tg-theme-secondary-bg-color);
+            border-radius: 0 0 var(--radius-md) var(--radius-md);
+            margin-top: -4px;
+            padding: 0;
+            overflow: hidden;
+        }
+
+        .app-members-panel .list-item {
+            padding: var(--space-sm) var(--space-md) var(--space-sm) 56px;
+        }
+
+        .app-members-panel .list-item-avatar {
+            width: 32px;
+            height: 32px;
+            font-size: 13px;
+        }
+
         .danger-zone {
             padding-top: var(--space-lg);
             border-top: 1px solid var(--tg-theme-secondary-bg-color);
@@ -1417,7 +1436,7 @@
             <div class="page-header" style="display: flex; justify-content: space-between; align-items: center;">
                 <div>
                     <h1 class="page-title" id="admin-home-org-name">Organization</h1>
-                    <p class="page-subtitle">Your Agents</p>
+                    <p class="page-subtitle">Your Apps</p>
                 </div>
                 <button class="btn btn-sm btn-secondary" onclick="openAdminDashboard()" style="display: flex; align-items: center; gap: 6px;">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
@@ -1425,16 +1444,16 @@
                 </button>
             </div>
 
-            <div id="admin-bots-list" class="list">
-                <!-- Populated by JS - ALL active bots for the org -->
+            <div id="admin-apps-list" class="list">
+                <!-- Populated by JS - subscribed apps for the org -->
             </div>
 
-            <div id="admin-no-bots" class="empty-state hidden">
+            <div id="admin-no-apps" class="empty-state hidden">
                 <div class="empty-state-icon">
-                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="10" rx="2"></rect><circle cx="12" cy="5" r="2"></circle><path d="M12 7v4"></path><line x1="8" y1="16" x2="8" y2="16"></line><line x1="16" y1="16" x2="16" y2="16"></line></svg>
+                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"></rect><rect x="14" y="3" width="7" height="7" rx="1"></rect><rect x="3" y="14" width="7" height="7" rx="1"></rect><rect x="14" y="14" width="7" height="7" rx="1"></rect></svg>
                 </div>
-                <p class="empty-state-title">No active agents</p>
-                <p>Register agents in the system to get started</p>
+                <p class="empty-state-title">No apps subscribed</p>
+                <p>Subscribe to apps to get started</p>
             </div>
         </div>
 
@@ -1517,26 +1536,26 @@
                 <div id="section-reports" class="admin-section active">
                     <div class="page-header">
                         <h1 class="page-title">Reports</h1>
-                        <p class="page-subtitle">Agent and member activity insights</p>
+                        <p class="page-subtitle">App and member activity insights</p>
                     </div>
 
-                    <!-- Sub-tabs: Agents | Members -->
+                    <!-- Sub-tabs: Apps | Members -->
                     <div class="tabs" id="reports-sub-tabs">
-                        <button class="tab active" onclick="switchReportsTab('agents')">Agents</button>
+                        <button class="tab active" onclick="switchReportsTab('apps')">Apps</button>
                         <button class="tab" onclick="switchReportsTab('members')">Members</button>
                     </div>
 
-                    <!-- AGENTS SUB-TAB -->
-                    <div id="reports-tab-agents" class="tab-content">
-                        <div id="agent-reports-container">
-                            <!-- Each agent gets a card -->
+                    <!-- APPS SUB-TAB -->
+                    <div id="reports-tab-apps" class="tab-content">
+                        <div id="app-reports-container">
+                            <!-- Each app gets a card with its agent reports nested inside -->
                         </div>
-                        <div id="agent-reports-empty" class="empty-state hidden">
+                        <div id="app-reports-empty" class="empty-state hidden">
                             <div class="empty-state-icon">
-                                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="10" rx="2"></rect><circle cx="12" cy="5" r="2"></circle><path d="M12 7v4"></path></svg>
+                                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"></rect><rect x="14" y="3" width="7" height="7" rx="1"></rect><rect x="3" y="14" width="7" height="7" rx="1"></rect><rect x="14" y="14" width="7" height="7" rx="1"></rect></svg>
                             </div>
-                            <p class="empty-state-title">No agent data yet</p>
-                            <p>Agent reports will appear once agents have activity</p>
+                            <p class="empty-state-title">No app data yet</p>
+                            <p>App reports will appear once apps have activity</p>
                         </div>
                     </div>
 
@@ -1600,6 +1619,38 @@
                     </div>
                     <div id="invoices-empty" class="empty-state">
                         <p class="text-muted">No invoices yet</p>
+                    </div>
+                </div>
+
+                <!-- ═══════════════════════════════════════════════════════════
+                     SECTION: APP SUBSCRIPTIONS
+                     ═══════════════════════════════════════════════════════════ -->
+                <div id="section-apps" class="admin-section">
+                    <div class="page-header">
+                        <h1 class="page-title">Apps</h1>
+                        <p class="page-subtitle">Manage your app subscriptions</p>
+                    </div>
+
+                    <!-- Your Subscriptions -->
+                    <div class="section-title">Your Subscriptions</div>
+                    <div id="subscribed-apps-list" class="list">
+                        <!-- Populated by JS -->
+                    </div>
+                    <div id="subscribed-apps-empty" class="empty-state hidden">
+                        <div class="empty-state-icon">
+                            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"></rect><rect x="14" y="3" width="7" height="7" rx="1"></rect><rect x="3" y="14" width="7" height="7" rx="1"></rect><rect x="14" y="14" width="7" height="7" rx="1"></rect></svg>
+                        </div>
+                        <p class="empty-state-title">No subscriptions yet</p>
+                        <p>Browse available apps below to get started</p>
+                    </div>
+
+                    <!-- Available Apps -->
+                    <div class="section-title" style="margin-top: var(--space-lg);">Available Apps</div>
+                    <div id="available-apps-list" class="list">
+                        <!-- Populated by JS -->
+                    </div>
+                    <div id="available-apps-empty" class="empty-state hidden">
+                        <p class="text-muted">No additional apps available</p>
                     </div>
                 </div>
 
@@ -1680,6 +1731,12 @@
                     </div>
                     <span class="nav-item-label">Billing</span>
                 </div>
+                <div class="nav-item" onclick="switchAdminSection('apps')">
+                    <div class="nav-item-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"></rect><rect x="14" y="3" width="7" height="7" rx="1"></rect><rect x="3" y="14" width="7" height="7" rx="1"></rect><rect x="14" y="14" width="7" height="7" rx="1"></rect></svg>
+                    </div>
+                    <span class="nav-item-label">Apps</span>
+                </div>
                 <div class="nav-item" onclick="switchAdminSection('help')">
                     <div class="nav-item-icon">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
@@ -1695,19 +1752,19 @@
         <div id="page-member" class="page">
             <div class="page-header">
                 <h1 class="page-title" id="member-org-name">Organization</h1>
-                <p class="page-subtitle">Your Agents</p>
+                <p class="page-subtitle">Your Apps</p>
             </div>
 
-            <div id="member-bots-list" class="list">
+            <div id="member-apps-list" class="list">
                 <!-- Populated by JS -->
             </div>
 
-            <div id="member-no-bots" class="empty-state hidden">
+            <div id="member-no-apps" class="empty-state hidden">
                 <div class="empty-state-icon">
-                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="10" rx="2"></rect><circle cx="12" cy="5" r="2"></circle><path d="M12 7v4"></path><line x1="8" y1="16" x2="8" y2="16"></line><line x1="16" y1="16" x2="16" y2="16"></line></svg>
+                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"></rect><rect x="14" y="3" width="7" height="7" rx="1"></rect><rect x="3" y="14" width="7" height="7" rx="1"></rect><rect x="14" y="14" width="7" height="7" rx="1"></rect></svg>
                 </div>
-                <p class="empty-state-title">No agents assigned yet</p>
-                <p>Your admin will grant you access to agents soon</p>
+                <p class="empty-state-title">No apps assigned yet</p>
+                <p>Your admin will grant you access to apps soon</p>
             </div>
         </div>
 
@@ -1760,7 +1817,7 @@
                 </div>
             </div>
 
-            <p class="input-label">Grant access to agents:</p>
+            <p class="input-label">Grant access to apps:</p>
             <div class="chips-group mb-lg" id="modal-bots-chips">
                 <!-- Populated by JS -->
             </div>
@@ -1836,7 +1893,7 @@
                 </p>
             </div>
 
-            <div class="section-title">Agent Access</div>
+            <div class="section-title">App Access</div>
             <div class="bot-toggle-list" id="member-modal-bots">
                 <!-- Populated by JS -->
             </div>
@@ -1875,6 +1932,43 @@
                     Confirm
                 </button>
             </div>
+        </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════════════════════
+         MODAL: APP DETAIL
+         ═══════════════════════════════════════════════════════════════════════ -->
+    <div id="modal-app-detail" class="modal-backdrop">
+        <div class="modal-sheet">
+            <div class="modal-handle"></div>
+
+            <div style="text-align: center; margin-bottom: var(--space-lg);">
+                <div class="list-item-avatar" id="app-detail-icon" style="width: 64px; height: 64px; font-size: 28px; margin: 0 auto var(--space-md); background: var(--color-success);">
+                </div>
+                <h2 class="modal-title" id="app-detail-name" style="margin-bottom: 0;">App Name</h2>
+                <p class="text-muted" id="app-detail-description" style="margin-top: var(--space-sm);">
+                    App description goes here
+                </p>
+            </div>
+
+            <!-- Pricing -->
+            <div class="card" style="text-align: center; margin-bottom: var(--space-lg);">
+                <div class="section-title" style="margin-bottom: var(--space-sm);">Pricing</div>
+                <p style="font-size: 24px; font-weight: 700; color: var(--color-success);">Free for testing</p>
+                <p class="text-muted text-sm" style="margin-top: var(--space-xs);">No credit card required</p>
+            </div>
+
+            <!-- Action Buttons -->
+            <button class="btn btn-primary btn-block" id="app-detail-subscribe-btn" onclick="handleAppSubscribe()">
+                Subscribe
+            </button>
+            <button class="btn btn-danger btn-block hidden" id="app-detail-unsubscribe-btn" onclick="handleAppUnsubscribe()">
+                Unsubscribe
+            </button>
+
+            <button class="btn btn-secondary btn-block" style="margin-top: var(--space-sm);" onclick="closeAppDetailModal()">
+                Close
+            </button>
         </div>
     </div>
 
@@ -1921,16 +2015,23 @@
             // For approval modal
             selectedRequest: null,
             selectedBotIds: [],
+            selectedAppIds: [],
             // For member modal
             selectedMember: null,
             selectedMemberBotIds: [],
+            selectedMemberAppIds: [],
             pendingRoleChange: null,
+            // Subscribed apps
+            subscribedApps: [],
             // Admin dashboard sections
             currentAdminSection: 'reports',
             billingOverview: null,
             // Reports
-            agentReportsLoaded: false,
-            memberReportsLoaded: false
+            appReportsLoaded: false,
+            memberReportsLoaded: false,
+            // App subscriptions
+            appCatalog: [],
+            appsLoaded: false
         };
 
         /* ─────────────────────────────────────────────────────────────────────
@@ -1946,10 +2047,12 @@
                 members: 60000,
                 requests: 30000,
                 bots: 300000,
+                orgApps: 120000,
                 teamAnalytics: 30000,
                 reports: 60000,
                 billing: 60000,
-                plans: 600000
+                plans: 600000,
+                appCatalog: 120000
             },
 
             get(key) {
@@ -2069,9 +2172,24 @@
                 body: JSON.stringify({ role })
             }),
             getBots: () => api.fetch('/bots'),
-            approveRequest: (requestId, approved, botIds) => api.fetch(`/membership-requests/${requestId}/approve`, {
+            // App access
+            getOrgApps: (orgId) => api.fetch(`/orgs/${orgId}/apps`),
+            getAppMembers: (orgId, appId) => api.fetch(`/orgs/${orgId}/apps/${appId}/members`),
+            updateMemberApps: (orgId, memberId, appIds) => api.fetch(`/orgs/${orgId}/members/${memberId}/apps`, {
+                method: 'PUT',
+                body: JSON.stringify({ app_ids: appIds })
+            }),
+            // App catalog & subscriptions
+            getAppCatalog: () => api.fetch('/apps/catalog'),
+            subscribeToApp: (orgId, appId) => api.fetch(`/orgs/${orgId}/apps/${appId}/subscribe`, {
+                method: 'POST'
+            }),
+            unsubscribeFromApp: (orgId, appId) => api.fetch(`/orgs/${orgId}/apps/${appId}/subscribe`, {
+                method: 'DELETE'
+            }),
+            approveRequest: (requestId, approved, botIds, appIds) => api.fetch(`/membership-requests/${requestId}/approve`, {
                 method: 'POST',
-                body: JSON.stringify({ request_id: requestId, approved, bot_ids: botIds })
+                body: JSON.stringify({ request_id: requestId, approved, bot_ids: botIds, app_ids: appIds || [] })
             }),
             // Admin analytics
             getTeamAnalytics: (orgId, period = 'week') => api.fetch(`/orgs/${orgId}/analytics/team?period=${period}`),
@@ -2309,38 +2427,99 @@
             showPage('admin-home');
             document.getElementById('admin-home-org-name').textContent = state.currentOrg.name;
 
-            // Fetch all active bots (ALL org bots, not member-specific)
-            const cachedBots = cache.get('bots');
-            let bots;
-            if (cachedBots) {
-                bots = cachedBots;
+            // Also fetch bots in background for dashboard use
+            if (!cache.get('bots')) {
+                api.getBots().then(bots => { state.availableBots = bots; cache.set('bots', bots); }).catch(() => {});
             } else {
-                bots = await api.getBots().catch(() => []);
-                cache.set('bots', bots);
+                state.availableBots = cache.get('bots');
             }
-            state.availableBots = bots;
 
-            if (bots && bots.length > 0) {
-                document.getElementById('admin-no-bots').classList.add('hidden');
-                document.getElementById('admin-bots-list').innerHTML = bots.map(bot => `
-                    <div class="list-item list-item-clickable" onclick="openAgent('${bot.id}')">
+            // Fetch subscribed apps
+            const cachedApps = cache.get('orgApps');
+            let apps;
+            if (cachedApps) {
+                apps = cachedApps;
+            } else {
+                apps = await api.getOrgApps(orgId).catch(() => []);
+                cache.set('orgApps', apps);
+            }
+            state.subscribedApps = apps;
+
+            if (apps && apps.length > 0) {
+                document.getElementById('admin-no-apps').classList.add('hidden');
+                document.getElementById('admin-apps-list').innerHTML = apps.map(app => `
+                    <div class="list-item list-item-clickable" onclick="toggleAppMembers('${app.id}')">
                         <div class="list-item-avatar" style="background: var(--color-success);">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="10" rx="2"></rect><circle cx="12" cy="5" r="2"></circle><path d="M12 7v4"></path><circle cx="8" cy="16" r="1" fill="currentColor"></circle><circle cx="16" cy="16" r="1" fill="currentColor"></circle></svg>
+                            ${getAppIcon(app.icon)}
                         </div>
                         <div class="list-item-content">
-                            <div class="list-item-title">${escapeHtml(bot.name)}</div>
-                            <div class="list-item-subtitle">Active</div>
+                            <div class="list-item-title">${escapeHtml(app.name)}</div>
+                            <div class="list-item-subtitle">${escapeHtml(app.description || 'Active')}</div>
                         </div>
-                        <span class="chip chip-success">Open</span>
+                        <div class="toggle ${''}" id="app-toggle-${app.id}" onclick="event.stopPropagation(); toggleAppMembers('${app.id}')"></div>
+                    </div>
+                    <div class="app-members-panel hidden" id="app-members-${app.id}">
+                        <div style="padding: var(--space-md); text-align: center;">
+                            <span class="text-muted text-sm">Loading...</span>
+                        </div>
                     </div>
                 `).join('');
             } else {
-                document.getElementById('admin-bots-list').innerHTML = '';
-                document.getElementById('admin-no-bots').classList.remove('hidden');
+                document.getElementById('admin-apps-list').innerHTML = '';
+                document.getElementById('admin-no-apps').classList.remove('hidden');
             }
 
             // Log page view
             api.logActivity(orgId, null, 'page_view', { section: 'admin-home' }).catch(() => {});
+        };
+
+        const getAppIcon = (icon) => {
+            const icons = {
+                briefcase: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path></svg>',
+                chart: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>',
+                users: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>'
+            };
+            return icons[icon] || icons.briefcase;
+        };
+
+        const toggleAppMembers = async (appId) => {
+            const panel = document.getElementById(`app-members-${appId}`);
+            const toggle = document.getElementById(`app-toggle-${appId}`);
+
+            if (!panel.classList.contains('hidden')) {
+                panel.classList.add('hidden');
+                toggle?.classList.remove('active');
+                return;
+            }
+
+            // Hide all other panels and deactivate their toggles
+            document.querySelectorAll('.app-members-panel').forEach(p => p.classList.add('hidden'));
+            document.querySelectorAll('[id^="app-toggle-"]').forEach(t => t.classList.remove('active'));
+
+            toggle?.classList.add('active');
+            panel.classList.remove('hidden');
+            panel.innerHTML = '<div style="padding: var(--space-md); text-align: center;"><span class="text-muted text-sm">Loading...</span></div>';
+
+            try {
+                const members = await api.getAppMembers(state.currentOrg.id, appId);
+                if (members.length === 0) {
+                    panel.innerHTML = '<div style="padding: var(--space-md); text-align: center;"><span class="text-muted text-sm">No members yet</span></div>';
+                    return;
+                }
+                panel.innerHTML = members.map(m => `
+                    <div class="list-item">
+                        <div class="list-item-avatar">${m.full_name.charAt(0).toUpperCase()}</div>
+                        <div class="list-item-content">
+                            <div class="list-item-title" style="font-size: 14px;">${escapeHtml(m.full_name)}</div>
+                            <div class="list-item-subtitle">${m.role === 'admin' ? '👑 Admin' : (m.has_access ? 'Member' : 'No access')}</div>
+                        </div>
+                        <span class="chip ${m.has_access ? 'chip-success' : ''}" style="font-size: 11px;">${m.has_access ? (m.implicit ? 'Admin' : 'Active') : 'None'}</span>
+                    </div>
+                `).join('');
+            } catch (error) {
+                console.error('Failed to load app members:', error);
+                panel.innerHTML = '<div style="padding: var(--space-md); text-align: center;"><span class="text-muted text-sm">Failed to load</span></div>';
+            }
         };
 
         const openAdminDashboard = async () => {
@@ -2379,6 +2558,7 @@
             const cachedRequests = cache.get('requests');
             const cachedMembers = cache.get('members');
             const cachedBots = cache.get('bots');
+            const cachedOrgApps = cache.get('orgApps');
 
             const fetches = [];
             const fetchKeys = [];
@@ -2387,6 +2567,7 @@
             if (!cachedRequests) { fetches.push(api.getMembershipRequests(orgId)); fetchKeys.push('requests'); }
             if (!cachedMembers) { fetches.push(api.getMembers(orgId)); fetchKeys.push('members'); }
             if (!cachedBots) { fetches.push(api.getBots().catch(() => [])); fetchKeys.push('bots'); }
+            if (!cachedOrgApps) { fetches.push(api.getOrgApps(orgId).catch(() => [])); fetchKeys.push('orgApps'); }
 
             if (fetches.length > 0) {
                 const results = await Promise.all(fetches);
@@ -2397,6 +2578,7 @@
             state.membershipRequests = cache.get('requests') || cachedRequests;
             state.members = cache.get('members') || cachedMembers;
             state.availableBots = cache.get('bots') || cachedBots;
+            state.subscribedApps = cache.get('orgApps') || cachedOrgApps || [];
 
             updateOrgHeader(state.orgDetails);
             updateInviteCodeDisplay(state.inviteCode);
@@ -2404,7 +2586,7 @@
             renderMembers();
 
             // Load reports (default tab) and log page view
-            if (!state.agentReportsLoaded) loadAgentReports();
+            if (!state.appReportsLoaded) loadAppReports();
             api.logActivity(orgId, null, 'page_view', { section: 'reports' }).catch(() => {});
         };
 
@@ -2556,7 +2738,7 @@
                     <div class="list-item-content">
                         <div class="list-item-title">${escapeHtml(member.full_name)}</div>
                         <div class="list-item-subtitle">
-                            ${member.role === 'admin' ? '👑 Admin' : `${member.bot_access.length} agents • Active ${lastActive}`}
+                            ${member.role === 'admin' ? '👑 Admin' : `${(member.app_access || []).length} apps • Active ${lastActive}`}
                         </div>
                         ${botsUsed.length > 0 ? `
                             <div class="activity-bots-used">
@@ -2599,6 +2781,7 @@
 
             state.selectedRequest = request;
             state.selectedBotIds = [];
+            state.selectedAppIds = [];
 
             document.getElementById('modal-user-name').textContent = request.full_name;
             document.getElementById('modal-user-username').textContent =
@@ -2606,16 +2789,16 @@
             document.getElementById('modal-user-avatar').textContent =
                 request.full_name.charAt(0).toUpperCase();
 
-            // Render bot chips
+            // Render app chips (instead of bot chips)
             const chipsContainer = document.getElementById('modal-bots-chips');
-            if (state.availableBots.length > 0) {
-                chipsContainer.innerHTML = state.availableBots.map(bot => `
-                    <button class="chip chip-selectable" data-bot-id="${bot.id}" onclick="toggleBotSelection('${bot.id}')">
-                        ${escapeHtml(bot.name)}
+            if (state.subscribedApps.length > 0) {
+                chipsContainer.innerHTML = state.subscribedApps.map(app => `
+                    <button class="chip chip-selectable" data-app-chip-id="${app.id}" onclick="toggleAppSelection('${app.id}')">
+                        ${escapeHtml(app.name)}
                     </button>
                 `).join('');
             } else {
-                chipsContainer.innerHTML = '<p class="text-muted text-sm">No agents available yet</p>';
+                chipsContainer.innerHTML = '<p class="text-muted text-sm">No apps available yet</p>';
             }
 
             document.getElementById('modal-approve').classList.add('active');
@@ -2625,6 +2808,7 @@
             document.getElementById('modal-approve').classList.remove('active');
             state.selectedRequest = null;
             state.selectedBotIds = [];
+            state.selectedAppIds = [];
         };
 
         const toggleBotSelection = (botId) => {
@@ -2640,11 +2824,25 @@
             chip?.classList.toggle('selected', state.selectedBotIds.includes(botId));
         };
 
+        const toggleAppSelection = (appId) => {
+            if (!state.selectedAppIds) state.selectedAppIds = [];
+            const index = state.selectedAppIds.indexOf(appId);
+            if (index > -1) {
+                state.selectedAppIds.splice(index, 1);
+            } else {
+                state.selectedAppIds.push(appId);
+            }
+
+            // Update chip visual
+            const chip = document.querySelector(`[data-app-chip-id="${appId}"]`);
+            chip?.classList.toggle('selected', state.selectedAppIds.includes(appId));
+        };
+
         const approveRequest = async () => {
             if (!state.selectedRequest) return;
 
             try {
-                await api.approveRequest(state.selectedRequest.id, true, state.selectedBotIds);
+                await api.approveRequest(state.selectedRequest.id, true, state.selectedBotIds, state.selectedAppIds);
 
                 // Invalidate caches affected by membership change
                 cache.invalidate('requests');
@@ -2756,11 +2954,12 @@
 
             state.selectedMember = member;
             state.selectedMemberBotIds = member.bot_access.map(b => b.bot_id);
+            state.selectedMemberAppIds = (member.app_access || []).map(a => a.app_id);
 
             document.getElementById('member-modal-avatar').textContent = member.full_name.charAt(0).toUpperCase();
             document.getElementById('member-modal-name').textContent = member.full_name;
             document.getElementById('member-modal-meta').textContent =
-                `${member.telegram_username ? '@' + member.telegram_username : 'No username'} • Member`;
+                `${member.telegram_username ? '@' + member.telegram_username : 'No username'} • ${member.role === 'admin' ? 'Admin' : 'Member'}`;
 
             const lastActive = member.last_active_at
                 ? `Last active: ${formatTimeAgo(new Date(member.last_active_at))}`
@@ -2770,22 +2969,22 @@
             // Set current role in dropdown
             document.getElementById('member-role-select').value = member.role || 'member';
 
-            // Render bot toggles
-            const botsContainer = document.getElementById('member-modal-bots');
-            if (state.availableBots.length > 0) {
-                botsContainer.innerHTML = state.availableBots.map(bot => {
-                    const hasAccess = state.selectedMemberBotIds.includes(bot.id);
+            // Render app toggles (instead of bot toggles)
+            const appsContainer = document.getElementById('member-modal-bots');
+            if (state.subscribedApps.length > 0) {
+                appsContainer.innerHTML = state.subscribedApps.map(app => {
+                    const hasAccess = state.selectedMemberAppIds.includes(app.id);
                     return `
                         <div class="bot-toggle-item">
-                            <span class="bot-toggle-name">${escapeHtml(bot.name)}</span>
+                            <span class="bot-toggle-name">${escapeHtml(app.name)}</span>
                             <div class="toggle ${hasAccess ? 'active' : ''}"
-                                 data-bot-id="${bot.id}"
-                                 onclick="toggleMemberBot('${bot.id}')"></div>
+                                 data-app-id="${app.id}"
+                                 onclick="toggleMemberApp('${app.id}')"></div>
                         </div>
                     `;
                 }).join('');
             } else {
-                botsContainer.innerHTML = '<p class="text-muted text-sm">No agents available</p>';
+                appsContainer.innerHTML = '<p class="text-muted text-sm">No apps available</p>';
             }
 
             document.getElementById('modal-member').classList.add('active');
@@ -2795,6 +2994,7 @@
             document.getElementById('modal-member').classList.remove('active');
             state.selectedMember = null;
             state.selectedMemberBotIds = [];
+            state.selectedMemberAppIds = [];
             state.pendingRoleChange = null;
         };
 
@@ -2894,14 +3094,27 @@
             toggle?.classList.toggle('active', state.selectedMemberBotIds.includes(botId));
         };
 
+        const toggleMemberApp = (appId) => {
+            const index = state.selectedMemberAppIds.indexOf(appId);
+            if (index > -1) {
+                state.selectedMemberAppIds.splice(index, 1);
+            } else {
+                state.selectedMemberAppIds.push(appId);
+            }
+
+            // Update toggle visual
+            const toggle = document.querySelector(`#member-modal-bots [data-app-id="${appId}"]`);
+            toggle?.classList.toggle('active', state.selectedMemberAppIds.includes(appId));
+        };
+
         const saveMemberBots = async () => {
             if (!state.selectedMember) return;
 
             try {
-                await api.updateMemberBots(
+                await api.updateMemberApps(
                     state.currentOrg.id,
                     state.selectedMember.id,
-                    state.selectedMemberBotIds
+                    state.selectedMemberAppIds
                 );
 
                 cache.invalidate('members');
@@ -2922,7 +3135,7 @@
             if (!state.selectedMember) return;
 
             const confirmed = confirm(
-                `Remove ${state.selectedMember.full_name} from ${state.currentOrg.name}?\n\nThis will revoke all their agent access.`
+                `Remove ${state.selectedMember.full_name} from ${state.currentOrg.name}?\n\nThis will revoke all their app access.`
             );
 
             if (!confirmed) return;
@@ -2965,33 +3178,40 @@
             document.getElementById('member-org-name').textContent = state.currentOrg.name;
             showPage('member');
 
-            // Get member's bot access
+            // Get member's app access
             const members = await api.getMembers(state.currentOrg.id);
             const me = members.find(m => m.user_id === state.user.id);
 
-            if (me && me.bot_access.length > 0) {
-                document.getElementById('member-no-bots').classList.add('hidden');
-                document.getElementById('member-bots-list').innerHTML = me.bot_access.map(bot => `
-                    <div class="list-item list-item-clickable" onclick="openAgent('${bot.bot_id}')">
+            const appAccess = me ? (me.app_access || []) : [];
+
+            if (appAccess.length > 0) {
+                document.getElementById('member-no-apps').classList.add('hidden');
+                document.getElementById('member-apps-list').innerHTML = appAccess.map(app => `
+                    <div class="list-item list-item-clickable" onclick="openApp('${app.app_id}')">
                         <div class="list-item-avatar" style="background: var(--color-success);">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="10" rx="2"></rect><circle cx="12" cy="5" r="2"></circle><path d="M12 7v4"></path><circle cx="8" cy="16" r="1" fill="currentColor"></circle><circle cx="16" cy="16" r="1" fill="currentColor"></circle></svg>
+                            ${getAppIcon(app.app_id === 'workforce-accelerator' ? 'briefcase' : 'chart')}
                         </div>
                         <div class="list-item-content">
-                            <div class="list-item-title">${escapeHtml(bot.bot_name)}</div>
+                            <div class="list-item-title">${escapeHtml(app.app_name)}</div>
                             <div class="list-item-subtitle">Access granted</div>
                         </div>
-                        <span class="chip chip-success">Active</span>
+                        <span class="chip chip-success">Open</span>
                     </div>
                 `).join('');
             } else {
-                document.getElementById('member-bots-list').classList.add('hidden');
-                document.getElementById('member-no-bots').classList.remove('hidden');
+                document.getElementById('member-apps-list').innerHTML = '';
+                document.getElementById('member-no-apps').classList.remove('hidden');
             }
         };
 
         const openAgent = (agentName) => {
             // Navigate to the agent's mini-app
             window.location.href = `/app/${agentName}`;
+        };
+
+        const openApp = (appId) => {
+            // Navigate to the app's hub page
+            window.location.href = `/app/${appId}/hub`;
         };
 
         /* ─────────────────────────────────────────────────────────────────────
@@ -3022,10 +3242,12 @@
             document.getElementById(`section-${section}`)?.classList.add('active');
 
             // Load section-specific data
-            if (section === 'reports' && !state.agentReportsLoaded) {
-                await loadAgentReports();
+            if (section === 'reports' && !state.appReportsLoaded) {
+                await loadAppReports();
             } else if (section === 'billing' && !state.billingOverview) {
                 await loadBillingOverview();
+            } else if (section === 'apps' && !state.appsLoaded) {
+                await loadAppsSection();
             }
 
             // Log activity
@@ -3042,21 +3264,25 @@
             document.querySelectorAll('#reports-sub-tabs .tab').forEach(t => t.classList.remove('active'));
             document.querySelector(`#reports-sub-tabs .tab[onclick="switchReportsTab('${tab}')"]`)?.classList.add('active');
 
-            document.getElementById('reports-tab-agents').classList.toggle('hidden', tab !== 'agents');
+            document.getElementById('reports-tab-apps').classList.toggle('hidden', tab !== 'apps');
             document.getElementById('reports-tab-members').classList.toggle('hidden', tab !== 'members');
 
-            if (tab === 'agents' && !state.agentReportsLoaded) {
-                loadAgentReports();
+            if (tab === 'apps' && !state.appReportsLoaded) {
+                loadAppReports();
             } else if (tab === 'members' && !state.memberReportsLoaded) {
                 loadMemberReports();
             }
         };
 
-        const loadAgentReports = async () => {
+        const loadAppReports = async () => {
             if (!state.currentOrg) return;
             const orgId = state.currentOrg.id;
 
             try {
+                // Ensure apps and bots are loaded
+                if (!state.subscribedApps.length) {
+                    state.subscribedApps = await api.getOrgApps(orgId).catch(() => []);
+                }
                 const bots = state.availableBots || await api.getBots().catch(() => []);
                 state.availableBots = bots;
 
@@ -3067,21 +3293,21 @@
                     api.getLeadAgentOverview(orgId).catch(() => ({ active_leads: 0, scheduled_followups: 0, today_events: [] }))
                 ]);
 
-                state.agentReportsLoaded = true;
-                renderAgentReports(bots, latestReports, todayTasks, leadOverview);
+                state.appReportsLoaded = true;
+                renderAppReports(state.subscribedApps, bots, latestReports, todayTasks, leadOverview);
             } catch (error) {
                 if (handleAuthError(error)) return;
-                console.error('Failed to load agent reports:', error);
-                document.getElementById('agent-reports-container').innerHTML = '';
-                document.getElementById('agent-reports-empty').classList.remove('hidden');
+                console.error('Failed to load app reports:', error);
+                document.getElementById('app-reports-container').innerHTML = '';
+                document.getElementById('app-reports-empty').classList.remove('hidden');
             }
         };
 
-        const renderAgentReports = (bots, latestReports, todayTasks, leadOverview) => {
-            const container = document.getElementById('agent-reports-container');
-            const empty = document.getElementById('agent-reports-empty');
+        const renderAppReports = (apps, bots, latestReports, todayTasks, leadOverview) => {
+            const container = document.getElementById('app-reports-container');
+            const empty = document.getElementById('app-reports-empty');
 
-            if (!bots || bots.length === 0) {
+            if (!apps || apps.length === 0) {
                 container.innerHTML = '';
                 empty.classList.remove('hidden');
                 return;
@@ -3107,49 +3333,71 @@
             const leadAgentNames = ['lead agent', 'lead_agent', 'leadagent', 'b2b lead'];
             const isLeadAgent = (name) => leadAgentNames.some(n => name.toLowerCase().includes(n));
 
-            container.innerHTML = bots.map(bot => {
-                const tasks = tasksByBot[bot.id] || [];
-                const report = reportsByBot[bot.id];
-                const isLA = isLeadAgent(bot.name);
+            // Render each app with its agent reports nested inside
+            container.innerHTML = apps.map(app => {
+                // For now, all bots belong to the current app (since we only have one app)
+                // In future, bots will have an app_id field to filter by
+                const appBots = bots || [];
+
+                const agentCards = appBots.map(bot => {
+                    const tasks = tasksByBot[bot.id] || [];
+                    const report = reportsByBot[bot.id];
+                    const isLA = isLeadAgent(bot.name);
+
+                    return `
+                        <div class="report-card" style="margin-bottom: var(--space-sm);">
+                            <div class="report-card-header">
+                                <div class="report-card-icon">${bot.icon || '🤖'}</div>
+                                <div class="report-card-title">${escapeHtml(bot.name)}</div>
+                                <div class="report-card-period">${tasks.length} tasks today</div>
+                            </div>
+                            <div class="report-card-body">
+                                ${isLA && leadOverview ? `
+                                    <div style="display: flex; gap: var(--space-sm); margin-bottom: var(--space-md);">
+                                        <div style="flex: 1; background: var(--tg-theme-bg-color); border-radius: var(--radius-md); padding: var(--space-sm) var(--space-md); text-align: center;">
+                                            <div style="font-size: 22px; font-weight: 700; color: var(--color-cyan-400);">${leadOverview.active_leads}</div>
+                                            <div style="font-size: 11px; color: var(--tg-theme-hint-color);">Active Leads</div>
+                                        </div>
+                                        <div style="flex: 1; background: var(--tg-theme-bg-color); border-radius: var(--radius-md); padding: var(--space-sm) var(--space-md); text-align: center;">
+                                            <div style="font-size: 22px; font-weight: 700; color: var(--color-warning);">${leadOverview.scheduled_followups}</div>
+                                            <div style="font-size: 11px; color: var(--tg-theme-hint-color);">Follow-ups Scheduled</div>
+                                        </div>
+                                    </div>
+                                ` : ''}
+                                ${isLA && leadOverview && leadOverview.today_summary ? `
+                                    <div class="section-title" style="margin-bottom: 8px; font-size: 13px;">Today's Events</div>
+                                    <p style="font-size: 13px; color: var(--tg-theme-text-color); margin: 0; line-height: 1.4;">${escapeHtml(leadOverview.today_summary)}</p>
+                                ` : !isLA && tasks.length > 0 ? `
+                                    <div class="section-title" style="margin-bottom: 8px; font-size: 13px;">Today's Tasks</div>
+                                    <div class="report-highlights">
+                                        ${tasks.slice(0, 10).map(t =>
+                                            `<div class="report-highlight">${escapeHtml(t.task_type)}${t.task_detail ? ': ' + escapeHtml(typeof t.task_detail === 'string' ? t.task_detail.substring(0, 80) : JSON.stringify(t.task_detail).substring(0, 80)) : ''}</div>`
+                                        ).join('')}
+                                        ${tasks.length > 10 ? `<div class="text-muted" style="font-size: 12px;">+${tasks.length - 10} more tasks</div>` : ''}
+                                    </div>
+                                ` : !isLA ? '<p class="text-muted" style="font-size: 13px;">No tasks performed today</p>' : ''}
+                                ${isLA && (!leadOverview || !leadOverview.today_summary) ? '<p class="text-muted" style="font-size: 13px;">No events today</p>' : ''}
+                                ${report ? `
+                                    <div class="section-title" style="margin-top: 12px; margin-bottom: 8px; font-size: 13px;">Weekly Summary</div>
+                                    <p class="report-summary">${escapeHtml(report.summary_text)}</p>
+                                ` : ''}
+                            </div>
+                        </div>
+                    `;
+                }).join('');
 
                 return `
-                    <div class="report-card" style="margin-bottom: var(--space-md);">
-                        <div class="report-card-header">
-                            <div class="report-card-icon">${bot.icon || '🤖'}</div>
-                            <div class="report-card-title">${escapeHtml(bot.name)}</div>
-                            <div class="report-card-period">${tasks.length} tasks today</div>
+                    <div style="margin-bottom: var(--space-lg);">
+                        <div style="display: flex; align-items: center; gap: var(--space-sm); margin-bottom: var(--space-md);">
+                            <div class="list-item-avatar" style="background: var(--color-success); width: 36px; height: 36px;">
+                                ${getAppIcon(app.icon)}
+                            </div>
+                            <div>
+                                <div style="font-weight: 600; font-size: 16px;">${escapeHtml(app.name)}</div>
+                                <div style="font-size: 12px; color: var(--tg-theme-hint-color);">${appBots.length} agents</div>
+                            </div>
                         </div>
-                        <div class="report-card-body">
-                            ${isLA && leadOverview ? `
-                                <div style="display: flex; gap: var(--space-sm); margin-bottom: var(--space-md);">
-                                    <div style="flex: 1; background: var(--tg-theme-bg-color); border-radius: var(--radius-md); padding: var(--space-sm) var(--space-md); text-align: center;">
-                                        <div style="font-size: 22px; font-weight: 700; color: var(--color-cyan-400);">${leadOverview.active_leads}</div>
-                                        <div style="font-size: 11px; color: var(--tg-theme-hint-color);">Active Leads</div>
-                                    </div>
-                                    <div style="flex: 1; background: var(--tg-theme-bg-color); border-radius: var(--radius-md); padding: var(--space-sm) var(--space-md); text-align: center;">
-                                        <div style="font-size: 22px; font-weight: 700; color: var(--color-warning);">${leadOverview.scheduled_followups}</div>
-                                        <div style="font-size: 11px; color: var(--tg-theme-hint-color);">Follow-ups Scheduled</div>
-                                    </div>
-                                </div>
-                            ` : ''}
-                            ${isLA && leadOverview && leadOverview.today_summary ? `
-                                <div class="section-title" style="margin-bottom: 8px; font-size: 13px;">Today's Events</div>
-                                <p style="font-size: 13px; color: var(--tg-theme-text-color); margin: 0; line-height: 1.4;">${escapeHtml(leadOverview.today_summary)}</p>
-                            ` : !isLA && tasks.length > 0 ? `
-                                <div class="section-title" style="margin-bottom: 8px; font-size: 13px;">Today's Tasks</div>
-                                <div class="report-highlights">
-                                    ${tasks.slice(0, 10).map(t =>
-                                        `<div class="report-highlight">${escapeHtml(t.task_type)}${t.task_detail ? ': ' + escapeHtml(typeof t.task_detail === 'string' ? t.task_detail.substring(0, 80) : JSON.stringify(t.task_detail).substring(0, 80)) : ''}</div>`
-                                    ).join('')}
-                                    ${tasks.length > 10 ? `<div class="text-muted" style="font-size: 12px;">+${tasks.length - 10} more tasks</div>` : ''}
-                                </div>
-                            ` : !isLA ? '<p class="text-muted" style="font-size: 13px;">No tasks performed today</p>' : ''}
-                            ${isLA && (!leadOverview || !leadOverview.today_summary) ? '<p class="text-muted" style="font-size: 13px;">No events today</p>' : ''}
-                            ${report ? `
-                                <div class="section-title" style="margin-top: 12px; margin-bottom: 8px; font-size: 13px;">Weekly Summary</div>
-                                <p class="report-summary">${escapeHtml(report.summary_text)}</p>
-                            ` : ''}
-                        </div>
+                        ${agentCards}
                     </div>
                 `;
             }).join('');
@@ -3326,6 +3574,201 @@
                 currency: currency
             }).format(cents / 100);
         };
+
+        /* ─────────────────────────────────────────────────────────────────────
+           ADMIN DASHBOARD: APP SUBSCRIPTIONS
+           ───────────────────────────────────────────────────────────────────── */
+
+        const loadAppsSection = async () => {
+            if (!state.currentOrg) return;
+
+            try {
+                const cachedCatalog = cache.get('appCatalog');
+                const cachedOrgApps = cache.get('orgApps');
+
+                const fetches = [];
+                const fetchKeys = [];
+
+                if (!cachedCatalog) {
+                    fetches.push(api.getAppCatalog());
+                    fetchKeys.push('appCatalog');
+                }
+                if (!cachedOrgApps) {
+                    fetches.push(api.getOrgApps(state.currentOrg.id));
+                    fetchKeys.push('orgApps');
+                }
+
+                if (fetches.length > 0) {
+                    const results = await Promise.all(fetches);
+                    fetchKeys.forEach((key, i) => cache.set(key, results[i]));
+                }
+
+                state.appCatalog = cache.get('appCatalog') || cachedCatalog || [];
+                state.subscribedApps = cache.get('orgApps') || cachedOrgApps || [];
+                state.appsLoaded = true;
+
+                renderAppsSection();
+            } catch (error) {
+                if (handleAuthError(error)) return;
+                console.error('Failed to load apps:', error);
+            }
+        };
+
+        const renderAppsSection = () => {
+            const subscribedList = document.getElementById('subscribed-apps-list');
+            const subscribedEmpty = document.getElementById('subscribed-apps-empty');
+            const availableList = document.getElementById('available-apps-list');
+            const availableEmpty = document.getElementById('available-apps-empty');
+
+            const subscribedIds = new Set(state.subscribedApps.map(a => a.id));
+
+            // Render subscribed apps
+            if (state.subscribedApps.length === 0) {
+                subscribedList.innerHTML = '';
+                subscribedEmpty.classList.remove('hidden');
+            } else {
+                subscribedEmpty.classList.add('hidden');
+                subscribedList.innerHTML = state.subscribedApps.map(app => `
+                    <div class="list-item list-item-clickable" onclick="openAppDetailModal('${app.id}')">
+                        <div class="list-item-avatar" style="background: var(--color-success);">
+                            ${getAppIcon(app.icon)}
+                        </div>
+                        <div class="list-item-content">
+                            <div class="list-item-title">${escapeHtml(app.name)}</div>
+                            <div class="list-item-subtitle">${escapeHtml(app.description || 'Active subscription')}</div>
+                        </div>
+                        <span class="chip chip-success">Active</span>
+                    </div>
+                `).join('');
+            }
+
+            // Render available (unsubscribed) apps
+            const unsubscribedApps = state.appCatalog.filter(a => !subscribedIds.has(a.id));
+
+            if (unsubscribedApps.length === 0) {
+                availableList.innerHTML = '';
+                availableEmpty.classList.remove('hidden');
+            } else {
+                availableEmpty.classList.add('hidden');
+                availableList.innerHTML = unsubscribedApps.map(app => `
+                    <div class="list-item list-item-clickable" onclick="openAppDetailModal('${app.id}')">
+                        <div class="list-item-avatar" style="background: var(--color-cyan-500);">
+                            ${getAppIcon(app.icon)}
+                        </div>
+                        <div class="list-item-content">
+                            <div class="list-item-title">${escapeHtml(app.name)}</div>
+                            <div class="list-item-subtitle">${escapeHtml(app.description || '')}</div>
+                        </div>
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--tg-theme-hint-color)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                    </div>
+                `).join('');
+            }
+        };
+
+        // ── App Detail Modal ──────────────────────────────────────────────
+
+        let selectedAppDetail = null;
+
+        const openAppDetailModal = (appId) => {
+            const app = state.appCatalog.find(a => a.id === appId)
+                || state.subscribedApps.find(a => a.id === appId);
+            if (!app) return;
+
+            selectedAppDetail = app;
+            const isSubscribed = state.subscribedApps.some(a => a.id === appId);
+
+            document.getElementById('app-detail-icon').innerHTML = getAppIcon(app.icon);
+            document.getElementById('app-detail-name').textContent = app.name;
+            document.getElementById('app-detail-description').textContent =
+                app.description || 'No description available';
+
+            const subscribeBtn = document.getElementById('app-detail-subscribe-btn');
+            const unsubscribeBtn = document.getElementById('app-detail-unsubscribe-btn');
+
+            if (isSubscribed) {
+                subscribeBtn.classList.add('hidden');
+                unsubscribeBtn.classList.remove('hidden');
+            } else {
+                subscribeBtn.classList.remove('hidden');
+                unsubscribeBtn.classList.add('hidden');
+            }
+
+            document.getElementById('modal-app-detail').classList.add('active');
+        };
+
+        const closeAppDetailModal = () => {
+            document.getElementById('modal-app-detail').classList.remove('active');
+            selectedAppDetail = null;
+        };
+
+        const handleAppSubscribe = async () => {
+            if (!selectedAppDetail || !state.currentOrg) return;
+
+            const appName = selectedAppDetail.name;
+            const btn = document.getElementById('app-detail-subscribe-btn');
+            btn.disabled = true;
+            btn.textContent = 'Subscribing...';
+
+            try {
+                await api.subscribeToApp(state.currentOrg.id, selectedAppDetail.id);
+
+                cache.invalidate('orgApps');
+                state.appsLoaded = false;
+                state.appReportsLoaded = false;
+
+                closeAppDetailModal();
+                await loadAppsSection();
+
+                tg.showAlert(`Subscribed to ${appName}!`);
+            } catch (error) {
+                if (handleAuthError(error)) return;
+                tg.showAlert(error.message || 'Failed to subscribe');
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Subscribe';
+            }
+        };
+
+        const handleAppUnsubscribe = async () => {
+            if (!selectedAppDetail || !state.currentOrg) return;
+            const appName = selectedAppDetail.name;
+
+            tg.showConfirm(
+                `Unsubscribe from ${appName}? Team members will lose access.`,
+                async (confirmed) => {
+                    if (!confirmed) return;
+
+                    const btn = document.getElementById('app-detail-unsubscribe-btn');
+                    btn.disabled = true;
+                    btn.textContent = 'Unsubscribing...';
+
+                    try {
+                        await api.unsubscribeFromApp(state.currentOrg.id, selectedAppDetail.id);
+
+                        cache.invalidate('orgApps');
+                        state.appsLoaded = false;
+                        state.appReportsLoaded = false;
+
+                        closeAppDetailModal();
+                        await loadAppsSection();
+
+                        tg.showAlert(`Unsubscribed from ${appName}`);
+                    } catch (error) {
+                        if (handleAuthError(error)) return;
+                        tg.showAlert(error.message || 'Failed to unsubscribe');
+                    } finally {
+                        btn.disabled = false;
+                        btn.textContent = 'Unsubscribe';
+                    }
+                }
+            );
+        };
+
+        document.getElementById('modal-app-detail')?.addEventListener('click', (e) => {
+            if (e.target.classList.contains('modal-backdrop')) {
+                closeAppDetailModal();
+            }
+        });
 
         /* ─────────────────────────────────────────────────────────────────────
            ADMIN DASHBOARD: HELP

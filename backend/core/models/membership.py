@@ -41,11 +41,19 @@ class BotAccess(BaseModel):
     granted: bool = False
 
 
+class AppAccess(BaseModel):
+    """App access grant."""
+    app_id: str
+    app_name: str
+    granted: bool = False
+
+
 class MembershipApproval(BaseModel):
     """Admin approving/rejecting a membership request."""
     request_id: str
     approved: bool
     bot_ids: List[str] = []  # Which bots to grant access to
+    app_ids: List[str] = []  # Which apps to grant access to
 
 
 class Member(BaseModel):
@@ -56,6 +64,7 @@ class Member(BaseModel):
     telegram_username: Optional[str] = None
     role: str  # 'admin', 'member'
     bot_access: List[BotAccess] = []
+    app_access: List[AppAccess] = []
     joined_at: datetime
     last_active_at: Optional[datetime] = None
 
@@ -66,6 +75,11 @@ class Member(BaseModel):
 class MemberBotsUpdate(BaseModel):
     """Update bot access for a member."""
     bot_ids: List[str]
+
+
+class MemberAppsUpdate(BaseModel):
+    """Update app access for a member."""
+    app_ids: List[str]
 
 
 class MemberRoleUpdate(BaseModel):
