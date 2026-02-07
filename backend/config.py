@@ -21,7 +21,9 @@ class Settings(BaseSettings):
     MINI_APP_SHORTNAME: str = "hub"  # The shortname configured in BotFather for the Web App
 
     # AI Services
-    openai_api_key: str = ""  # For URL scraping and business insights generation
+    openai_api_key: str = ""  # For business insights generation (GPT-4o)
+    groq_api_key: str = ""  # For web scraping extraction (Llama 3.1 8B via Groq)
+    jina_api_key: str = ""  # For Jina Reader API fallback (optional, increases rate limit)
 
     # App settings
     app_url: str = "http://localhost:8000"  # For generating invite links

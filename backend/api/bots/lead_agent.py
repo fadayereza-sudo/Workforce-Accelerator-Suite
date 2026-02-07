@@ -18,7 +18,7 @@ from models import (
     ProductCreate, ProductUpdate, Product,
     ProspectCreate, ProspectManualCreate, ProspectStatusUpdate, ProspectContactUpdate, Prospect, ProspectCard,
     PainPoint, ScrapeRequest, SearchHistory,
-    LeadAgentDashboard, CurrencyUpdate,
+    LeadAgentDashboard, CurrencyUpdate, OrgSettingsUpdate,
     JournalEntryCreate, JournalEntryUpdate, JournalEntry
 )
 from services import get_supabase_admin, get_telegram_user
@@ -102,11 +102,11 @@ async def generate_ai_insights_task(
     business_description: Optional[str] = None
 ):
     """
-    Background task to generate AI insights for a prospect.
+    Background task to generate AI insights and sales toolkit for a prospect.
 
     Two-tier LLM pipeline:
     - Tier 1 (GPT-4o-mini): Already extracted business_description from URL (passed in)
-    - Tier 2 (GPT-4o): Generate strategic insights, pain points, and call script
+    - Tier 2 (GPT-4o): Generate strategic insights, pain points, and complete sales toolkit
     """
     db = get_supabase_admin()
 
@@ -128,23 +128,32 @@ async def generate_ai_insights_task(
 
         products = [Product(**p) for p in products_result.data]
 
+        # Get org settings for credibility context
+        org_result = db.table("organizations").select("settings").eq(
+            "id", org_id
+        ).single().execute()
+        org_settings = org_result.data.get("settings", {}) if org_result.data else {}
+
         # Generate insights using GPT-4o (with business description from GPT-4o-mini)
         ai = LeadAgentAI(settings.openai_api_key)
 
         with TaskTimer() as timer:
-            summary, pain_points, call_script = await ai.generate_prospect_insights(
+            summary, sales_toolkit = await ai.generate_prospect_insights(
                 business_name=prospect_data["business_name"],
                 business_address=prospect_data.get("address"),
                 business_website=prospect_data.get("website"),
                 products=products,
-                business_description=business_description
+                business_description=business_description,
+                org_website=org_settings.get("lead_agent_website"),
+                org_instagram=org_settings.get("lead_agent_instagram"),
+                credibility_facts=org_settings.get("lead_agent_credibility_facts")
             )
 
-        # Update prospect with AI-generated content (including call script)
+        # Store full sales toolkit in pain_points JSONB (includes opposition_points for internal use)
         db.table("lead_agent_prospects").update({
             "business_summary": summary,
-            "pain_points": [pp.dict() for pp in pain_points],
-            "call_script": call_script,
+            "pain_points": sales_toolkit,
+            "call_script": [],
             "ai_generated_at": datetime.now(timezone.utc).isoformat()
         }).eq("id", prospect_id).execute()
 
@@ -153,8 +162,8 @@ async def generate_ai_insights_task(
             org_id=org_id,
             prospect_id=prospect_id,
             business_name=prospect_data["business_name"],
-            pain_points_count=len(pain_points),
-            tokens_used=0,  # Token tracking would require modifying ai_lead_agent.py
+            pain_points_count=len(sales_toolkit),
+            tokens_used=0,
             execution_time_ms=timer.execution_time_ms
         )
 
@@ -199,9 +208,9 @@ async def create_product(
     data: ProductCreate = ...,
     x_telegram_init_data: str = Header(...)
 ) -> Product:
-    """Create a new product (admin only)."""
+    """Create a new product."""
     tg_user = get_telegram_user(x_telegram_init_data)
-    await verify_org_admin(tg_user.id, org_id)
+    await verify_org_member(tg_user.id, org_id)
 
     db = get_supabase_admin()
     product_data = {
@@ -223,7 +232,7 @@ async def update_product(
     data: ProductUpdate,
     x_telegram_init_data: str = Header(...)
 ) -> Product:
-    """Update a product (admin only)."""
+    """Update a product."""
     tg_user = get_telegram_user(x_telegram_init_data)
     db = get_supabase_admin()
 
@@ -235,7 +244,7 @@ async def update_product(
     if not product_result.data:
         raise HTTPException(404, "Product not found")
 
-    await verify_org_admin(tg_user.id, product_result.data["org_id"])
+    await verify_org_member(tg_user.id, product_result.data["org_id"])
 
     # Build update data
     update_data = {}
@@ -261,7 +270,7 @@ async def delete_product(
     product_id: str,
     x_telegram_init_data: str = Header(...)
 ) -> dict:
-    """Delete a product (admin only)."""
+    """Delete a product."""
     tg_user = get_telegram_user(x_telegram_init_data)
     db = get_supabase_admin()
 
@@ -273,7 +282,7 @@ async def delete_product(
     if not product_result.data:
         raise HTTPException(404, "Product not found")
 
-    await verify_org_admin(tg_user.id, product_result.data["org_id"])
+    await verify_org_member(tg_user.id, product_result.data["org_id"])
 
     db.table("lead_agent_products").delete().eq("id", product_id).execute()
 
@@ -365,8 +374,8 @@ async def scrape_prospect(
             detail="Please add at least one product or service before adding leads. The AI needs your products to generate relevant insights."
         )
 
-    # Initialize URL scraper service (GPT-4o-mini)
-    scraper = URLScraperService(settings.openai_api_key)
+    # Initialize URL scraper service (Llama 3.1 8B via Groq)
+    scraper = URLScraperService(settings.groq_api_key)
 
     # Scrape business info from URL with timing
     print(f"[LeadAgent] Scraping URL: {data.url}")
@@ -553,15 +562,14 @@ async def get_call_script(
     x_telegram_init_data: str = Header(...)
 ):
     """
-    Get the call script for a prospect.
+    Get the call script for a prospect (backward-compatible endpoint).
 
-    For new prospects, returns the pre-generated script from the database.
-    For existing prospects without a stored script, generates one on-demand.
+    For new-format prospects (sales toolkit), synthesizes script from pain_points.
+    For legacy prospects, returns stored call_script.
     """
     tg_user = get_telegram_user(x_telegram_init_data)
     db = get_supabase_admin()
 
-    # Get prospect with call script
     result = db.table("lead_agent_prospects").select("*").eq(
         "id", prospect_id
     ).single().execute()
@@ -570,75 +578,45 @@ async def get_call_script(
         raise HTTPException(404, "Prospect not found")
 
     prospect = result.data
+    await verify_org_member(tg_user.id, prospect["org_id"])
 
-    org_id = prospect["org_id"]
+    pain_points = prospect.get("pain_points", [])
 
-    # Verify org membership
-    await verify_org_member(tg_user.id, org_id)
+    # New format: sales toolkit items have a 'question' key
+    if pain_points and isinstance(pain_points[0], dict) and "question" in pain_points[0]:
+        script_items = [
+            {
+                "question": pp["question"],
+                "answer": pp.get("solution_summary", ""),
+                "key_points": pp.get("key_points", []),
+                "urgency_statement": pp.get("urgency_statement", "")
+            }
+            for pp in pain_points
+        ]
+        return {
+            "business_name": prospect["business_name"],
+            "script_items": script_items
+        }
 
-    # Return the stored call script if available
+    # Legacy format: return stored call_script
     call_script = prospect.get("call_script", [])
-
     if call_script:
         return {
             "business_name": prospect["business_name"],
             "script_items": call_script
         }
 
-    # For existing prospects without a call script, generate one on-demand
-    pain_points = prospect.get("pain_points", [])
+    # No data available yet
     if not pain_points:
         raise HTTPException(
             status_code=400,
             detail="No pain points available yet. Please wait for AI insights to be generated."
         )
 
-    # Get organization's products for context
-    products_result = db.table("lead_agent_products").select("*").eq(
-        "org_id", org_id
-    ).eq("is_active", True).execute()
-
-    products = [Product(**p) for p in products_result.data] if products_result.data else []
-
-    # Generate call script using AI
-    ai = LeadAgentAI(api_key=settings.openai_api_key)
-
-    with TaskTimer() as script_timer:
-        script_items = await ai.generate_call_script(
-            business_name=prospect["business_name"],
-            pain_points=pain_points,
-            products=products
-        )
-
-    if not script_items:
-        raise HTTPException(
-            status_code=500,
-            detail="Failed to generate call script. Please try again."
-        )
-
-    # Store the generated script for future use
-    db.table("lead_agent_prospects").update({
-        "call_script": script_items
-    }).eq("id", prospect_id).execute()
-
-    # Get user_id for task logging
-    user_result = db.table("users").select("id").eq("telegram_id", tg_user.id).single().execute()
-    user_id = user_result.data["id"] if user_result.data else None
-
-    # Log bot task for reporting
-    BotTaskLogger.log_lead_agent_call_script(
-        org_id=org_id,
-        prospect_id=prospect_id,
-        business_name=prospect["business_name"],
-        user_id=user_id,
-        tokens_used=0,  # Token tracking would require modifying ai_lead_agent.py
-        execution_time_ms=script_timer.execution_time_ms
+    raise HTTPException(
+        status_code=400,
+        detail="Call script is still being generated. Please try again shortly."
     )
-
-    return {
-        "business_name": prospect["business_name"],
-        "script_items": script_items
-    }
 
 
 @router.get("/prospects/{prospect_id}")
@@ -663,8 +641,31 @@ async def get_prospect(
     # Verify org membership
     await verify_org_member(tg_user.id, prospect["org_id"])
 
-    # Convert to ProspectCard
-    pain_points = [PainPoint(**pp) for pp in prospect.get("pain_points", [])]
+    # Detect new vs legacy format
+    raw_pain_points = prospect.get("pain_points", [])
+    is_new_format = (
+        raw_pain_points
+        and isinstance(raw_pain_points[0], dict)
+        and "question" in raw_pain_points[0]
+    )
+
+    pain_points = []
+    sales_toolkit = []
+
+    if is_new_format:
+        # New format: strip opposition_statement from opposition_points before sending
+        for pp in raw_pain_points:
+            clean_item = dict(pp)
+            if "opposition_points" in clean_item:
+                clean_item["opposition_points"] = [
+                    {"disarming_key_point": op.get("disarming_key_point", "")}
+                    for op in clean_item["opposition_points"]
+                ]
+            sales_toolkit.append(clean_item)
+    else:
+        # Legacy format
+        pain_points = [PainPoint(**pp) for pp in raw_pain_points]
+
     call_script = prospect.get("call_script", [])
 
     # Get latest pending follow-up notification for this prospect
@@ -693,6 +694,7 @@ async def get_prospect(
         google_maps_url=prospect.get("google_maps_url"),
         summary=prospect.get("business_summary"),
         pain_points=pain_points,
+        sales_toolkit=sales_toolkit,
         call_script=call_script,
         ai_overview=prospect.get("ai_overview"),
         next_follow_up=next_follow_up,
@@ -1179,3 +1181,63 @@ async def update_currency(
     }).eq("id", org_id).execute()
 
     return {"currency": data.currency.upper(), "status": "updated"}
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# ORGANIZATION SETTINGS
+# ─────────────────────────────────────────────────────────────────────────────
+
+@router.get("/settings")
+async def get_org_settings(
+    org_id: str = Query(...),
+    x_telegram_init_data: str = Header(...)
+) -> dict:
+    """Get organization's lead agent settings (admin only)."""
+    tg_user = get_telegram_user(x_telegram_init_data)
+    await verify_org_admin(tg_user.id, org_id)
+
+    db = get_supabase_admin()
+    org_result = db.table("organizations").select("settings").eq(
+        "id", org_id
+    ).single().execute()
+
+    settings_data = org_result.data.get("settings", {}) if org_result.data else {}
+
+    return {
+        "website": settings_data.get("lead_agent_website", ""),
+        "instagram": settings_data.get("lead_agent_instagram", ""),
+        "credibility_facts": settings_data.get("lead_agent_credibility_facts", ""),
+        "currency": settings_data.get("lead_agent_currency", "USD")
+    }
+
+
+@router.patch("/settings")
+async def update_org_settings(
+    org_id: str = Query(...),
+    data: OrgSettingsUpdate = ...,
+    x_telegram_init_data: str = Header(...)
+) -> dict:
+    """Update organization's lead agent settings (admin only)."""
+    tg_user = get_telegram_user(x_telegram_init_data)
+    await verify_org_admin(tg_user.id, org_id)
+
+    db = get_supabase_admin()
+
+    org_result = db.table("organizations").select("settings").eq(
+        "id", org_id
+    ).single().execute()
+
+    settings_dict = org_result.data.get("settings", {}) if org_result.data else {}
+
+    if data.website is not None:
+        settings_dict["lead_agent_website"] = data.website
+    if data.instagram is not None:
+        settings_dict["lead_agent_instagram"] = data.instagram
+    if data.credibility_facts is not None:
+        settings_dict["lead_agent_credibility_facts"] = data.credibility_facts
+
+    db.table("organizations").update({
+        "settings": settings_dict
+    }).eq("id", org_id).execute()
+
+    return {"status": "updated"}

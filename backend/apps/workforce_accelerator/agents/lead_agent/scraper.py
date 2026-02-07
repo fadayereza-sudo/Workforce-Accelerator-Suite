@@ -4,6 +4,9 @@ URL scraper service using OpenAI GPT-4o-mini for extraction.
 This is the first tier of our two-tier LLM pipeline:
 1. GPT-4o-mini (cheap) - Extract & summarize business info from HTML
 2. GPT-4o (smart) - Generate insights & pain points with pattern recognition
+
+Fetching strategy: direct httpx first (fast), Jina Reader API fallback
+(handles JS rendering + anti-bot bypass).
 """
 import json
 import hashlib
@@ -40,20 +43,55 @@ class ExtractedBusiness:
 class URLScraperService:
     """URL scraper using OpenAI GPT-4o-mini for business info extraction."""
 
-    def __init__(self, api_key: str):
+    def __init__(self, api_key: str, jina_api_key: str = ""):
         self.client = AsyncOpenAI(api_key=api_key)
+        self.jina_api_key = jina_api_key
 
     async def scrape_business(self, url: str) -> ExtractedBusiness:
         """Scrape business information from a URL."""
         if not url.startswith(('http://', 'https://')):
             url = f'https://{url}'
 
-        html_content = await self._fetch_html(url)
-        business = await self._extract_with_openai(url, html_content)
+        content = await self._fetch_content(url)
+        business = await self._extract_with_openai(url, content)
         return business
 
-    async def _fetch_html(self, url: str) -> str:
-        """Fetch HTML content from URL."""
+    async def _fetch_content(self, url: str) -> str:
+        """Fetch page content — direct fetch first, Jina Reader fallback."""
+        direct_error = None
+
+        # Try direct fetch first (fast, no rate limits)
+        try:
+            content = await self._fetch_direct(url)
+            if content:
+                return content
+        except ScraperError as e:
+            # 404 is a real URL problem — don't retry with Jina
+            if "404" in (e.technical_detail or ""):
+                raise
+            direct_error = e
+            print(f"[URLScraper] Direct fetch failed: {e.technical_detail}")
+
+        # Fallback to Jina Reader (handles JS + anti-bot)
+        print(f"[URLScraper] Trying Jina Reader fallback for {url}")
+        try:
+            content = await self._fetch_with_jina(url)
+            if content:
+                print(f"[URLScraper] Jina Reader succeeded: {len(content)} chars")
+                return content
+        except Exception as e:
+            print(f"[URLScraper] Jina Reader also failed: {e}")
+
+        # Both failed — raise the original direct error or a generic one
+        if direct_error:
+            raise direct_error
+        raise ScraperError(
+            "Unable to fetch content from this website. Please add this lead manually.",
+            f"Both direct fetch and Jina Reader failed for {url}"
+        )
+
+    async def _fetch_direct(self, url: str) -> Optional[str]:
+        """Fetch HTML content directly via httpx."""
         try:
             async with httpx.AsyncClient(
                 timeout=30.0,
@@ -66,7 +104,7 @@ class URLScraperService:
                 response.raise_for_status()
 
                 content = response.text[:50000]
-                print(f"[URLScraper] Fetched {len(content)} chars from {url}")
+                print(f"[URLScraper] Direct fetch: {len(content)} chars from {url}")
 
                 if len(content.strip()) < 100:
                     raise ScraperError(
@@ -82,7 +120,7 @@ class URLScraperService:
 
             if status_code == 403:
                 raise ScraperError(
-                    "This website is blocking automated access (Cloudflare protection detected). Please add this lead manually with the business information you have.",
+                    "This website is blocking automated access.",
                     f"HTTP 403 from {url}"
                 )
             elif status_code == 404:
@@ -92,31 +130,29 @@ class URLScraperService:
                 )
             elif status_code == 500:
                 raise ScraperError(
-                    "The website's server returned an error. Please try again later.",
+                    "The website's server returned an error.",
                     f"HTTP 500 from {url}"
                 )
             elif status_code == 429:
                 raise ScraperError(
-                    "Rate limit exceeded. The website is temporarily blocking requests. Please try again later.",
+                    "The website is temporarily blocking requests.",
                     f"HTTP 429 from {url}"
                 )
             else:
                 raise ScraperError(
-                    f"Unable to access the website (HTTP {status_code}). Please check the URL and try again.",
+                    f"Unable to access the website (HTTP {status_code}).",
                     f"HTTP {status_code} from {url}"
                 )
 
-        except httpx.TimeoutException as e:
-            print(f"[URLScraper] Timeout fetching {url}: {e}")
+        except httpx.TimeoutException:
             raise ScraperError(
-                "The website took too long to respond. Please try again or check if the URL is correct.",
+                "The website took too long to respond.",
                 f"Timeout connecting to {url}"
             )
 
         except httpx.RequestError as e:
-            print(f"[URLScraper] Request error fetching {url}: {e}")
             raise ScraperError(
-                "Unable to connect to the website. Please check the URL and your internet connection.",
+                "Unable to connect to the website.",
                 f"Connection error: {str(e)}"
             )
 
@@ -124,16 +160,43 @@ class URLScraperService:
             raise
 
         except Exception as e:
-            print(f"[URLScraper] Unexpected error fetching {url}: {e}")
             raise ScraperError(
-                "An unexpected error occurred while fetching the website. Please try again.",
+                "An unexpected error occurred while fetching the website.",
                 f"Unexpected error: {str(e)}"
             )
 
-    async def _extract_with_openai(self, url: str, html_content: str) -> ExtractedBusiness:
-        """Extract business information from HTML using GPT-4o-mini."""
+    async def _fetch_with_jina(self, url: str) -> Optional[str]:
+        """Fetch page content via Jina Reader API (JS rendering + anti-bot)."""
+        headers = {
+            "Accept": "application/json",
+            "X-Return-Format": "markdown",
+            "X-Retain-Images": "none",
+        }
+        if self.jina_api_key:
+            headers["Authorization"] = f"Bearer {self.jina_api_key}"
+
+        async with httpx.AsyncClient(timeout=60.0) as client:
+            response = await client.get(
+                f"https://r.jina.ai/{url}",
+                headers=headers
+            )
+            response.raise_for_status()
+
+            try:
+                data = response.json()
+                content = data.get("data", {}).get("content", "")
+            except (json.JSONDecodeError, AttributeError):
+                content = response.text
+
+            if not content or len(content.strip()) < 50:
+                return None
+
+            return content[:20000]
+
+    async def _extract_with_openai(self, url: str, content: str) -> ExtractedBusiness:
+        """Extract business information from page content using GPT-4o-mini."""
         import re
-        cleaned = re.sub(r'<script[^>]*>.*?</script>', '', html_content, flags=re.DOTALL | re.IGNORECASE)
+        cleaned = re.sub(r'<script[^>]*>.*?</script>', '', content, flags=re.DOTALL | re.IGNORECASE)
         cleaned = re.sub(r'<style[^>]*>.*?</style>', '', cleaned, flags=re.DOTALL | re.IGNORECASE)
         cleaned = re.sub(r'<[^>]+>', ' ', cleaned)
         cleaned = re.sub(r'\s+', ' ', cleaned)

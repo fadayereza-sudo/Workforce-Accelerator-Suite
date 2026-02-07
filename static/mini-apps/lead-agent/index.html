@@ -920,6 +920,244 @@
             font-weight: 500;
         }
 
+        /* Sales Toolkit Cards */
+        .sales-toolkit-list {
+            display: flex;
+            flex-direction: column;
+            gap: var(--space-sm);
+        }
+
+        .toolkit-card {
+            background: white;
+            border: 1px solid var(--color-slate-200);
+            border-radius: var(--radius-md);
+            overflow: hidden;
+        }
+
+        .toolkit-header {
+            display: flex;
+            gap: var(--space-md);
+            padding: var(--space-md);
+            cursor: pointer;
+            align-items: flex-start;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .toolkit-header:active {
+            background: var(--color-slate-50);
+        }
+
+        .toolkit-rank {
+            width: 28px;
+            height: 28px;
+            background: var(--color-slate-800);
+            color: white;
+            border-radius: var(--radius-sm);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 13px;
+            font-weight: 600;
+            flex-shrink: 0;
+        }
+
+        .toolkit-header-content {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .toolkit-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--color-slate-800);
+            margin-bottom: 4px;
+        }
+
+        .toolkit-description {
+            font-size: 13px;
+            color: var(--color-slate-600);
+            line-height: 1.5;
+        }
+
+        .toolkit-arrow {
+            font-size: 14px;
+            color: var(--color-slate-400);
+            transition: transform 0.2s ease;
+            flex-shrink: 0;
+            margin-top: 4px;
+        }
+
+        .toolkit-header.open .toolkit-arrow {
+            transform: rotate(180deg);
+        }
+
+        .toolkit-body {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease;
+        }
+
+        .toolkit-body.open {
+            max-height: 3000px;
+        }
+
+        .toolkit-section {
+            padding: var(--space-md);
+            border-top: 1px solid var(--color-slate-100);
+        }
+
+        .toolkit-section-label {
+            font-size: 10px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: var(--color-slate-400);
+            margin-bottom: var(--space-sm);
+        }
+
+        .toolkit-section-text {
+            font-size: 13px;
+            color: var(--color-slate-700);
+            line-height: 1.5;
+        }
+
+        .toolkit-script {
+            background: var(--color-slate-50);
+        }
+
+        .script-question-box {
+            background: var(--color-slate-800);
+            border-radius: var(--radius-sm);
+            padding: var(--space-md);
+            margin-bottom: var(--space-sm);
+        }
+
+        .script-question {
+            font-size: 15px;
+            font-weight: 500;
+            color: #ffffff;
+            line-height: 1.4;
+        }
+
+        .script-keypoints {
+            margin-bottom: var(--space-sm);
+        }
+
+        .keypoints-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .keypoints-list li {
+            font-size: 13px;
+            color: var(--color-slate-700);
+            line-height: 1.5;
+            padding: 4px 0 4px 16px;
+            position: relative;
+        }
+
+        .keypoints-list li::before {
+            content: '\2022';
+            position: absolute;
+            left: 0;
+            color: var(--color-cyan-500);
+            font-weight: bold;
+        }
+
+        .script-urgency {
+            margin-top: var(--space-sm);
+            padding: var(--space-sm) var(--space-md);
+            background: rgba(251, 191, 36, 0.08);
+            border-left: 3px solid #f59e0b;
+            border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+        }
+
+        .urgency-label {
+            font-size: 10px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: #d97706;
+            display: block;
+            margin-bottom: 4px;
+        }
+
+        .urgency-text {
+            font-size: 13px;
+            color: var(--color-slate-700);
+            line-height: 1.5;
+        }
+
+        .whatsapp-message-box {
+            background: #dcf8c6;
+            border-radius: var(--radius-sm);
+            padding: var(--space-md);
+            position: relative;
+        }
+
+        .whatsapp-text {
+            font-size: 13px;
+            color: #111b21;
+            line-height: 1.5;
+            white-space: pre-wrap;
+            padding-right: 60px;
+        }
+
+        .whatsapp-copy-btn {
+            position: absolute;
+            top: var(--space-sm);
+            right: var(--space-sm);
+            padding: 4px 10px;
+            background: rgba(0, 0, 0, 0.06);
+            border: none;
+            border-radius: var(--radius-sm);
+            font-size: 12px;
+            font-weight: 500;
+            color: #075e54;
+            cursor: pointer;
+        }
+
+        .whatsapp-copy-btn:active {
+            background: rgba(0, 0, 0, 0.12);
+        }
+
+        /* Org Settings Section */
+        .org-settings-section {
+            margin-top: var(--space-xl);
+            padding-top: var(--space-lg);
+            border-top: 1px solid var(--color-slate-200);
+        }
+
+        .org-settings-section .form-group {
+            margin-bottom: var(--space-md);
+        }
+
+        .org-settings-section textarea {
+            width: 100%;
+            padding: var(--space-sm) var(--space-md);
+            border: 1px solid var(--color-slate-200);
+            border-radius: var(--radius-md);
+            font-size: 14px;
+            font-family: inherit;
+            resize: vertical;
+            min-height: 80px;
+            background: white;
+            color: var(--color-slate-800);
+        }
+
+        .org-settings-section textarea:focus {
+            outline: none;
+            border-color: var(--color-cyan-500);
+        }
+
+        .char-counter {
+            text-align: right;
+            font-size: 12px;
+            color: var(--color-slate-400);
+            margin-top: 4px;
+        }
+
         /* Danger Zone */
         .danger-zone {
             margin-top: var(--space-xl);
@@ -1632,6 +1870,32 @@
                     Add Product
                 </button>
                 <div id="products-list"></div>
+
+                <!-- Organization Settings (admin only) -->
+                <div class="org-settings-section" id="org-settings-section" style="display: none;">
+                    <div class="section-title">Organization Profile</div>
+                    <p style="font-size: 13px; color: var(--color-slate-500); margin-bottom: var(--space-md);">
+                        This info is used by the AI to generate more credible sales scripts and WhatsApp messages.
+                    </p>
+                    <div class="form-group">
+                        <label class="input-label">Website URL</label>
+                        <input type="url" class="input" id="org-website" placeholder="https://yourcompany.com" maxlength="500" />
+                    </div>
+                    <div class="form-group">
+                        <label class="input-label">Instagram</label>
+                        <input type="text" class="input" id="org-instagram" placeholder="@yourcompany or full URL" maxlength="200" />
+                    </div>
+                    <div class="form-group">
+                        <label class="input-label">Credibility Facts</label>
+                        <textarea class="input" id="org-credibility" maxlength="2000" rows="4" style="min-height: 80px; resize: vertical; font-family: inherit;"
+                            placeholder="List partnerships, awards, stats, certifications...&#10;e.g. Trusted by 500+ businesses, ISO 9001 certified, Official partner of..."
+                            oninput="document.getElementById('credibility-counter').textContent = this.value.length"></textarea>
+                        <div class="char-counter"><span id="credibility-counter">0</span>/2000</div>
+                    </div>
+                    <button class="btn btn-primary btn-block" onclick="saveOrgSettings()" id="save-settings-btn">
+                        Save Settings
+                    </button>
+                </div>
             </div>
         </div>
 
@@ -1902,7 +2166,9 @@
             editingProduct: null,
             deletingProductId: null,
             journalEntries: [],
-            editingJournalEntry: null
+            editingJournalEntry: null,
+            orgSettings: null,
+            userRole: null
         };
 
         // ═══════════════════════════════════════════════════════════════
@@ -2035,6 +2301,13 @@
             updateCurrency: (orgId, currency) => api.fetch(`/currency?org_id=${orgId}`, {
                 method: 'PATCH',
                 body: JSON.stringify({ currency })
+            }),
+
+            // Org Settings
+            getOrgSettings: (orgId) => api.fetch(`/settings?org_id=${orgId}`),
+            updateOrgSettings: (orgId, data) => api.fetch(`/settings?org_id=${orgId}`, {
+                method: 'PATCH',
+                body: JSON.stringify(data)
             }),
 
             // Prospects
@@ -2202,6 +2475,7 @@
 
                 state.orgId = membership.organizations.id;
                 state.orgName = membership.organizations.name;
+                state.userRole = membership.role || 'member';
 
                 console.log('[Lead Agent] Org loaded:', state.orgId, state.orgName);
 
@@ -2256,6 +2530,8 @@
                 state.products = await api.getProducts(state.orgId);
                 cache.set('products');
                 renderProducts();
+                // Load org settings if admin
+                loadOrgSettings();
             } catch (error) {
                 console.error('Products load error:', error);
             }
@@ -2298,6 +2574,62 @@
             document.getElementById('name-counter').textContent = nameInput.value.length;
             document.getElementById('description-counter').textContent = descInput.value.length;
         }
+
+        // ═══════════════════════════════════════════════════════════════
+        // ORGANIZATION SETTINGS
+        // ═══════════════════════════════════════════════════════════════
+
+        async function loadOrgSettings() {
+            // Only show settings for admins
+            if (state.userRole !== 'admin') return;
+
+            const section = document.getElementById('org-settings-section');
+            if (!section) return;
+            section.style.display = '';
+
+            try {
+                const settings = await api.getOrgSettings(state.orgId);
+                state.orgSettings = settings;
+                document.getElementById('org-website').value = settings.website || '';
+                document.getElementById('org-instagram').value = settings.instagram || '';
+                document.getElementById('org-credibility').value = settings.credibility_facts || '';
+                document.getElementById('credibility-counter').textContent = (settings.credibility_facts || '').length;
+            } catch (error) {
+                console.error('Failed to load org settings:', error);
+            }
+        }
+
+        async function saveOrgSettings() {
+            const btn = document.getElementById('save-settings-btn');
+            const data = {
+                website: document.getElementById('org-website').value.trim() || null,
+                instagram: document.getElementById('org-instagram').value.trim() || null,
+                credibility_facts: document.getElementById('org-credibility').value.trim() || null
+            };
+
+            try {
+                btn.disabled = true;
+                btn.textContent = 'Saving...';
+                await api.updateOrgSettings(state.orgId, data);
+                state.orgSettings = data;
+
+                if (window.Telegram?.WebApp?.HapticFeedback) {
+                    window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
+                }
+
+                btn.textContent = 'Saved!';
+                setTimeout(() => { btn.textContent = 'Save Settings'; }, 1500);
+            } catch (error) {
+                alert('Failed to save settings: ' + error.message);
+                btn.textContent = 'Save Settings';
+            } finally {
+                btn.disabled = false;
+            }
+        }
+
+        // ═══════════════════════════════════════════════════════════════
+        // PRODUCT MODALS
+        // ═══════════════════════════════════════════════════════════════
 
         function openAddProductModal() {
             state.editingProduct = null;
@@ -2779,7 +3111,61 @@
                         <div class="ai-generating">AI insights are being generated...</div>
                     `}
 
-                    ${p.pain_points && p.pain_points.length > 0 ? `
+                    ${p.sales_toolkit && p.sales_toolkit.length > 0 ? `
+                        <!-- Sales Toolkit (new format) -->
+                        <div class="section-title" style="margin-top: var(--space-lg);">Sales Toolkit</div>
+                        <div class="sales-toolkit-list">
+                            ${p.sales_toolkit.map((item, index) => `
+                                <div class="toolkit-card">
+                                    <div class="toolkit-header" onclick="toggleToolkitCard(this)">
+                                        <div class="toolkit-rank">${item.revenue_rank || index + 1}</div>
+                                        <div class="toolkit-header-content">
+                                            <div class="toolkit-title">${item.title}</div>
+                                            <div class="toolkit-description">${item.description}</div>
+                                            ${item.relevant_product ? `<span class="opportunity-product">${item.relevant_product}</span>` : ''}
+                                        </div>
+                                        <span class="toolkit-arrow">&#9662;</span>
+                                    </div>
+                                    <div class="toolkit-body">
+                                        <!-- Solution -->
+                                        <div class="toolkit-section">
+                                            <div class="toolkit-section-label">Solution</div>
+                                            <div class="toolkit-section-text">${item.solution_summary || ''}</div>
+                                        </div>
+
+                                        <!-- Sales Script -->
+                                        <div class="toolkit-section toolkit-script">
+                                            <div class="toolkit-section-label">Sales Script</div>
+                                            <div class="script-question-box">
+                                                <span class="cue-card-label cue-card-label-ask">Ask</span>
+                                                <div class="script-question">${item.question}</div>
+                                            </div>
+                                            <div class="script-keypoints">
+                                                <span class="cue-card-label cue-card-label-response">Key Points</span>
+                                                <ul class="keypoints-list">
+                                                    ${(item.key_points || []).map(kp => `<li>${kp}</li>`).join('')}
+                                                </ul>
+                                            </div>
+                                            <div class="script-urgency">
+                                                <span class="urgency-label">Urgency</span>
+                                                <div class="urgency-text">${item.urgency_statement || ''}</div>
+                                            </div>
+                                        </div>
+
+                                        <!-- WhatsApp Message -->
+                                        <div class="toolkit-section">
+                                            <div class="toolkit-section-label">WhatsApp Message</div>
+                                            <div class="whatsapp-message-box">
+                                                <div class="whatsapp-text">${item.whatsapp_message || ''}</div>
+                                                <button class="whatsapp-copy-btn" onclick="copyWhatsAppMessage(this, ${index})">Copy</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    ` : p.pain_points && p.pain_points.length > 0 ? `
+                        <!-- Legacy Opportunities format -->
                         <div class="section-title" style="margin-top: var(--space-lg);">Opportunities</div>
                         <div class="opportunities-list">
                             ${p.pain_points.map((pp, index) => `
@@ -2830,8 +3216,8 @@
                 </div>
                 ` : ''}
 
-                <!-- Call Script Section -->
-                ${p.pain_points && p.pain_points.length > 0 ? `
+                <!-- Legacy Call Script Section (for old prospects only) -->
+                ${!p.sales_toolkit?.length && p.pain_points && p.pain_points.length > 0 ? `
                 <div class="call-script-section">
                     <button class="script-reveal-toggle" onclick="toggleCallScript(this)">
                         <svg class="script-reveal-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
@@ -3201,6 +3587,50 @@
 
         // ═══════════════════════════════════════════════════════════════
         // CALL SCRIPT TOGGLE
+        // ═══════════════════════════════════════════════════════════════
+        // SALES TOOLKIT
+        // ═══════════════════════════════════════════════════════════════
+
+        function toggleToolkitCard(header) {
+            header.classList.toggle('open');
+            const body = header.nextElementSibling;
+            body.classList.toggle('open');
+
+            if (window.Telegram?.WebApp?.HapticFeedback) {
+                window.Telegram.WebApp.HapticFeedback.selectionChanged();
+            }
+        }
+
+        function copyWhatsAppMessage(button, index) {
+            const toolkit = state.currentProspect?.sales_toolkit;
+            if (!toolkit || !toolkit[index]) return;
+
+            const text = toolkit[index].whatsapp_message || '';
+            navigator.clipboard.writeText(text).then(() => {
+                const original = button.textContent;
+                button.textContent = 'Copied!';
+                setTimeout(() => { button.textContent = original; }, 1500);
+
+                if (window.Telegram?.WebApp?.HapticFeedback) {
+                    window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
+                }
+            }).catch(() => {
+                // Fallback for older browsers
+                const textarea = document.createElement('textarea');
+                textarea.value = text;
+                textarea.style.position = 'fixed';
+                textarea.style.opacity = '0';
+                document.body.appendChild(textarea);
+                textarea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textarea);
+                button.textContent = 'Copied!';
+                setTimeout(() => { button.textContent = 'Copy'; }, 1500);
+            });
+        }
+
+        // ═══════════════════════════════════════════════════════════════
+        // LEGACY CALL SCRIPT
         // ═══════════════════════════════════════════════════════════════
 
         async function toggleCallScript(button) {

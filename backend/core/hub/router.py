@@ -26,7 +26,7 @@ from core.notifications import (
 from core.models import (
     Organization, OrgCreate, InviteCode, OrgStats, OrgDetails, OrgUpdate,
     MembershipRequest, MembershipRequestCreate, MembershipRequestResponse,
-    MembershipApproval, Member, BotAccess, MemberBotsUpdate, MemberRoleUpdate,
+    MembershipApproval, Member, BotAccess, AppAccess, MemberBotsUpdate, MemberAppsUpdate, MemberRoleUpdate,
 )
 from config import settings
 
@@ -657,6 +657,19 @@ async def list_members(
             for a in access.data
         ]
 
+        app_access_result = db.table("app_member_access").select(
+            "app_id, app_registry(name)"
+        ).eq("membership_id", m["id"]).execute()
+
+        app_access = [
+            AppAccess(
+                app_id=a["app_id"],
+                app_name=a["app_registry"]["name"] if a.get("app_registry") else a["app_id"],
+                granted=True
+            )
+            for a in app_access_result.data
+        ]
+
         result.append(Member(
             id=m["id"],
             user_id=m["user_id"],
@@ -664,6 +677,7 @@ async def list_members(
             telegram_username=m["users"]["telegram_username"],
             role=m["role"],
             bot_access=bot_access,
+            app_access=app_access,
             joined_at=m["created_at"],
             last_active_at=m.get("last_active_at")
         ))
@@ -794,6 +808,102 @@ async def update_member_role(
         "member_id": member_id,
         "new_role": data.role,
         "member_name": target.data["users"]["full_name"]
+    }
+
+
+@router.get("/orgs/{org_id}/apps/{app_id}/members")
+async def get_app_members(
+    org_id: str,
+    app_id: str,
+    x_telegram_init_data: str = Header(...)
+) -> List[dict]:
+    """Get all org members with their access status for a specific app."""
+    tg_user = get_telegram_user(x_telegram_init_data)
+    verify_org_admin(tg_user.id, org_id)
+
+    db = get_supabase_admin()
+
+    members = db.table("memberships").select(
+        "id, user_id, role, users(full_name, telegram_username)"
+    ).eq("org_id", org_id).execute()
+
+    access = db.table("app_member_access").select(
+        "membership_id"
+    ).eq("app_id", app_id).execute()
+    granted_membership_ids = set(a["membership_id"] for a in access.data)
+
+    result = []
+    for m in members.data:
+        has_access = m["role"] == "admin" or m["id"] in granted_membership_ids
+        result.append({
+            "membership_id": m["id"],
+            "user_id": m["user_id"],
+            "full_name": m["users"]["full_name"],
+            "telegram_username": m["users"].get("telegram_username"),
+            "role": m["role"],
+            "has_access": has_access,
+            "implicit": m["role"] == "admin"
+        })
+
+    return result
+
+
+@router.put("/orgs/{org_id}/members/{member_id}/apps")
+async def update_member_apps(
+    org_id: str,
+    member_id: str,
+    data: MemberAppsUpdate,
+    x_telegram_init_data: str = Header(...)
+) -> dict:
+    """Update app access for a member (admin only)."""
+    tg_user = get_telegram_user(x_telegram_init_data)
+    admin_user_id = verify_org_admin(tg_user.id, org_id)
+    db = get_supabase_admin()
+
+    target = db.table("memberships").select("id").eq(
+        "id", member_id
+    ).eq("org_id", org_id).single().execute()
+
+    if not target.data:
+        raise HTTPException(404, "Member not found")
+
+    subs = db.table("org_app_subscriptions").select("app_id").eq(
+        "org_id", org_id
+    ).eq("active", True).execute()
+    subscribed_app_ids = set(s["app_id"] for s in subs.data)
+
+    for app_id in data.app_ids:
+        if app_id not in subscribed_app_ids:
+            raise HTTPException(400, f"App {app_id} is not subscribed")
+
+    current = db.table("app_member_access").select("app_id").eq(
+        "membership_id", member_id
+    ).execute()
+    current_ids = set(a["app_id"] for a in current.data)
+    new_ids = set(data.app_ids)
+
+    for app_id in (current_ids - new_ids):
+        db.table("app_member_access").delete().eq(
+            "membership_id", member_id
+        ).eq("app_id", app_id).execute()
+
+    for app_id in (new_ids - current_ids):
+        db.table("app_member_access").insert({
+            "membership_id": member_id,
+            "app_id": app_id,
+            "granted_by": admin_user_id
+        }).execute()
+
+    app_names = []
+    if data.app_ids:
+        apps = db.table("app_registry").select("id, name").in_("id", data.app_ids).execute()
+        app_names = [a["name"] for a in apps.data]
+
+    cache_delete("org", f"members:{org_id}")
+
+    return {
+        "status": "updated",
+        "app_access": app_names
     }
 
 

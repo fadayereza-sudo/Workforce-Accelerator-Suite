@@ -1,15 +1,15 @@
 """
-AI service for lead agent - generates business summaries and pain points using OpenAI GPT-4o.
+AI service for lead agent - generates business summaries and sales toolkits using OpenAI GPT-4o.
 
 This is the second tier of our two-tier LLM pipeline:
 1. GPT-4o-mini (cheap) - Extract & summarize business info from HTML
-2. GPT-4o (smart) - Generate insights & pain points with pattern recognition
+2. GPT-4o (smart) - Generate insights, pain points, and complete sales toolkits
 """
 import json
 from typing import List, Optional
 from openai import AsyncOpenAI
 
-from models.lead_agent import PainPoint, Product
+from models.lead_agent import Product
 
 
 class LeadAgentAI:
@@ -25,13 +25,16 @@ class LeadAgentAI:
         business_address: Optional[str],
         business_website: Optional[str],
         products: List[Product],
-        business_description: Optional[str] = None
-    ) -> tuple[str, List[PainPoint], list]:
+        business_description: Optional[str] = None,
+        org_website: Optional[str] = None,
+        org_instagram: Optional[str] = None,
+        credibility_facts: Optional[str] = None
+    ) -> tuple[str, list]:
         """
-        Generate business summary, pain points, and call script for a prospect.
+        Generate business summary and complete sales toolkit for a prospect.
 
-        The call script transforms pain points into conversational questions
-        with answers - designed to be easy to skim like cue cards.
+        Each pain point gets a full toolkit: question, opposition analysis,
+        disarming key points, urgency statement, and WhatsApp message.
 
         Args:
             business_name: Name of the business
@@ -39,9 +42,12 @@ class LeadAgentAI:
             business_website: Business website (optional)
             products: List of organization's products/services
             business_description: Pre-extracted description from website (optional)
+            org_website: Organization's website URL (optional)
+            org_instagram: Organization's Instagram handle/URL (optional)
+            credibility_facts: Partnerships, awards, stats for credibility (optional)
 
         Returns:
-            tuple: (business_summary, list_of_pain_points, call_script_items)
+            tuple: (business_summary, sales_toolkit_items)
         """
         # Build products context
         if products:
@@ -58,7 +64,17 @@ class LeadAgentAI:
         if business_description:
             description_context = f"\n- About: {business_description}"
 
-        prompt = f"""You are a B2B sales intelligence assistant. Analyze this business prospect and generate insights.
+        # Build org credibility context
+        org_context_parts = []
+        if org_website:
+            org_context_parts.append(f"- Website: {org_website}")
+        if org_instagram:
+            org_context_parts.append(f"- Instagram: {org_instagram}")
+        if credibility_facts:
+            org_context_parts.append(f"- Credibility & achievements: {credibility_facts}")
+        org_context = "\n".join(org_context_parts) if org_context_parts else "No company info provided."
+
+        prompt = f"""Analyze this business prospect and generate a complete sales toolkit.
 
 PROSPECT INFORMATION:
 - Business Name: {business_name}
@@ -68,195 +84,131 @@ PROSPECT INFORMATION:
 OUR PRODUCTS/SERVICES:
 {products_context}
 
+OUR COMPANY INFO:
+{org_context}
+
 TASKS:
-1. Generate a brief business summary (2-3 sentences) about what this business does, their target market, and potential needs. If we have their website description, use that information. Be concise and focused.
 
-2. Identify the TOP 3 pain points this business might have that our products/services could solve. For each pain point:
-   - Give it a short, clear title (max 6 words)
-   - Explain the pain point in 1-2 sentences
-   - If applicable, mention which of our products would help (use exact product name or null)
+1. BUSINESS SUMMARY: Write a 2-3 sentence summary of the prospect's business, their target market, and potential needs. If we have their website description, use that information. Be concise and focused.
 
-3. Create a CALL SCRIPT with 3 conversational Q&A's based on the pain points.
+2. SALES TOOLKIT: Identify the TOP 3 pain points this business is most likely facing that our products/services can solve. Rank them by REVENUE POTENTIAL for the prospect — the pain point that, if resolved, would bring the MOST revenue for their business should be ranked #1. Remember: sales is about helping people get what they want.
 
-Each Q&A has 3 parts:
-   a) YOUR OPENING QUESTION - Frame it positively, inviting their opinion. Never assume a problem or imply incompetence. Sound like you're asking a loved one their take on something. Keep it simple, straight to the point, and genuinely curious. The question should make them think "of course I want that, it's a no-brainer".
-   b) THEIR EXPECTED RESPONSE - What the prospect will likely say back (a short, natural reply).
-   c) OUR VALUE RESPONSE - How we deliver value in response. Reference our specific product/service. Keep it conversational and benefit-focused.
+For EACH pain point, generate the following:
 
-EXAMPLE (for a fitness club prospect, pain point: "hard to identify sports talent"):
-   BAD question: "Do you find it hard to identify sports talent in the UAE?"
-   (This implies they're not competent. People expect strangers to help them, not question them.)
+a) PAIN POINT: A short title (max 6 words) and 1-2 sentence description.
 
-   GOOD question: "Would you guys be interested in finding new players?"
-   Their response: "Sure, what kind of players?"
-   Our response: "We use rigorous testing methods to identify talented young players in Dubai and when we know which sport they are good at, we send them to you."
+b) RELEVANT PRODUCT: Which of our products/services solves this. Use the exact product name or null.
 
-   WHY THIS WORKS: It doesn't sound salesy. It doesn't sound scripted. It sounds like something a person who cares about you would ask. It immediately brings down a person's guard and invites them to engage.
+c) SOLUTION SUMMARY: 1-2 sentences explaining how our product resolves this pain point. Reference specific product features.
 
-RULES FOR CALL SCRIPT:
-- Never assume the person will run away - no emotionally sticky opening lines
-- Questions should invite their opinion, not point out a weakness
-- Frame questions so the value is obvious: "would you be interested in X?"
-- Keep questions under 15 words
-- Sound like a person who genuinely cares, not a salesperson
+d) QUESTION: Rephrase the pain point as a simple, non-condescending question to ask over the phone. Rules:
+   - Invite their opinion. NEVER assume a problem or imply incompetence.
+   - Sound like a person who genuinely cares, not a salesperson.
+   - Make the value obvious so they think "of course I want that".
+   - Under 15 words. Matter-of-fact. Simple. Open and inviting.
+   - NEVER use words like "struggle", "challenge", "difficult", "hard" — these are condescending.
+
+   EXAMPLE (for a sports club, pain point "hard to find talented players"):
+   BAD: "Do you find it hard to identify sports talent in the UAE?" (implies incompetence)
+   GOOD: "Would you guys be interested in taking on some extra players?" (inviting, simple, no judgment)
+
+   ANOTHER EXAMPLE (pain point "difficulty tracking athlete progress"):
+   BAD: "Are you struggling to track your athletes' progress?" (condescending)
+   GOOD: "Would you guys be interested in learning more about your athletes' performance?" (inviting, respectful)
+
+e) OPPOSITION STATEMENTS: Generate exactly 5 realistic opposition statements a prospect might have against the solution. These are the natural skeptical thoughts people have before accepting any offer (e.g. "it's probably too expensive", "sounds like a scam", "they're probably desperate for clients", "I doubt they can deliver", "waste of my time"). These are internal — the prospect won't say them out loud.
+
+f) DISARMING KEY POINTS: For EACH opposition statement, write a disarming key point — a brief statement or approach that neutralises the concern. Examples:
+   - "it's too expensive" → disarmed by pricing transparency and ROI framing
+   - "sounds like a scam" → disarmed by mentioning partners, awards, credibility
+   - "they're desperate" → disarmed by showing evidence of high demand
+   - "can they deliver?" → disarmed by proof of past results
+   - "waste of my time" → disarmed by being brief and using phrases like "I'm sure you're busy, I had a quick question…"
+
+   Extract these as a bullet-point list of 3-5 concise key points for the sales rep to reference during the call. These are the talking points that naturally address concerns WITHOUT mentioning the opposition statements themselves.
+
+g) URGENCY STATEMENT: Create an ambition-oriented urgency statement. This is NOT about false scarcity or fear tactics. It's about communicating: "our offer is so good that I can't guarantee it'll still be available if you don't act." The statement must:
+   - Explain WHY the service is valuable and in-demand
+   - Use real credibility facts if provided (partnerships, awards, demand)
+   - Sound polite but confident — "we know our value"
+   - End with a clear call to action
+   - Feel genuine, not manufactured
+
+   EXAMPLE: "Sportify Academy has recently partnered with Emirates Hospital Dubai to offer the sports talent identification test for free, so we've naturally experienced increased demand for this service from other sports clubs as well. If you are interested in our services, please let me know as soon as possible so we can book you into a session with one of our team."
+
+h) WHATSAPP MESSAGE: Compose a professional WhatsApp message (under 150 words) that:
+   - Opens with a friendly, personalized greeting mentioning their business name
+   - Briefly states the opportunity (the pain point reframed positively)
+   - Mentions 1-2 key selling points from the solution
+   - Includes the urgency angle naturally
+   - Ends with our website and/or Instagram for credibility (if provided)
+   - Sounds human and warm, not templated or robotic
+   - Focuses ONLY on this one pain point — do not mention other pain points
 
 Respond ONLY with valid JSON in this exact format:
 {{
     "business_summary": "...",
-    "pain_points": [
+    "sales_toolkit": [
         {{
             "title": "...",
             "description": "...",
-            "relevant_product": "product name or null"
+            "relevant_product": "product name or null",
+            "revenue_rank": 1,
+            "solution_summary": "...",
+            "question": "...",
+            "opposition_points": [
+                {{
+                    "opposition_statement": "...",
+                    "disarming_key_point": "..."
+                }},
+                {{
+                    "opposition_statement": "...",
+                    "disarming_key_point": "..."
+                }},
+                {{
+                    "opposition_statement": "...",
+                    "disarming_key_point": "..."
+                }},
+                {{
+                    "opposition_statement": "...",
+                    "disarming_key_point": "..."
+                }},
+                {{
+                    "opposition_statement": "...",
+                    "disarming_key_point": "..."
+                }}
+            ],
+            "key_points": [
+                "concise talking point 1",
+                "concise talking point 2",
+                "concise talking point 3"
+            ],
+            "urgency_statement": "...",
+            "whatsapp_message": "..."
         }},
         {{
             "title": "...",
             "description": "...",
-            "relevant_product": "product name or null"
+            "relevant_product": "product name or null",
+            "revenue_rank": 2,
+            "solution_summary": "...",
+            "question": "...",
+            "opposition_points": [ ... ],
+            "key_points": [ ... ],
+            "urgency_statement": "...",
+            "whatsapp_message": "..."
         }},
         {{
             "title": "...",
             "description": "...",
-            "relevant_product": "product name or null"
-        }}
-    ],
-    "call_script": [
-        {{
-            "question": "Would you guys be interested in...?",
-            "answer": "We use... to help you..."
-        }},
-        {{
+            "relevant_product": "product name or null",
+            "revenue_rank": 3,
+            "solution_summary": "...",
             "question": "...",
-            "answer": "..."
-        }},
-        {{
-            "question": "...",
-            "answer": "..."
-        }}
-    ]
-}}"""
-
-        try:
-            response = await self.client.chat.completions.create(
-                model="gpt-4o",  # Stronger reasoning for pattern recognition & insights
-                messages=[
-                    {
-                        "role": "system",
-                        "content": "You are a B2B sales intelligence assistant. You identify business pain points and match them to solutions. For call scripts, you help sales reps sound like someone who genuinely cares - not a salesperson. You frame questions positively to invite opinion, never assuming problems or incompetence. Respond only with valid JSON."
-                    },
-                    {
-                        "role": "user",
-                        "content": prompt
-                    }
-                ],
-                response_format={"type": "json_object"},
-                temperature=0.7,
-                max_tokens=1100
-            )
-
-            result = json.loads(response.choices[0].message.content)
-
-            # Extract and validate data
-            business_summary = result.get("business_summary", "")
-
-            pain_points = []
-            for pp in result.get("pain_points", [])[:3]:
-                pain_points.append(PainPoint(
-                    title=pp.get("title", ""),
-                    description=pp.get("description", ""),
-                    relevant_product=pp.get("relevant_product")
-                ))
-
-            call_script = result.get("call_script", [])[:3]
-
-            return business_summary, pain_points, call_script
-
-        except Exception as e:
-            print(f"Error generating AI insights: {e}")
-            # Return empty fallback
-            return "", [], []
-
-    async def generate_call_script(
-        self,
-        business_name: str,
-        pain_points: list,
-        products: List[Product]
-    ) -> list:
-        """
-        Generate a conversational call script based on pain points.
-
-        Transforms technical pain points into natural, question-based
-        conversation starters with suggested answers.
-
-        Args:
-            business_name: Name of the prospect business
-            pain_points: List of PainPoint objects
-            products: List of organization's products/services
-
-        Returns:
-            List of script items with question and answer
-        """
-        if not pain_points:
-            return []
-
-        # Build products context for answers
-        if products:
-            products_context = "\n".join([
-                f"- {p.name}: {p.description or 'No description'}"
-                for p in products
-            ])
-        else:
-            products_context = "No products defined yet."
-
-        # Format pain points for the prompt
-        pain_points_text = "\n".join([
-            f"{i+1}. {pp.get('title', pp.title) if isinstance(pp, dict) else pp.title}: "
-            f"{pp.get('description', pp.description) if isinstance(pp, dict) else pp.description}"
-            for i, pp in enumerate(pain_points[:3])
-        ])
-
-        prompt = f"""Transform these pain points into a conversational call script for reaching out to a prospect.
-
-PROSPECT: {business_name}
-
-PAIN POINTS:
-{pain_points_text}
-
-OUR PRODUCTS/SERVICES:
-{products_context}
-
-TASK:
-For each pain point, create a Q&A pair:
-
-- QUESTION: Frame it positively, inviting their opinion. Never assume a problem or imply incompetence. Sound like you're asking a loved one their take on something. Make them think "of course I want that". Keep it under 15 words.
-
-- ANSWER: How we deliver value. Reference our product/service. Keep it conversational (1-2 sentences).
-
-EXAMPLE (pain point: "hard to identify sports talent"):
-   BAD question: "Do you find it hard to identify sports talent?" (implies incompetence)
-   GOOD question: "Would you guys be interested in finding new players?"
-   Answer: "We use rigorous testing methods to identify talented young players in Dubai and when we know which sport they're good at, we send them to you."
-
-RULES:
-- Never assume the person will run away
-- Questions invite opinion, not point out weakness
-- Simple and straight to the point
-- Sound like someone who genuinely cares, not a salesperson
-
-Respond ONLY with valid JSON:
-{{
-    "script_items": [
-        {{
-            "question": "Would you guys be interested in...?",
-            "answer": "We use... to help you..."
-        }},
-        {{
-            "question": "...",
-            "answer": "..."
-        }},
-        {{
-            "question": "...",
-            "answer": "..."
+            "opposition_points": [ ... ],
+            "key_points": [ ... ],
+            "urgency_statement": "...",
+            "whatsapp_message": "..."
         }}
     ]
 }}"""
@@ -267,7 +219,15 @@ Respond ONLY with valid JSON:
                 messages=[
                     {
                         "role": "system",
-                        "content": "You are a B2B sales coach. You help reps sound like someone who genuinely cares - not a salesperson. You frame questions positively to invite opinion, never assuming problems. Respond only with valid JSON."
+                        "content": (
+                            "You are a B2B sales intelligence assistant that generates complete sales toolkits. "
+                            "You identify business pain points ranked by revenue potential for the prospect and match them to solutions. "
+                            "For call scripts, you help sales reps sound like someone who genuinely cares — not a salesperson. "
+                            "You frame questions positively to invite opinion, never assuming problems or incompetence. "
+                            "You understand opposition psychology: people have natural resistance to offers, and the way to "
+                            "overcome that is through credibility, transparency, and genuine value — never manipulation. "
+                            "Respond only with valid JSON."
+                        )
                     },
                     {
                         "role": "user",
@@ -275,13 +235,36 @@ Respond ONLY with valid JSON:
                     }
                 ],
                 response_format={"type": "json_object"},
-                temperature=0.8,  # Slightly higher for natural language variation
-                max_tokens=700
+                temperature=0.7,
+                max_tokens=4000
             )
 
             result = json.loads(response.choices[0].message.content)
-            return result.get("script_items", [])
+
+            business_summary = result.get("business_summary", "")
+
+            # Extract and validate sales toolkit
+            sales_toolkit = []
+            for item in result.get("sales_toolkit", [])[:3]:
+                toolkit_item = {
+                    "title": item.get("title", ""),
+                    "description": item.get("description", ""),
+                    "relevant_product": item.get("relevant_product"),
+                    "revenue_rank": item.get("revenue_rank", len(sales_toolkit) + 1),
+                    "solution_summary": item.get("solution_summary", ""),
+                    "question": item.get("question", ""),
+                    "opposition_points": item.get("opposition_points", [])[:5],
+                    "key_points": item.get("key_points", [])[:5],
+                    "urgency_statement": item.get("urgency_statement", ""),
+                    "whatsapp_message": item.get("whatsapp_message", "")
+                }
+                sales_toolkit.append(toolkit_item)
+
+            # Sort by revenue_rank
+            sales_toolkit.sort(key=lambda x: x.get("revenue_rank", 99))
+
+            return business_summary, sales_toolkit
 
         except Exception as e:
-            print(f"Error generating call script: {e}")
-            return []
+            print(f"Error generating AI insights: {e}")
+            return "", []

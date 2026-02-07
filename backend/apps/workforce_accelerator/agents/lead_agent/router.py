@@ -20,9 +20,11 @@ from core.task_logger import TaskLogger, TaskTimer
 from config import settings
 
 from apps.workforce_accelerator.models import (
-    Product, ProspectManualCreate, ProspectStatusUpdate, ProspectContactUpdate,
+    Product, ProductCreate, ProductUpdate,
+    ProspectManualCreate, ProspectStatusUpdate, ProspectContactUpdate,
     ProspectCard, PainPoint, ScrapeRequest, SearchHistory,
-    LeadAgentDashboard, JournalEntryCreate, JournalEntryUpdate, JournalEntry
+    LeadAgentDashboard, CurrencyUpdate, OrgSettingsUpdate,
+    JournalEntryCreate, JournalEntryUpdate, JournalEntry
 )
 from apps.workforce_accelerator.services import get_org_currency
 from apps.workforce_accelerator.agents.lead_agent.scraper import URLScraperService, ScraperError
@@ -184,7 +186,7 @@ async def scrape_prospect(
             detail="Please add at least one product or service before adding leads. The AI needs your products to generate relevant insights."
         )
 
-    scraper = URLScraperService(settings.openai_api_key)
+    scraper = URLScraperService(settings.openai_api_key, jina_api_key=settings.jina_api_key)
 
     print(f"[LeadAgent] Scraping URL: {data.url}")
     try:
@@ -899,3 +901,202 @@ async def get_searches(
     ).order("created_at", desc=True).limit(limit).execute()
 
     return [SearchHistory(**s) for s in result.data]
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# PRODUCT ENDPOINTS
+# ─────────────────────────────────────────────────────────────────────────────
+
+@router.get("/products")
+async def list_products(
+    org_id: str = Query(...),
+    x_telegram_init_data: str = Header(...)
+) -> List[Product]:
+    """List all products for the organization."""
+    tg_user = get_telegram_user(x_telegram_init_data)
+    verify_org_member(tg_user.id, org_id)
+
+    cache_key = f"products:{org_id}"
+    cached = cache_get("catalog", cache_key)
+    if cached is not None:
+        return cached
+
+    db = get_supabase_admin()
+    result = db.table("lead_agent_products").select("*").eq(
+        "org_id", org_id
+    ).order("created_at", desc=True).execute()
+
+    products = [Product(**p) for p in result.data]
+    cache_set("catalog", cache_key, products)
+    return products
+
+
+@router.post("/products")
+async def create_product(
+    org_id: str = Query(...),
+    data: ProductCreate = ...,
+    x_telegram_init_data: str = Header(...)
+) -> Product:
+    """Create a new product."""
+    tg_user = get_telegram_user(x_telegram_init_data)
+    verify_org_member(tg_user.id, org_id)
+
+    db = get_supabase_admin()
+    product_data = {
+        "org_id": org_id,
+        "name": data.name,
+        "description": data.description,
+        "price": str(data.price) if data.price else None,
+        "is_active": True
+    }
+
+    result = db.table("lead_agent_products").insert(product_data).execute()
+    cache_delete("catalog", f"products:{org_id}")
+    return Product(**result.data[0])
+
+
+@router.put("/products/{product_id}")
+async def update_product(
+    product_id: str,
+    data: ProductUpdate,
+    x_telegram_init_data: str = Header(...)
+) -> Product:
+    """Update a product."""
+    tg_user = get_telegram_user(x_telegram_init_data)
+    db = get_supabase_admin()
+
+    product_result = db.table("lead_agent_products").select("org_id").eq(
+        "id", product_id
+    ).single().execute()
+
+    if not product_result.data:
+        raise HTTPException(404, "Product not found")
+
+    verify_org_member(tg_user.id, product_result.data["org_id"])
+
+    update_data = {}
+    if data.name is not None:
+        update_data["name"] = data.name
+    if data.description is not None:
+        update_data["description"] = data.description
+    if data.price is not None:
+        update_data["price"] = str(data.price)
+    if data.is_active is not None:
+        update_data["is_active"] = data.is_active
+
+    result = db.table("lead_agent_products").update(update_data).eq(
+        "id", product_id
+    ).execute()
+
+    cache_delete("catalog", f"products:{product_result.data['org_id']}")
+    return Product(**result.data[0])
+
+
+@router.delete("/products/{product_id}")
+async def delete_product(
+    product_id: str,
+    x_telegram_init_data: str = Header(...)
+) -> dict:
+    """Delete a product."""
+    tg_user = get_telegram_user(x_telegram_init_data)
+    db = get_supabase_admin()
+
+    product_result = db.table("lead_agent_products").select("org_id").eq(
+        "id", product_id
+    ).single().execute()
+
+    if not product_result.data:
+        raise HTTPException(404, "Product not found")
+
+    verify_org_member(tg_user.id, product_result.data["org_id"])
+
+    db.table("lead_agent_products").delete().eq("id", product_id).execute()
+
+    cache_delete("catalog", f"products:{product_result.data['org_id']}")
+    return {"status": "deleted"}
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# CURRENCY & SETTINGS ENDPOINTS
+# ─────────────────────────────────────────────────────────────────────────────
+
+@router.patch("/currency")
+async def update_currency(
+    org_id: str = Query(...),
+    data: CurrencyUpdate = ...,
+    x_telegram_init_data: str = Header(...)
+) -> dict:
+    """Update organization's lead agent currency (admin only)."""
+    tg_user = get_telegram_user(x_telegram_init_data)
+    verify_org_admin(tg_user.id, org_id)
+
+    db = get_supabase_admin()
+
+    org_result = db.table("organizations").select("settings").eq(
+        "id", org_id
+    ).single().execute()
+
+    settings_dict = org_result.data.get("settings", {}) if org_result.data else {}
+    settings_dict["lead_agent_currency"] = data.currency.upper()
+
+    db.table("organizations").update({
+        "settings": settings_dict
+    }).eq("id", org_id).execute()
+
+    return {"currency": data.currency.upper(), "status": "updated"}
+
+
+@router.get("/settings")
+async def get_org_settings(
+    org_id: str = Query(...),
+    x_telegram_init_data: str = Header(...)
+) -> dict:
+    """Get organization's lead agent settings (admin only)."""
+    tg_user = get_telegram_user(x_telegram_init_data)
+    verify_org_admin(tg_user.id, org_id)
+
+    db = get_supabase_admin()
+    org_result = db.table("organizations").select("settings").eq(
+        "id", org_id
+    ).single().execute()
+
+    settings_data = org_result.data.get("settings", {}) if org_result.data else {}
+
+    return {
+        "website": settings_data.get("lead_agent_website", ""),
+        "instagram": settings_data.get("lead_agent_instagram", ""),
+        "credibility_facts": settings_data.get("lead_agent_credibility_facts", ""),
+        "currency": settings_data.get("lead_agent_currency", "USD")
+    }
+
+
+@router.patch("/settings")
+async def update_org_settings(
+    org_id: str = Query(...),
+    data: OrgSettingsUpdate = ...,
+    x_telegram_init_data: str = Header(...)
+) -> dict:
+    """Update organization's lead agent settings (admin only)."""
+    tg_user = get_telegram_user(x_telegram_init_data)
+    verify_org_admin(tg_user.id, org_id)
+
+    db = get_supabase_admin()
+
+    org_result = db.table("organizations").select("settings").eq(
+        "id", org_id
+    ).single().execute()
+
+    settings_dict = org_result.data.get("settings", {}) if org_result.data else {}
+
+    if data.website is not None:
+        settings_dict["lead_agent_website"] = data.website
+    if data.instagram is not None:
+        settings_dict["lead_agent_instagram"] = data.instagram
+    if data.credibility_facts is not None:
+        settings_dict["lead_agent_credibility_facts"] = data.credibility_facts
+
+    db.table("organizations").update({
+        "settings": settings_dict
+    }).eq("id", org_id).execute()
+
+    return {"status": "updated"}

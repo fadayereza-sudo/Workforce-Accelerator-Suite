@@ -60,9 +60,9 @@ async def create_product(
     data: ProductCreate = ...,
     x_telegram_init_data: str = Header(...)
 ) -> Product:
-    """Create a new product (admin only)."""
+    """Create a new product."""
     tg_user = get_telegram_user(x_telegram_init_data)
-    verify_org_admin(tg_user.id, org_id)
+    verify_org_member(tg_user.id, org_id)
 
     db = get_supabase_admin()
     product_data = {
@@ -84,7 +84,7 @@ async def update_product(
     data: ProductUpdate,
     x_telegram_init_data: str = Header(...)
 ) -> Product:
-    """Update a product (admin only)."""
+    """Update a product."""
     tg_user = get_telegram_user(x_telegram_init_data)
     db = get_supabase_admin()
 
@@ -95,7 +95,7 @@ async def update_product(
     if not product_result.data:
         raise HTTPException(404, "Product not found")
 
-    verify_org_admin(tg_user.id, product_result.data["org_id"])
+    verify_org_member(tg_user.id, product_result.data["org_id"])
 
     update_data = {}
     if data.name is not None:
@@ -120,7 +120,7 @@ async def delete_product(
     product_id: str,
     x_telegram_init_data: str = Header(...)
 ) -> dict:
-    """Delete a product (admin only)."""
+    """Delete a product."""
     tg_user = get_telegram_user(x_telegram_init_data)
     db = get_supabase_admin()
 
@@ -131,7 +131,7 @@ async def delete_product(
     if not product_result.data:
         raise HTTPException(404, "Product not found")
 
-    verify_org_admin(tg_user.id, product_result.data["org_id"])
+    verify_org_member(tg_user.id, product_result.data["org_id"])
 
     db.table("lead_agent_products").delete().eq("id", product_id).execute()
 
@@ -203,9 +203,9 @@ async def create_org_product(
     data: ProductCreate,
     x_telegram_init_data: str = Header(...)
 ) -> Product:
-    """Create a new product/service (admin only)."""
+    """Create a new product/service."""
     tg_user = get_telegram_user(x_telegram_init_data)
-    verify_org_admin(tg_user.id, org_id)
+    verify_org_member(tg_user.id, org_id)
     db = get_supabase_admin()
 
     product_data = {
@@ -228,9 +228,9 @@ async def update_org_product(
     data: ProductUpdate,
     x_telegram_init_data: str = Header(...)
 ) -> Product:
-    """Update a product/service (admin only)."""
+    """Update a product/service."""
     tg_user = get_telegram_user(x_telegram_init_data)
-    verify_org_admin(tg_user.id, org_id)
+    verify_org_member(tg_user.id, org_id)
     db = get_supabase_admin()
 
     product_check = db.table("lead_agent_products").select("id").eq(
@@ -267,9 +267,9 @@ async def delete_org_product(
     product_id: str,
     x_telegram_init_data: str = Header(...)
 ) -> dict:
-    """Delete a product/service (admin only)."""
+    """Delete a product/service."""
     tg_user = get_telegram_user(x_telegram_init_data)
-    verify_org_admin(tg_user.id, org_id)
+    verify_org_member(tg_user.id, org_id)
     db = get_supabase_admin()
 
     product = db.table("lead_agent_products").select("id, name").eq(

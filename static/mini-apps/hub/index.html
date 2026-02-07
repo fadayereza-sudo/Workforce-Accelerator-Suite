@@ -575,6 +575,7 @@
         }
 
         .modal-sheet {
+            position: relative;
             width: 100%;
             max-height: 90vh;
             background: var(--tg-theme-bg-color);
@@ -838,8 +839,8 @@
             transform: translateX(20px);
         }
 
-        /* App members panel (expandable under each app card on landing page) */
-        .app-members-panel {
+        /* App agents panel (expandable under each app card on landing page) */
+        .app-agents-panel {
             background: var(--tg-theme-secondary-bg-color);
             border-radius: 0 0 var(--radius-md) var(--radius-md);
             margin-top: -4px;
@@ -847,14 +848,50 @@
             overflow: hidden;
         }
 
-        .app-members-panel .list-item {
+        .app-agents-panel .list-item {
             padding: var(--space-sm) var(--space-md) var(--space-sm) 56px;
         }
 
-        .app-members-panel .list-item-avatar {
+        .app-agents-panel .list-item-avatar {
             width: 32px;
             height: 32px;
             font-size: 13px;
+        }
+
+        /* Chevron indicator for expandable app cards */
+        .app-chevron {
+            width: 20px;
+            height: 20px;
+            color: var(--tg-theme-hint-color);
+            transition: transform var(--transition-fast);
+            flex-shrink: 0;
+        }
+
+        .app-chevron.expanded {
+            transform: rotate(90deg);
+        }
+
+        /* Modal close button */
+        .modal-close-btn {
+            position: absolute;
+            top: 16px;
+            right: 16px;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: var(--tg-theme-secondary-bg-color);
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--tg-theme-hint-color);
+            z-index: 1;
+        }
+
+        .modal-close-btn:hover {
+            background: var(--tg-theme-hint-color);
+            color: var(--tg-theme-bg-color);
         }
 
         .danger-zone {
@@ -1806,6 +1843,9 @@
     <div id="modal-approve" class="modal-backdrop">
         <div class="modal-sheet">
             <div class="modal-handle"></div>
+            <button class="modal-close-btn" onclick="closeApproveModal()">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+            </button>
 
             <h2 class="modal-title">Approve Request</h2>
 
@@ -1839,6 +1879,9 @@
     <div id="modal-edit-org" class="modal-backdrop">
         <div class="modal-sheet">
             <div class="modal-handle"></div>
+            <button class="modal-close-btn" onclick="closeEditOrgModal()">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+            </button>
 
             <h2 class="modal-title">Edit Organization</h2>
 
@@ -1869,6 +1912,9 @@
     <div id="modal-member" class="modal-backdrop">
         <div class="modal-sheet">
             <div class="modal-handle"></div>
+            <button class="modal-close-btn" onclick="closeMemberModal()">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+            </button>
 
             <div class="member-detail-header">
                 <div class="member-detail-avatar" id="member-modal-avatar">?</div>
@@ -1917,6 +1963,9 @@
     <div id="modal-role-change" class="modal-backdrop">
         <div class="modal-sheet">
             <div class="modal-handle"></div>
+            <button class="modal-close-btn" onclick="closeRoleChangeModal()">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+            </button>
 
             <h2 class="modal-title">Change User Role</h2>
 
@@ -1941,6 +1990,9 @@
     <div id="modal-app-detail" class="modal-backdrop">
         <div class="modal-sheet">
             <div class="modal-handle"></div>
+            <button class="modal-close-btn" onclick="closeAppDetailModal()">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+            </button>
 
             <div style="text-align: center; margin-bottom: var(--space-lg);">
                 <div class="list-item-avatar" id="app-detail-icon" style="width: 64px; height: 64px; font-size: 28px; margin: 0 auto var(--space-md); background: var(--color-success);">
@@ -2032,6 +2084,31 @@
             // App subscriptions
             appCatalog: [],
             appsLoaded: false
+        };
+
+        /* ─────────────────────────────────────────────────────────────────────
+           APP AGENTS REGISTRY — AI agents available within each app
+           ───────────────────────────────────────────────────────────────────── */
+
+        const APP_AGENTS = {
+            'workforce-accelerator': [
+                {
+                    id: 'lead-agent',
+                    name: 'B2B Lead Agent',
+                    description: 'AI-powered lead generation & call scripts',
+                    icon: 'users',
+                    url: '/app/lead-agent'
+                }
+            ]
+        };
+
+        const getAgentIcon = (icon) => {
+            const icons = {
+                users: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>',
+                briefcase: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path></svg>',
+                chart: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>'
+            };
+            return icons[icon] || icons.briefcase;
         };
 
         /* ─────────────────────────────────────────────────────────────────────
@@ -2237,6 +2314,13 @@
         };
 
         tg.BackButton.onClick(() => {
+            // Close any open modal first before navigating back
+            const openModal = document.querySelector('.modal-backdrop.active');
+            if (openModal) {
+                openModal.classList.remove('active');
+                return;
+            }
+
             if (navHistory.length > 0) {
                 const prevPage = navHistory.pop();
                 showPage(prevPage, { pushHistory: false });
@@ -2448,7 +2532,7 @@
             if (apps && apps.length > 0) {
                 document.getElementById('admin-no-apps').classList.add('hidden');
                 document.getElementById('admin-apps-list').innerHTML = apps.map(app => `
-                    <div class="list-item list-item-clickable" onclick="toggleAppMembers('${app.id}')">
+                    <div class="list-item list-item-clickable" onclick="toggleAppAgents('${app.id}')">
                         <div class="list-item-avatar" style="background: var(--color-success);">
                             ${getAppIcon(app.icon)}
                         </div>
@@ -2456,13 +2540,9 @@
                             <div class="list-item-title">${escapeHtml(app.name)}</div>
                             <div class="list-item-subtitle">${escapeHtml(app.description || 'Active')}</div>
                         </div>
-                        <div class="toggle ${''}" id="app-toggle-${app.id}" onclick="event.stopPropagation(); toggleAppMembers('${app.id}')"></div>
+                        <svg class="app-chevron" id="app-chevron-${app.id}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
                     </div>
-                    <div class="app-members-panel hidden" id="app-members-${app.id}">
-                        <div style="padding: var(--space-md); text-align: center;">
-                            <span class="text-muted text-sm">Loading...</span>
-                        </div>
-                    </div>
+                    <div class="app-agents-panel hidden" id="app-agents-${app.id}"></div>
                 `).join('');
             } else {
                 document.getElementById('admin-apps-list').innerHTML = '';
@@ -2482,44 +2562,41 @@
             return icons[icon] || icons.briefcase;
         };
 
-        const toggleAppMembers = async (appId) => {
-            const panel = document.getElementById(`app-members-${appId}`);
-            const toggle = document.getElementById(`app-toggle-${appId}`);
+        const toggleAppAgents = (appId) => {
+            const panel = document.getElementById(`app-agents-${appId}`);
+            const chevron = document.getElementById(`app-chevron-${appId}`);
 
             if (!panel.classList.contains('hidden')) {
                 panel.classList.add('hidden');
-                toggle?.classList.remove('active');
+                chevron?.classList.remove('expanded');
                 return;
             }
 
-            // Hide all other panels and deactivate their toggles
-            document.querySelectorAll('.app-members-panel').forEach(p => p.classList.add('hidden'));
-            document.querySelectorAll('[id^="app-toggle-"]').forEach(t => t.classList.remove('active'));
+            // Hide all other panels and collapse their chevrons
+            document.querySelectorAll('.app-agents-panel').forEach(p => p.classList.add('hidden'));
+            document.querySelectorAll('.app-chevron').forEach(c => c.classList.remove('expanded'));
 
-            toggle?.classList.add('active');
+            chevron?.classList.add('expanded');
             panel.classList.remove('hidden');
-            panel.innerHTML = '<div style="padding: var(--space-md); text-align: center;"><span class="text-muted text-sm">Loading...</span></div>';
 
-            try {
-                const members = await api.getAppMembers(state.currentOrg.id, appId);
-                if (members.length === 0) {
-                    panel.innerHTML = '<div style="padding: var(--space-md); text-align: center;"><span class="text-muted text-sm">No members yet</span></div>';
-                    return;
-                }
-                panel.innerHTML = members.map(m => `
-                    <div class="list-item">
-                        <div class="list-item-avatar">${m.full_name.charAt(0).toUpperCase()}</div>
-                        <div class="list-item-content">
-                            <div class="list-item-title" style="font-size: 14px;">${escapeHtml(m.full_name)}</div>
-                            <div class="list-item-subtitle">${m.role === 'admin' ? '👑 Admin' : (m.has_access ? 'Member' : 'No access')}</div>
-                        </div>
-                        <span class="chip ${m.has_access ? 'chip-success' : ''}" style="font-size: 11px;">${m.has_access ? (m.implicit ? 'Admin' : 'Active') : 'None'}</span>
-                    </div>
-                `).join('');
-            } catch (error) {
-                console.error('Failed to load app members:', error);
-                panel.innerHTML = '<div style="padding: var(--space-md); text-align: center;"><span class="text-muted text-sm">Failed to load</span></div>';
+            const agents = APP_AGENTS[appId] || [];
+            if (agents.length === 0) {
+                panel.innerHTML = '<div style="padding: var(--space-md); text-align: center;"><span class="text-muted text-sm">No agents available</span></div>';
+                return;
             }
+
+            panel.innerHTML = agents.map(agent => `
+                <div class="list-item ${agent.url ? 'list-item-clickable' : ''}" ${agent.url ? `onclick="openAgent('${agent.url}')"` : ''}>
+                    <div class="list-item-avatar" style="background: ${agent.background ? 'var(--tg-theme-hint-color)' : 'var(--color-success)'};">
+                        ${getAgentIcon(agent.icon)}
+                    </div>
+                    <div class="list-item-content">
+                        <div class="list-item-title" style="font-size: 14px;">${escapeHtml(agent.name)}</div>
+                        <div class="list-item-subtitle">${escapeHtml(agent.description)}</div>
+                    </div>
+                    ${agent.url ? '<span class="chip chip-success" style="font-size: 11px;">Open</span>' : '<span class="chip" style="font-size: 11px;">Auto</span>'}
+                </div>
+            `).join('');
         };
 
         const openAdminDashboard = async () => {
@@ -3178,25 +3255,43 @@
             document.getElementById('member-org-name').textContent = state.currentOrg.name;
             showPage('member');
 
-            // Get member's app access
-            const members = await api.getMembers(state.currentOrg.id);
-            const me = members.find(m => m.user_id === state.user.id);
+            // For admins loading member view, show all subscribed apps
+            const isAdmin = state.currentMembership?.role === 'admin';
 
-            const appAccess = me ? (me.app_access || []) : [];
+            let appsToShow = [];
 
-            if (appAccess.length > 0) {
+            if (isAdmin) {
+                // Admins have implicit access to all subscribed apps
+                const cachedApps = cache.get('orgApps');
+                let apps;
+                if (cachedApps) {
+                    apps = cachedApps;
+                } else {
+                    apps = await api.getOrgApps(state.currentOrg.id).catch(() => []);
+                    cache.set('orgApps', apps);
+                }
+                appsToShow = (apps || []).map(a => ({ app_id: a.id, app_name: a.name, icon: a.icon }));
+            } else {
+                // Members see only their granted apps
+                const members = await api.getMembers(state.currentOrg.id);
+                const me = members.find(m => m.user_id === state.user.id);
+                appsToShow = (me?.app_access || []).map(a => ({ app_id: a.app_id, app_name: a.app_name }));
+            }
+
+            if (appsToShow.length > 0) {
                 document.getElementById('member-no-apps').classList.add('hidden');
-                document.getElementById('member-apps-list').innerHTML = appAccess.map(app => `
-                    <div class="list-item list-item-clickable" onclick="openApp('${app.app_id}')">
+                document.getElementById('member-apps-list').innerHTML = appsToShow.map(app => `
+                    <div class="list-item list-item-clickable" onclick="toggleAppAgents('${app.app_id}')">
                         <div class="list-item-avatar" style="background: var(--color-success);">
-                            ${getAppIcon(app.app_id === 'workforce-accelerator' ? 'briefcase' : 'chart')}
+                            ${getAppIcon(app.icon || (app.app_id === 'workforce-accelerator' ? 'briefcase' : 'chart'))}
                         </div>
                         <div class="list-item-content">
                             <div class="list-item-title">${escapeHtml(app.app_name)}</div>
                             <div class="list-item-subtitle">Access granted</div>
                         </div>
-                        <span class="chip chip-success">Open</span>
+                        <svg class="app-chevron" id="app-chevron-${app.app_id}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
                     </div>
+                    <div class="app-agents-panel hidden" id="app-agents-${app.app_id}"></div>
                 `).join('');
             } else {
                 document.getElementById('member-apps-list').innerHTML = '';
@@ -3204,14 +3299,9 @@
             }
         };
 
-        const openAgent = (agentName) => {
+        const openAgent = (url) => {
             // Navigate to the agent's mini-app
-            window.location.href = `/app/${agentName}`;
-        };
-
-        const openApp = (appId) => {
-            // Navigate to the app's hub page
-            window.location.href = `/app/${appId}/hub`;
+            window.location.href = url;
         };
 
         /* ─────────────────────────────────────────────────────────────────────

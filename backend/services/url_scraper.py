@@ -1,8 +1,8 @@
 """
-URL scraper service using OpenAI GPT-4o-mini for extraction.
+URL scraper service using Groq Llama 3.1 8B for extraction.
 
 This is the first tier of our two-tier LLM pipeline:
-1. GPT-4o-mini (cheap) - Extract & summarize business info from HTML
+1. Llama 3.1 8B via Groq (cheap & fast) - Extract & summarize business info from HTML
 2. GPT-4o (smart) - Generate insights & pain points with pattern recognition
 """
 import json
@@ -42,17 +42,20 @@ class ExtractedBusiness:
 
 class URLScraperService:
     """
-    URL scraper using OpenAI GPT-4o-mini for business info extraction.
+    URL scraper using Groq Llama 3.1 8B for business info extraction.
 
     This service:
     1. Fetches the HTML content from a given URL
-    2. Uses GPT-4o-mini to extract & summarize structured business information
+    2. Uses Llama 3.1 8B via Groq to extract & summarize structured business information
     3. Returns the data in a format ready for AI insights generation
     """
 
-    def __init__(self, api_key: str):
-        """Initialize the service with OpenAI API key."""
-        self.client = AsyncOpenAI(api_key=api_key)
+    def __init__(self, groq_api_key: str):
+        """Initialize the service with Groq API key."""
+        self.client = AsyncOpenAI(
+            api_key=groq_api_key,
+            base_url="https://api.groq.com/openai/v1"
+        )
 
     async def scrape_business(self, url: str) -> ExtractedBusiness:
         """
@@ -74,8 +77,8 @@ class URLScraperService:
         # Step 1: Fetch HTML content
         html_content = await self._fetch_html(url)
 
-        # Step 2: Extract business info using GPT-4o-mini
-        business = await self._extract_with_openai(url, html_content)
+        # Step 2: Extract business info using Llama 3.1 8B via Groq
+        business = await self._extract_with_llm(url, html_content)
         return business
 
     async def _fetch_html(self, url: str) -> str:
@@ -165,13 +168,13 @@ class URLScraperService:
                 f"Unexpected error: {str(e)}"
             )
 
-    async def _extract_with_openai(
+    async def _extract_with_llm(
         self,
         url: str,
         html_content: str
     ) -> ExtractedBusiness:
         """
-        Extract business information from HTML using GPT-4o-mini.
+        Extract business information from HTML using Llama 3.1 8B via Groq.
 
         Raises:
             ScraperError: If extraction fails
@@ -218,7 +221,7 @@ Rules:
 
         try:
             response = await self.client.chat.completions.create(
-                model="gpt-4o-mini",
+                model="llama-3.1-8b-instant",
                 messages=[
                     {"role": "system", "content": "You are a business information extraction assistant. Extract data accurately from website content and return valid JSON."},
                     {"role": "user", "content": prompt}
@@ -230,7 +233,7 @@ Rules:
 
             # Parse the JSON response
             response_text = response.choices[0].message.content.strip()
-            print(f"[URLScraper] GPT-4o-mini response: {response_text[:300]}...")
+            print(f"[URLScraper] Groq/Llama response: {response_text[:300]}...")
 
             data = json.loads(response_text)
 

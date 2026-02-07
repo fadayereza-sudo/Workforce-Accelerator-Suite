@@ -43,6 +43,7 @@ from .lead_agent import (
     ProductUpdate,
     Product,
     PainPoint,
+    SalesToolkitItem,
     ProspectCreate,
     ProspectManualCreate,
     ProspectStatusUpdate,
@@ -55,6 +56,7 @@ from .lead_agent import (
     SearchHistory,
     LeadAgentDashboard,
     CurrencyUpdate,
+    OrgSettingsUpdate,
     JournalEntryCreate,
     JournalEntryUpdate,
     JournalEntry
@@ -89,10 +91,10 @@ __all__ = [
     "BotTaskLogEntry", "ActivityReport", "ReportListItem", "ReportsList",
     "GenerateReportRequest", "ReportSummaryResponse",
     # App — Lead Agent
-    "ProductCreate", "ProductUpdate", "Product", "PainPoint",
+    "ProductCreate", "ProductUpdate", "Product", "PainPoint", "SalesToolkitItem",
     "ProspectCreate", "ProspectManualCreate", "ProspectStatusUpdate", "ProspectContactUpdate",
     "Prospect", "ProspectCard", "SearchRequest", "ScrapeRequest",
-    "SearchResult", "SearchHistory", "LeadAgentDashboard", "CurrencyUpdate",
+    "SearchResult", "SearchHistory", "LeadAgentDashboard", "CurrencyUpdate", "OrgSettingsUpdate",
     "JournalEntryCreate", "JournalEntryUpdate", "JournalEntry",
     # App — Admin
     "ActivityLogCreate", "MemberActivity", "LeadAgentOverview",

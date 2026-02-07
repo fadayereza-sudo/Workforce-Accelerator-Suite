@@ -201,6 +201,13 @@ class CurrencyUpdate(BaseModel):
     currency: str = Field(..., min_length=3, max_length=3)
 
 
+class OrgSettingsUpdate(BaseModel):
+    """Update organization's lead agent settings."""
+    website: Optional[str] = Field(None, max_length=500)
+    instagram: Optional[str] = Field(None, max_length=200)
+    credibility_facts: Optional[str] = Field(None, max_length=2000)
+
+
 # ═══════════════════════════════════════════════════════════════════════════
 # JOURNAL ENTRY MODELS
 # ═══════════════════════════════════════════════════════════════════════════

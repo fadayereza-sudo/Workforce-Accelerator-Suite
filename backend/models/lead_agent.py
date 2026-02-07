@@ -46,10 +46,24 @@ class Product(BaseModel):
 # ─────────────────────────────────────────────────────────────────────────────
 
 class PainPoint(BaseModel):
-    """A single pain point that products can solve."""
+    """A single pain point that products can solve (legacy format)."""
     title: str
     description: str
     relevant_product: Optional[str] = None
+
+
+class SalesToolkitItem(BaseModel):
+    """Complete sales toolkit for a single pain point."""
+    title: str
+    description: str
+    relevant_product: Optional[str] = None
+    revenue_rank: int                          # 1 = most revenue potential for prospect
+    solution_summary: str                      # How our product solves this
+    question: str                              # Pain point rephrased as a simple question
+    opposition_points: List[dict] = []         # 5x {opposition_statement, disarming_key_point}
+    key_points: List[str] = []                 # Disarming points (visible to user)
+    urgency_statement: str = ""                # Ambition-oriented time pressure
+    whatsapp_message: str = ""                 # Ready-to-send message
 
 
 class ProspectCreate(BaseModel):
@@ -129,7 +143,8 @@ class ProspectCard(BaseModel):
     google_maps_url: Optional[str] = None
     summary: Optional[str] = None
     pain_points: List[PainPoint] = []
-    call_script: List[CallScriptItem] = []
+    sales_toolkit: List[dict] = []             # Enriched pain points with scripts
+    call_script: List[CallScriptItem] = []     # Legacy
     ai_overview: Optional[str] = None
     next_follow_up: Optional[dict] = None
     status: str
@@ -195,6 +210,13 @@ class LeadAgentDashboard(BaseModel):
 class CurrencyUpdate(BaseModel):
     """Update organization's lead agent currency."""
     currency: str = Field(..., min_length=3, max_length=3)
+
+
+class OrgSettingsUpdate(BaseModel):
+    """Update organization's lead agent settings."""
+    website: Optional[str] = Field(None, max_length=500)
+    instagram: Optional[str] = Field(None, max_length=200)
+    credibility_facts: Optional[str] = Field(None, max_length=2000)
 
 
 # ─────────────────────────────────────────────────────────────────────────────
