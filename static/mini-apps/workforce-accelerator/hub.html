@@ -1,0 +1,3355 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Workforce Hub</title>
+
+    <!-- Telegram Web App SDK -->
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+
+    <style>
+        /* ═══════════════════════════════════════════════════════════════════════
+           DESIGN SYSTEM - Premium aesthetics for Telegram Mini App
+           ═══════════════════════════════════════════════════════════════════════ */
+
+        :root {
+            /* Telegram Theme Variables (overridden by SDK) */
+            --tg-theme-bg-color: #0f172a;
+            --tg-theme-secondary-bg-color: #1e293b;
+            --tg-theme-text-color: #f8fafc;
+            --tg-theme-hint-color: #94a3b8;
+            --tg-theme-link-color: #06b6d4;
+            --tg-theme-button-color: #06b6d4;
+            --tg-theme-button-text-color: #ffffff;
+
+            /* Extended Palette - Slate colors */
+            --color-slate-900: #0f172a;
+            --color-slate-800: #1e293b;
+            --color-slate-700: #334155;
+            --color-slate-600: #475569;
+            --color-slate-500: #64748b;
+            --color-slate-400: #94a3b8;
+            --color-slate-300: #cbd5e1;
+            --color-slate-200: #e2e8f0;
+            --color-slate-100: #f1f5f9;
+            --color-slate-50: #f8fafc;
+
+            /* Accent - Cyan */
+            --color-cyan-500: #06b6d4;
+            --color-cyan-400: #22d3ee;
+            --color-cyan-600: #0891b2;
+            --color-cyan-700: #0e7490;
+
+            /* Semantic Colors */
+            --color-success: #10b981;
+            --color-success-light: #d1fae5;
+            --color-warning: #f59e0b;
+            --color-warning-light: #fef3c7;
+            --color-error: #ef4444;
+            --color-error-light: #fee2e2;
+
+            /* Gradients */
+            --gradient-primary: linear-gradient(135deg, var(--color-slate-800) 0%, var(--color-slate-900) 100%);
+            --gradient-accent: linear-gradient(135deg, var(--color-cyan-500) 0%, var(--color-cyan-600) 100%);
+            --gradient-success: linear-gradient(135deg, #10b981 0%, #34d399 100%);
+            --gradient-warm: linear-gradient(135deg, #f59e0b 0%, #fbbf24 100%);
+
+            /* Shadows */
+            --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.06);
+            --shadow-md: 0 4px 12px rgba(15, 23, 42, 0.08);
+            --shadow-lg: 0 8px 24px rgba(15, 23, 42, 0.12);
+            --shadow-glow: 0 0 20px rgba(6, 182, 212, 0.15);
+
+            /* Typography */
+            --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+
+            /* Spacing */
+            --space-xs: 4px;
+            --space-sm: 8px;
+            --space-md: 16px;
+            --space-lg: 24px;
+            --space-xl: 32px;
+            --space-2xl: 48px;
+
+            /* Radius */
+            --radius-sm: 8px;
+            --radius-md: 12px;
+            --radius-lg: 16px;
+            --radius-full: 9999px;
+
+            /* Transitions */
+            --transition-fast: 150ms ease;
+            --transition-normal: 250ms ease;
+            --transition-smooth: 350ms cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        /* ─────────────────────────────────────────────────────────────────────
+           BASE STYLES
+           ───────────────────────────────────────────────────────────────────── */
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        html, body {
+            height: 100%;
+            overflow-x: hidden;
+        }
+
+        body {
+            font-family: var(--font-sans);
+            font-size: 16px;
+            line-height: 1.5;
+            color: var(--tg-theme-text-color);
+            background: var(--tg-theme-bg-color);
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        /* ─────────────────────────────────────────────────────────────────────
+           LAYOUT
+           ───────────────────────────────────────────────────────────────────── */
+
+        #app {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .page {
+            display: none;
+            flex: 1;
+            padding: var(--space-lg);
+            animation: fadeIn 0.3s ease;
+        }
+
+        .page.active {
+            display: flex;
+            flex-direction: column;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .page-header {
+            margin-bottom: var(--space-lg);
+        }
+
+        .page-title {
+            font-size: 28px;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+            margin-bottom: var(--space-xs);
+        }
+
+        .page-subtitle {
+            color: var(--tg-theme-hint-color);
+            font-size: 15px;
+        }
+
+        /* ─────────────────────────────────────────────────────────────────────
+           COMPONENTS: CARDS
+           ───────────────────────────────────────────────────────────────────── */
+
+        .card {
+            background: var(--tg-theme-secondary-bg-color);
+            border-radius: var(--radius-lg);
+            padding: var(--space-lg);
+            margin-bottom: var(--space-md);
+        }
+
+        .card-elevated {
+            background: var(--tg-theme-bg-color);
+            box-shadow: var(--shadow-md);
+        }
+
+        .card-gradient {
+            background: var(--gradient-accent);
+            color: white;
+        }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: var(--space-md);
+        }
+
+        .card-title {
+            font-size: 17px;
+            font-weight: 600;
+        }
+
+        .card-badge {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 4px 10px;
+            border-radius: var(--radius-full);
+            font-size: 13px;
+            font-weight: 500;
+        }
+
+        /* ─────────────────────────────────────────────────────────────────────
+           COMPONENTS: BUTTONS
+           ───────────────────────────────────────────────────────────────────── */
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: var(--space-sm);
+            padding: 14px 24px;
+            border: none;
+            border-radius: var(--radius-md);
+            font-family: inherit;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all var(--transition-fast);
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .btn:active {
+            transform: scale(0.98);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-primary {
+            background: var(--color-cyan-500);
+            color: white;
+            box-shadow: var(--shadow-md);
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            background: var(--color-cyan-600);
+            box-shadow: var(--shadow-glow);
+        }
+
+        .btn-secondary {
+            background: var(--tg-theme-secondary-bg-color);
+            color: var(--tg-theme-text-color);
+        }
+
+        .btn-outline {
+            background: transparent;
+            border: 2px solid var(--tg-theme-button-color);
+            color: var(--tg-theme-button-color);
+        }
+
+        .btn-success {
+            background: var(--gradient-success);
+            color: white;
+        }
+
+        .btn-block {
+            width: 100%;
+        }
+
+        .btn-sm {
+            padding: 10px 16px;
+            font-size: 14px;
+        }
+
+        /* ─────────────────────────────────────────────────────────────────────
+           COMPONENTS: INPUTS
+           ───────────────────────────────────────────────────────────────────── */
+
+        .input-group {
+            margin-bottom: var(--space-lg);
+        }
+
+        .input-label {
+            display: block;
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--tg-theme-hint-color);
+            margin-bottom: var(--space-sm);
+        }
+
+        .input {
+            width: 100%;
+            padding: 14px 16px;
+            border: 2px solid transparent;
+            border-radius: var(--radius-md);
+            background: var(--tg-theme-secondary-bg-color);
+            font-family: inherit;
+            font-size: 16px;
+            color: var(--tg-theme-text-color);
+            transition: all var(--transition-fast);
+        }
+
+        .input:focus {
+            outline: none;
+            border-color: var(--tg-theme-button-color);
+            background: var(--tg-theme-bg-color);
+        }
+
+        .input::placeholder {
+            color: var(--tg-theme-hint-color);
+        }
+
+        /* ─────────────────────────────────────────────────────────────────────
+           COMPONENTS: LISTS
+           ───────────────────────────────────────────────────────────────────── */
+
+        .list {
+            display: flex;
+            flex-direction: column;
+            gap: var(--space-sm);
+        }
+
+        .list-item {
+            display: flex;
+            align-items: center;
+            gap: var(--space-md);
+            padding: var(--space-md);
+            background: var(--tg-theme-secondary-bg-color);
+            border-radius: var(--radius-md);
+            transition: background var(--transition-fast);
+        }
+
+        .list-item-clickable {
+            cursor: pointer;
+        }
+
+        .list-item-clickable:active {
+            background: var(--tg-theme-bg-color);
+        }
+
+        .list-item-avatar {
+            width: 44px;
+            height: 44px;
+            border-radius: var(--radius-full);
+            background: var(--color-cyan-500);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+            font-size: 18px;
+            flex-shrink: 0;
+        }
+
+        .list-item-content {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .list-item-title {
+            font-weight: 600;
+            margin-bottom: 2px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .list-item-subtitle {
+            font-size: 14px;
+            color: var(--tg-theme-hint-color);
+        }
+
+        .list-item-action {
+            flex-shrink: 0;
+        }
+
+        /* ─────────────────────────────────────────────────────────────────────
+           COMPONENTS: CHIPS / TAGS
+           ───────────────────────────────────────────────────────────────────── */
+
+        .chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 12px;
+            background: var(--tg-theme-secondary-bg-color);
+            border-radius: var(--radius-full);
+            font-size: 13px;
+            font-weight: 500;
+        }
+
+        .chip-success {
+            background: var(--color-success-light);
+            color: var(--color-success);
+        }
+
+        .chip-warning {
+            background: var(--color-warning-light);
+            color: var(--color-warning);
+        }
+
+        .chip-selectable {
+            cursor: pointer;
+            transition: all var(--transition-fast);
+            border: 2px solid transparent;
+        }
+
+        .chip-selectable.selected {
+            background: var(--tg-theme-button-color);
+            color: var(--tg-theme-button-text-color);
+            border-color: var(--tg-theme-button-color);
+        }
+
+        .chips-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: var(--space-sm);
+        }
+
+        /* ─────────────────────────────────────────────────────────────────────
+           COMPONENTS: INVITE LINK BOX
+           ───────────────────────────────────────────────────────────────────── */
+
+        .invite-box {
+            background: var(--tg-theme-secondary-bg-color);
+            border-radius: var(--radius-md);
+            padding: var(--space-md);
+            display: flex;
+            align-items: center;
+            gap: var(--space-md);
+        }
+
+        .invite-code-text {
+            flex: 1;
+            font-family: monospace;
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--tg-theme-text-color);
+            word-break: break-all;
+        }
+
+        /* ─────────────────────────────────────────────────────────────────────
+           COMPONENTS: EMPTY STATE
+           ───────────────────────────────────────────────────────────────────── */
+
+        .empty-state {
+            text-align: center;
+            padding: var(--space-2xl) var(--space-lg);
+            color: var(--tg-theme-hint-color);
+        }
+
+        .empty-state-icon {
+            font-size: 48px;
+            margin-bottom: var(--space-md);
+            opacity: 0.5;
+        }
+
+        .empty-state-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--tg-theme-text-color);
+            margin-bottom: var(--space-sm);
+        }
+
+        /* ─────────────────────────────────────────────────────────────────────
+           COMPONENTS: LOADING
+           ───────────────────────────────────────────────────────────────────── */
+
+        .skeleton {
+            background: linear-gradient(
+                90deg,
+                var(--tg-theme-secondary-bg-color) 25%,
+                var(--tg-theme-bg-color) 50%,
+                var(--tg-theme-secondary-bg-color) 75%
+            );
+            background-size: 200% 100%;
+            animation: skeleton-shimmer 1.5s infinite;
+            border-radius: var(--radius-md);
+        }
+
+        @keyframes skeleton-shimmer {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+
+        .loading-spinner {
+            width: 24px;
+            height: 24px;
+            border: 3px solid var(--tg-theme-secondary-bg-color);
+            border-top-color: var(--tg-theme-button-color);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .loading-center {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            flex: 1;
+            gap: var(--space-md);
+        }
+
+        /* ─────────────────────────────────────────────────────────────────────
+           COMPONENTS: STATUS INDICATOR
+           ───────────────────────────────────────────────────────────────────── */
+
+        .status-pending {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            padding: var(--space-2xl);
+        }
+
+        .status-icon {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 36px;
+            margin-bottom: var(--space-lg);
+        }
+
+        .status-icon-waiting {
+            background: var(--color-warning-light);
+        }
+
+        .status-icon-success {
+            background: var(--color-success-light);
+        }
+
+        /* ─────────────────────────────────────────────────────────────────────
+           COMPONENTS: TAB BAR
+           ───────────────────────────────────────────────────────────────────── */
+
+        .tabs {
+            display: flex;
+            gap: var(--space-sm);
+            margin-bottom: var(--space-lg);
+            background: var(--tg-theme-secondary-bg-color);
+            padding: 4px;
+            border-radius: var(--radius-md);
+        }
+
+        .tab {
+            flex: 1;
+            padding: 10px;
+            border: none;
+            background: transparent;
+            color: var(--tg-theme-hint-color);
+            font-family: inherit;
+            font-size: 14px;
+            font-weight: 600;
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            transition: all var(--transition-fast);
+        }
+
+        .tab.active {
+            background: var(--tg-theme-bg-color);
+            color: var(--tg-theme-text-color);
+            box-shadow: var(--shadow-sm);
+        }
+
+        /* ─────────────────────────────────────────────────────────────────────
+           COMPONENTS: MODAL / SHEET
+           ───────────────────────────────────────────────────────────────────── */
+
+        .modal-backdrop {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.5);
+            display: none;
+            align-items: flex-end;
+            z-index: 100;
+            animation: fadeIn 0.2s ease;
+        }
+
+        .modal-backdrop.active {
+            display: flex;
+        }
+
+        .modal-sheet {
+            width: 100%;
+            max-height: 90vh;
+            background: var(--tg-theme-bg-color);
+            border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+            padding: var(--space-lg);
+            animation: slideUp 0.3s ease;
+            overflow-y: auto;
+        }
+
+        @keyframes slideUp {
+            from { transform: translateY(100%); }
+            to { transform: translateY(0); }
+        }
+
+        .modal-handle {
+            width: 36px;
+            height: 4px;
+            background: var(--tg-theme-hint-color);
+            opacity: 0.3;
+            border-radius: 2px;
+            margin: 0 auto var(--space-lg);
+        }
+
+        .modal-title {
+            font-size: 20px;
+            font-weight: 700;
+            margin-bottom: var(--space-lg);
+        }
+
+        /* ─────────────────────────────────────────────────────────────────────
+           PAGE-SPECIFIC: ONBOARDING
+           ───────────────────────────────────────────────────────────────────── */
+
+        .onboarding-hero {
+            text-align: center;
+            padding: var(--space-2xl) 0;
+        }
+
+        .onboarding-icon {
+            width: 100px;
+            height: 100px;
+            background: var(--color-cyan-500);
+            border-radius: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto var(--space-lg);
+            font-size: 48px;
+            box-shadow: var(--shadow-lg);
+        }
+
+        .onboarding-title {
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: var(--space-sm);
+        }
+
+        .onboarding-subtitle {
+            color: var(--tg-theme-hint-color);
+            font-size: 16px;
+            max-width: 280px;
+            margin: 0 auto;
+        }
+
+        .onboarding-divider {
+            display: flex;
+            align-items: center;
+            gap: var(--space-md);
+            margin: var(--space-lg) 0;
+            color: var(--tg-theme-hint-color);
+            font-size: 14px;
+        }
+
+        .onboarding-divider::before,
+        .onboarding-divider::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: var(--tg-theme-hint-color);
+            opacity: 0.3;
+        }
+
+        /* ─────────────────────────────────────────────────────────────────────
+           UTILITY CLASSES
+           ───────────────────────────────────────────────────────────────────── */
+
+        .text-center { text-align: center; }
+        .text-muted { color: var(--tg-theme-hint-color); }
+        .text-success { color: var(--color-success); }
+        .text-error { color: var(--color-error); }
+        .text-sm { font-size: 14px; }
+        .font-semibold { font-weight: 600; }
+        .mt-auto { margin-top: auto; }
+        .mb-md { margin-bottom: var(--space-md); }
+        .mb-lg { margin-bottom: var(--space-lg); }
+        .hidden { display: none !important; }
+
+        /* ─────────────────────────────────────────────────────────────────────
+           COMPONENTS: ORG HEADER
+           ───────────────────────────────────────────────────────────────────── */
+
+        .org-header {
+            display: flex;
+            align-items: flex-start;
+            gap: var(--space-md);
+            padding: var(--space-lg);
+            background: var(--tg-theme-secondary-bg-color);
+            border-radius: var(--radius-lg);
+            margin-bottom: var(--space-lg);
+        }
+
+        .org-avatar {
+            width: 60px;
+            height: 60px;
+            border-radius: var(--radius-md);
+            background: var(--color-cyan-500);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 700;
+            font-size: 24px;
+            flex-shrink: 0;
+        }
+
+        .org-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .org-name {
+            font-size: 20px;
+            font-weight: 700;
+            margin-bottom: 2px;
+        }
+
+        .org-description {
+            font-size: 14px;
+            color: var(--tg-theme-hint-color);
+            margin-bottom: var(--space-sm);
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        .org-stats {
+            font-size: 13px;
+            color: var(--tg-theme-hint-color);
+        }
+
+        .org-edit-btn {
+            background: var(--tg-theme-bg-color);
+            border: none;
+            padding: 8px 14px;
+            border-radius: var(--radius-sm);
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--tg-theme-button-color);
+            cursor: pointer;
+            flex-shrink: 0;
+        }
+
+        /* ─────────────────────────────────────────────────────────────────────
+           COMPONENTS: MEMBER DETAIL MODAL
+           ───────────────────────────────────────────────────────────────────── */
+
+        .member-detail-header {
+            display: flex;
+            align-items: center;
+            gap: var(--space-md);
+            margin-bottom: var(--space-lg);
+        }
+
+        .member-detail-avatar {
+            width: 56px;
+            height: 56px;
+            border-radius: var(--radius-full);
+            background: var(--color-cyan-500);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+            font-size: 22px;
+        }
+
+        .member-detail-info {
+            flex: 1;
+        }
+
+        .member-detail-name {
+            font-size: 18px;
+            font-weight: 700;
+            margin-bottom: 2px;
+        }
+
+        .member-detail-meta {
+            font-size: 14px;
+            color: var(--tg-theme-hint-color);
+        }
+
+        .section-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--tg-theme-hint-color);
+            margin-bottom: var(--space-sm);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .bot-toggle-list {
+            display: flex;
+            flex-direction: column;
+            gap: var(--space-sm);
+            margin-bottom: var(--space-lg);
+        }
+
+        .bot-toggle-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: var(--space-md);
+            background: var(--tg-theme-secondary-bg-color);
+            border-radius: var(--radius-md);
+        }
+
+        .bot-toggle-name {
+            font-weight: 500;
+        }
+
+        /* Toggle switch */
+        .toggle {
+            position: relative;
+            width: 48px;
+            height: 28px;
+            background: var(--tg-theme-hint-color);
+            border-radius: 14px;
+            cursor: pointer;
+            transition: background var(--transition-fast);
+        }
+
+        .toggle.active {
+            background: var(--color-success);
+        }
+
+        .toggle::after {
+            content: '';
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            width: 24px;
+            height: 24px;
+            background: white;
+            border-radius: 50%;
+            transition: transform var(--transition-fast);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .toggle.active::after {
+            transform: translateX(20px);
+        }
+
+        .danger-zone {
+            padding-top: var(--space-lg);
+            border-top: 1px solid var(--tg-theme-secondary-bg-color);
+        }
+
+        .btn-danger {
+            background: var(--color-error-light);
+            color: var(--color-error);
+        }
+
+        .btn-danger:hover {
+            background: var(--color-error);
+            color: white;
+        }
+
+        /* ─────────────────────────────────────────────────────────────────────
+           COMPONENTS: TEXTAREA
+           ───────────────────────────────────────────────────────────────────── */
+
+        .textarea {
+            width: 100%;
+            padding: 14px 16px;
+            border: 2px solid transparent;
+            border-radius: var(--radius-md);
+            background: var(--tg-theme-secondary-bg-color);
+            font-family: inherit;
+            font-size: 16px;
+            color: var(--tg-theme-text-color);
+            transition: all var(--transition-fast);
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        .textarea:focus {
+            outline: none;
+            border-color: var(--tg-theme-button-color);
+            background: var(--tg-theme-bg-color);
+        }
+
+        /* ─────────────────────────────────────────────────────────────────────
+           ADMIN DASHBOARD: BOTTOM NAVIGATION
+           ───────────────────────────────────────────────────────────────────── */
+
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            display: flex;
+            background: var(--tg-theme-bg-color);
+            border-top: 1px solid var(--tg-theme-secondary-bg-color);
+            padding: var(--space-sm) 0;
+            padding-bottom: max(var(--space-sm), env(safe-area-inset-bottom));
+            z-index: 50;
+        }
+
+        .nav-item {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            padding: var(--space-sm) 0;
+            color: var(--tg-theme-hint-color);
+            cursor: pointer;
+            transition: color var(--transition-fast);
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .nav-item.active {
+            color: var(--color-cyan-500);
+        }
+
+        .nav-item-icon {
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .nav-item-icon svg {
+            width: 22px;
+            height: 22px;
+            stroke-width: 2;
+        }
+
+        .nav-item-label {
+            font-size: 11px;
+            font-weight: 500;
+        }
+
+        /* ─────────────────────────────────────────────────────────────────────
+           ADMIN DASHBOARD: SECTIONS
+           ───────────────────────────────────────────────────────────────────── */
+
+        .admin-section {
+            display: none;
+            animation: fadeIn 0.2s ease;
+        }
+
+        .admin-section.active {
+            display: block;
+        }
+
+        /* ─────────────────────────────────────────────────────────────────────
+           COMPONENTS: REPORT CARDS
+           ───────────────────────────────────────────────────────────────────── */
+
+        .report-card {
+            background: var(--tg-theme-secondary-bg-color);
+            border-radius: var(--radius-lg);
+            padding: var(--space-lg);
+            margin-bottom: var(--space-md);
+        }
+
+        .report-card-header {
+            display: flex;
+            align-items: center;
+            gap: var(--space-sm);
+            margin-bottom: var(--space-md);
+        }
+
+        .report-card-icon {
+            font-size: 24px;
+        }
+
+        .report-card-title {
+            font-size: 17px;
+            font-weight: 600;
+            flex: 1;
+        }
+
+        .report-card-period {
+            font-size: 13px;
+            color: var(--tg-theme-hint-color);
+            background: var(--tg-theme-bg-color);
+            padding: 4px 10px;
+            border-radius: var(--radius-full);
+        }
+
+        .report-summary {
+            font-size: 15px;
+            line-height: 1.6;
+            color: var(--tg-theme-text-color);
+            margin-bottom: var(--space-md);
+            white-space: pre-wrap;
+        }
+
+        .report-highlights {
+            margin-top: var(--space-md);
+        }
+
+        .report-highlight {
+            display: flex;
+            align-items: flex-start;
+            gap: var(--space-sm);
+            padding: var(--space-sm) 0;
+            font-size: 14px;
+            color: var(--tg-theme-hint-color);
+        }
+
+        .report-highlight::before {
+            content: "✓";
+            color: var(--color-success);
+            font-weight: bold;
+        }
+
+        .report-card-footer {
+            margin-top: var(--space-md);
+            padding-top: var(--space-md);
+            border-top: 1px solid var(--tg-theme-bg-color);
+            display: flex;
+            justify-content: flex-end;
+        }
+
+        /* Agent Report Item */
+        .agent-report-item {
+            background: var(--tg-theme-secondary-bg-color);
+            border-radius: var(--radius-md);
+            padding: var(--space-md);
+            margin-bottom: var(--space-sm);
+            cursor: pointer;
+            transition: all var(--transition-fast);
+        }
+
+        .agent-report-item:hover {
+            background: var(--color-slate-700);
+        }
+
+        .agent-report-header {
+            display: flex;
+            align-items: center;
+            gap: var(--space-sm);
+        }
+
+        .agent-report-icon {
+            font-size: 20px;
+        }
+
+        .agent-report-name {
+            font-weight: 600;
+            flex: 1;
+        }
+
+        .agent-report-tasks {
+            font-size: 13px;
+            color: var(--color-cyan-400);
+        }
+
+        .agent-report-preview {
+            font-size: 14px;
+            color: var(--tg-theme-hint-color);
+            margin-top: var(--space-sm);
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        .report-loading {
+            text-align: center;
+            padding: var(--space-xl);
+            color: var(--tg-theme-hint-color);
+        }
+
+        .admin-content {
+            padding-bottom: 90px;
+        }
+
+        /* ─────────────────────────────────────────────────────────────────────
+           ADMIN DASHBOARD: STATS GRID
+           ───────────────────────────────────────────────────────────────────── */
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: var(--space-md);
+            margin-bottom: var(--space-lg);
+        }
+
+        .stat-card {
+            background: var(--tg-theme-secondary-bg-color);
+            border-radius: var(--radius-md);
+            padding: var(--space-md);
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 28px;
+            font-weight: 700;
+            color: var(--color-cyan-500);
+            margin-bottom: 4px;
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: var(--tg-theme-hint-color);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        /* ─────────────────────────────────────────────────────────────────────
+           ADMIN DASHBOARD: USAGE BARS
+           ───────────────────────────────────────────────────────────────────── */
+
+        .usage-item {
+            margin-bottom: var(--space-md);
+        }
+
+        .usage-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: var(--space-xs);
+        }
+
+        .usage-label {
+            font-size: 14px;
+            color: var(--tg-theme-text-color);
+        }
+
+        .usage-value {
+            font-size: 14px;
+            color: var(--tg-theme-hint-color);
+        }
+
+        .usage-bar {
+            height: 8px;
+            background: var(--tg-theme-secondary-bg-color);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .usage-fill {
+            height: 100%;
+            background: var(--color-cyan-500);
+            border-radius: 4px;
+            transition: width 0.3s ease;
+        }
+
+        .usage-fill.warning {
+            background: var(--color-warning);
+        }
+
+        .usage-fill.danger {
+            background: var(--color-error);
+        }
+
+        /* ─────────────────────────────────────────────────────────────────────
+           ADMIN DASHBOARD: SEARCH BOX
+           ───────────────────────────────────────────────────────────────────── */
+
+        .search-box {
+            position: relative;
+            margin-bottom: var(--space-md);
+        }
+
+        .search-box .input {
+            padding-left: 44px;
+        }
+
+        .search-icon {
+            position: absolute;
+            left: 14px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--tg-theme-hint-color);
+        }
+
+        /* ─────────────────────────────────────────────────────────────────────
+           ADMIN DASHBOARD: SECTION HEADER
+           ───────────────────────────────────────────────────────────────────── */
+
+        .section-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: var(--space-md);
+        }
+
+        .section-actions {
+            display: flex;
+            gap: var(--space-sm);
+        }
+
+        /* ─────────────────────────────────────────────────────────────────────
+           ADMIN DASHBOARD: COMING SOON BADGE
+           ───────────────────────────────────────────────────────────────────── */
+
+
+        /* ─────────────────────────────────────────────────────────────────────
+           ADMIN DASHBOARD: HELP LINKS
+           ───────────────────────────────────────────────────────────────────── */
+
+        .help-link {
+            display: flex;
+            align-items: center;
+            gap: var(--space-md);
+            padding: var(--space-md);
+            background: var(--tg-theme-secondary-bg-color);
+            border-radius: var(--radius-md);
+            margin-bottom: var(--space-sm);
+            cursor: pointer;
+            transition: background var(--transition-fast);
+        }
+
+        .help-link:active {
+            background: var(--tg-theme-bg-color);
+        }
+
+        .help-link-icon {
+            font-size: 24px;
+        }
+
+        .help-link-content {
+            flex: 1;
+        }
+
+        .help-link-title {
+            font-weight: 600;
+            margin-bottom: 2px;
+        }
+
+        .help-link-subtitle {
+            font-size: 14px;
+            color: var(--tg-theme-hint-color);
+        }
+
+        .help-link-arrow {
+            color: var(--tg-theme-hint-color);
+        }
+
+        /* ─────────────────────────────────────────────────────────────────────
+           ADMIN DASHBOARD: AGENT STATS
+           ───────────────────────────────────────────────────────────────────── */
+
+        .agent-stat-item {
+            display: flex;
+            align-items: center;
+            gap: var(--space-md);
+            padding: var(--space-md);
+            background: var(--tg-theme-secondary-bg-color);
+            border-radius: var(--radius-md);
+            margin-bottom: var(--space-sm);
+        }
+
+        .agent-stat-icon {
+            width: 44px;
+            height: 44px;
+            border-radius: var(--radius-md);
+            background: var(--color-cyan-500);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+        }
+
+        .agent-stat-info {
+            flex: 1;
+        }
+
+        .agent-stat-name {
+            font-weight: 600;
+            margin-bottom: 2px;
+        }
+
+        .agent-stat-meta {
+            font-size: 13px;
+            color: var(--tg-theme-hint-color);
+        }
+
+        .agent-stat-count {
+            text-align: right;
+        }
+
+        .agent-stat-value {
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--color-cyan-500);
+        }
+
+        .agent-stat-label {
+            font-size: 11px;
+            color: var(--tg-theme-hint-color);
+        }
+
+        /* ─────────────────────────────────────────────────────────────────────
+           ADMIN DASHBOARD: MEMBER ACTIVITY
+           ───────────────────────────────────────────────────────────────────── */
+
+        .member-activity-item {
+            display: flex;
+            align-items: center;
+            gap: var(--space-md);
+            padding: var(--space-md);
+            background: var(--tg-theme-secondary-bg-color);
+            border-radius: var(--radius-md);
+            margin-bottom: var(--space-sm);
+        }
+
+        .activity-count-badge {
+            background: var(--color-cyan-500);
+            color: white;
+            padding: 2px 8px;
+            border-radius: var(--radius-full);
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .activity-bots-used {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px;
+            margin-top: 4px;
+        }
+
+        .bot-mini-chip {
+            font-size: 10px;
+            padding: 2px 6px;
+            background: var(--tg-theme-bg-color);
+            border-radius: var(--radius-full);
+            color: var(--tg-theme-hint-color);
+        }
+    </style>
+</head>
+<body>
+    <!-- ═══════════════════════════════════════════════════════════════════════
+         APPLICATION MARKUP
+         ═══════════════════════════════════════════════════════════════════════ -->
+
+    <div id="app">
+
+        <!-- ─────────────────────────────────────────────────────────────────
+             PAGE: LOADING
+             ───────────────────────────────────────────────────────────────── -->
+        <div id="page-loading" class="page active">
+            <div class="loading-center">
+                <div class="loading-spinner"></div>
+                <p class="text-muted">Loading...</p>
+            </div>
+        </div>
+
+        <!-- ─────────────────────────────────────────────────────────────────
+             PAGE: ONBOARDING (No org yet)
+             ───────────────────────────────────────────────────────────────── -->
+        <div id="page-onboarding" class="page">
+            <div class="onboarding-hero">
+                <div class="onboarding-icon">🚀</div>
+                <h1 class="onboarding-title">Workforce Hub</h1>
+                <p class="onboarding-subtitle">Manage your team and AI agents in one place</p>
+            </div>
+
+            <button class="btn btn-primary btn-block mb-md" onclick="showCreateOrgForm()">
+                Create Organization
+            </button>
+
+            <div class="onboarding-divider">or</div>
+
+            <button class="btn btn-outline btn-block" onclick="showJoinWithCode()">
+                Join with Invite Code
+            </button>
+        </div>
+
+        <!-- ─────────────────────────────────────────────────────────────────
+             PAGE: JOIN ORG (via invite code)
+             ───────────────────────────────────────────────────────────────── -->
+        <div id="page-join" class="page">
+            <div class="page-header">
+                <h1 class="page-title">Join Organization</h1>
+                <p class="page-subtitle" id="join-org-name">Enter your invite code to join</p>
+            </div>
+
+            <div class="card card-elevated">
+                <div class="input-group">
+                    <label class="input-label">Invite Code</label>
+                    <input type="text" id="join-code-input" class="input" placeholder="Enter invite code">
+                </div>
+
+                <div class="input-group">
+                    <label class="input-label">Your Full Name</label>
+                    <input type="text" id="join-name-input" class="input" placeholder="Enter your name">
+                </div>
+
+                <p class="text-muted text-sm mb-lg">
+                    Your name will be visible to the organization admin for approval.
+                </p>
+
+                <button class="btn btn-primary btn-block" id="join-submit-btn" onclick="submitJoinRequest()">
+                    Request to Join
+                </button>
+            </div>
+
+            <button class="btn btn-secondary btn-block mt-auto" onclick="showPage('onboarding')">
+                Back
+            </button>
+        </div>
+
+        <!-- ─────────────────────────────────────────────────────────────────
+             PAGE: PENDING (Waiting for approval)
+             ───────────────────────────────────────────────────────────────── -->
+        <div id="page-pending" class="page">
+            <div class="status-pending">
+                <div class="status-icon status-icon-waiting">
+                    <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                </div>
+                <h2 class="page-title">Awaiting Approval</h2>
+                <p class="text-muted" id="pending-message">
+                    Your request to join has been sent. The admin will review it shortly.
+                </p>
+            </div>
+        </div>
+
+        <!-- ─────────────────────────────────────────────────────────────────
+             PAGE: ADMIN AGENT HOME
+             ───────────────────────────────────────────────────────────────── -->
+        <div id="page-admin-home" class="page">
+            <div class="page-header" style="display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <h1 class="page-title" id="admin-home-org-name">Organization</h1>
+                    <p class="page-subtitle">Your Agents</p>
+                </div>
+                <button class="btn btn-sm btn-secondary" onclick="openAdminDashboard()" style="display: flex; align-items: center; gap: 6px;">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+                    Dashboard
+                </button>
+            </div>
+
+            <div id="admin-bots-list" class="list">
+                <!-- Populated by JS - ALL active bots for the org -->
+            </div>
+
+            <div id="admin-no-bots" class="empty-state hidden">
+                <div class="empty-state-icon">
+                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="10" rx="2"></rect><circle cx="12" cy="5" r="2"></circle><path d="M12 7v4"></path><line x1="8" y1="16" x2="8" y2="16"></line><line x1="16" y1="16" x2="16" y2="16"></line></svg>
+                </div>
+                <p class="empty-state-title">No active agents</p>
+                <p>Register agents in the system to get started</p>
+            </div>
+        </div>
+
+        <!-- ─────────────────────────────────────────────────────────────────
+             PAGE: ADMIN DASHBOARD
+             ───────────────────────────────────────────────────────────────── -->
+        <div id="page-admin" class="page">
+            <div class="admin-content">
+
+                <!-- ═══════════════════════════════════════════════════════════
+                     SECTION: TEAM
+                     ═══════════════════════════════════════════════════════════ -->
+                <div id="section-team" class="admin-section">
+                    <!-- Organization Header -->
+                    <div class="org-header" id="org-header">
+                        <div class="org-avatar" id="org-avatar">A</div>
+                        <div class="org-info">
+                            <div class="org-name" id="admin-org-name">Organization</div>
+                            <div class="org-description hidden" id="org-description"></div>
+                            <div class="org-stats" id="org-stats">Loading...</div>
+                        </div>
+                        <button class="org-edit-btn" onclick="openEditOrgModal()">Edit</button>
+                    </div>
+
+                    <!-- Tabs -->
+                    <div class="tabs">
+                        <button class="tab active" onclick="switchAdminTab('members')">
+                            Members
+                        </button>
+                        <button class="tab" onclick="switchAdminTab('requests')">
+                            Requests <span id="requests-count"></span>
+                        </button>
+                    </div>
+
+                    <!-- Members Tab -->
+                    <div id="tab-members" class="tab-content">
+                        <div id="members-list" class="list">
+                            <!-- Populated by JS -->
+                        </div>
+                    </div>
+
+                    <!-- Pending Requests Tab -->
+                    <div id="tab-requests" class="tab-content hidden">
+                        <div id="requests-list" class="list">
+                            <!-- Populated by JS -->
+                        </div>
+                        <div id="requests-empty" class="empty-state hidden">
+                            <div class="empty-state-icon">
+                                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+                            </div>
+                            <p class="empty-state-title">No pending requests</p>
+                            <p>Share your invite link to add team members</p>
+                        </div>
+                    </div>
+
+                    <!-- Invite Code Card -->
+                    <div class="card card-gradient mb-lg" id="invite-card">
+                        <div class="card-header">
+                            <span class="card-title">Invite Team Members</span>
+                            <span class="card-badge" id="invite-status-badge">Active</span>
+                        </div>
+                        <p class="text-sm mb-md" style="opacity: 0.9;" id="invite-status-text">
+                            Generate a shareable invite link to add team members
+                        </p>
+                        <div class="invite-box" style="background: rgba(255,255,255,0.15);" id="invite-code-box">
+                            <span class="invite-code-text" id="invite-code-display" style="color: white;">Loading...</span>
+                        </div>
+                        <button class="btn btn-block" id="send-invite-btn" onclick="sendInviteLink()" style="margin-top: 12px; background: white; color: #0891b2;">
+                            Generate Invite Link
+                        </button>
+                        <button class="btn btn-block hidden" id="regenerate-btn" onclick="sendInviteLink()" style="margin-top: 12px; background: rgba(255,255,255,0.2); color: white; border: 2px solid rgba(255,255,255,0.4);">
+                            Generate New Invite Link
+                        </button>
+                    </div>
+                </div>
+
+                <!-- ═══════════════════════════════════════════════════════════
+                     SECTION: REPORTS
+                     ═══════════════════════════════════════════════════════════ -->
+                <div id="section-reports" class="admin-section active">
+                    <div class="page-header">
+                        <h1 class="page-title">Reports</h1>
+                        <p class="page-subtitle">Agent and member activity insights</p>
+                    </div>
+
+                    <!-- Sub-tabs: Agents | Members -->
+                    <div class="tabs" id="reports-sub-tabs">
+                        <button class="tab active" onclick="switchReportsTab('agents')">Agents</button>
+                        <button class="tab" onclick="switchReportsTab('members')">Members</button>
+                    </div>
+
+                    <!-- AGENTS SUB-TAB -->
+                    <div id="reports-tab-agents" class="tab-content">
+                        <div id="agent-reports-container">
+                            <!-- Each agent gets a card -->
+                        </div>
+                        <div id="agent-reports-empty" class="empty-state hidden">
+                            <div class="empty-state-icon">
+                                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="10" rx="2"></rect><circle cx="12" cy="5" r="2"></circle><path d="M12 7v4"></path></svg>
+                            </div>
+                            <p class="empty-state-title">No agent data yet</p>
+                            <p>Agent reports will appear once agents have activity</p>
+                        </div>
+                    </div>
+
+                    <!-- MEMBERS SUB-TAB -->
+                    <div id="reports-tab-members" class="tab-content hidden">
+                        <div id="member-reports-container">
+                            <!-- Each member gets a card -->
+                        </div>
+                        <div id="member-reports-empty" class="empty-state hidden">
+                            <div class="empty-state-icon">
+                                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle></svg>
+                            </div>
+                            <p class="empty-state-title">No member data yet</p>
+                            <p>Member activity will appear here</p>
+                        </div>
+                    </div>
+                </div>
+
+
+                <!-- ═══════════════════════════════════════════════════════════
+                     SECTION: BILLING
+                     ═══════════════════════════════════════════════════════════ -->
+                <div id="section-billing" class="admin-section">
+                    <div class="page-header">
+                        <h1 class="page-title">Billing</h1>
+                        <p class="page-subtitle">Subscription & usage</p>
+                    </div>
+
+                    <!-- Current Plan Card -->
+                    <div class="card card-gradient mb-lg" id="billing-plan-card">
+                        <div class="card-header">
+                            <span class="card-title">Current Plan</span>
+                            <span class="card-badge" id="billing-plan-name">Free</span>
+                        </div>
+                        <p class="text-sm mb-md" style="opacity: 0.9;" id="billing-plan-description">
+                            Get started with basic features
+                        </p>
+                        <p class="text-sm" style="opacity: 0.7;" id="billing-period-info">
+                            <!-- Period info -->
+                        </p>
+                    </div>
+
+                    <!-- Usage Stats -->
+                    <div class="section-title">Current Usage</div>
+                    <div class="card">
+                        <div class="usage-item">
+                            <div class="usage-header">
+                                <span class="usage-label">Team Members</span>
+                                <span class="usage-value" id="usage-members-text">0 / 3</span>
+                            </div>
+                            <div class="usage-bar">
+                                <div class="usage-fill" id="usage-members-bar" style="width: 0%"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Invoices -->
+                    <div class="section-title" style="margin-top: var(--space-lg);">Invoices</div>
+                    <div id="invoices-list">
+                        <!-- Populated by JS -->
+                    </div>
+                    <div id="invoices-empty" class="empty-state">
+                        <p class="text-muted">No invoices yet</p>
+                    </div>
+                </div>
+
+                <!-- ═══════════════════════════════════════════════════════════
+                     SECTION: HELP
+                     ═══════════════════════════════════════════════════════════ -->
+                <div id="section-help" class="admin-section">
+                    <div class="page-header">
+                        <h1 class="page-title">Help & Support</h1>
+                        <p class="page-subtitle">Get help with Workforce Accelerator</p>
+                    </div>
+
+                    <!-- Help Links -->
+                    <div class="help-link" onclick="openHelpLink('docs')">
+                        <div class="help-link-icon">📚</div>
+                        <div class="help-link-content">
+                            <div class="help-link-title">Documentation</div>
+                            <div class="help-link-subtitle">Learn how to use all features</div>
+                        </div>
+                        <div class="help-link-arrow">→</div>
+                    </div>
+
+                    <div class="help-link" onclick="openHelpLink('tutorials')">
+                        <div class="help-link-icon">🎥</div>
+                        <div class="help-link-content">
+                            <div class="help-link-title">Video Tutorials</div>
+                            <div class="help-link-subtitle">Watch step-by-step guides</div>
+                        </div>
+                        <div class="help-link-arrow">→</div>
+                    </div>
+
+                    <div class="help-link" onclick="openHelpLink('support')">
+                        <div class="help-link-icon">💬</div>
+                        <div class="help-link-content">
+                            <div class="help-link-title">Contact Support</div>
+                            <div class="help-link-subtitle">Get help from our team</div>
+                        </div>
+                        <div class="help-link-arrow">→</div>
+                    </div>
+
+                    <div class="help-link" onclick="openHelpLink('faq')">
+                        <div class="help-link-icon">❓</div>
+                        <div class="help-link-content">
+                            <div class="help-link-title">FAQ</div>
+                            <div class="help-link-subtitle">Frequently asked questions</div>
+                        </div>
+                        <div class="help-link-arrow">→</div>
+                    </div>
+
+                    <!-- Version Info -->
+                    <div class="text-center text-muted" style="margin-top: var(--space-2xl);">
+                        <p style="font-size: 14px;">Workforce Accelerator v2.0</p>
+                        <p style="font-size: 12px; margin-top: var(--space-xs);">Made with ❤️ by Apex Solutions</p>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- ═══════════════════════════════════════════════════════════
+                 BOTTOM NAVIGATION
+                 ═══════════════════════════════════════════════════════════ -->
+            <div class="bottom-nav" id="admin-bottom-nav">
+                <div class="nav-item active" onclick="switchAdminSection('reports')">
+                    <div class="nav-item-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+                    </div>
+                    <span class="nav-item-label">Reports</span>
+                </div>
+                <div class="nav-item" onclick="switchAdminSection('team')">
+                    <div class="nav-item-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+                    </div>
+                    <span class="nav-item-label">Team</span>
+                </div>
+                <div class="nav-item" onclick="switchAdminSection('billing')">
+                    <div class="nav-item-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect><line x1="1" y1="10" x2="23" y2="10"></line></svg>
+                    </div>
+                    <span class="nav-item-label">Billing</span>
+                </div>
+                <div class="nav-item" onclick="switchAdminSection('help')">
+                    <div class="nav-item-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+                    </div>
+                    <span class="nav-item-label">Help</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- ─────────────────────────────────────────────────────────────────
+             PAGE: MEMBER DASHBOARD
+             ───────────────────────────────────────────────────────────────── -->
+        <div id="page-member" class="page">
+            <div class="page-header">
+                <h1 class="page-title" id="member-org-name">Organization</h1>
+                <p class="page-subtitle">Your Agents</p>
+            </div>
+
+            <div id="member-bots-list" class="list">
+                <!-- Populated by JS -->
+            </div>
+
+            <div id="member-no-bots" class="empty-state hidden">
+                <div class="empty-state-icon">
+                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="10" rx="2"></rect><circle cx="12" cy="5" r="2"></circle><path d="M12 7v4"></path><line x1="8" y1="16" x2="8" y2="16"></line><line x1="16" y1="16" x2="16" y2="16"></line></svg>
+                </div>
+                <p class="empty-state-title">No agents assigned yet</p>
+                <p>Your admin will grant you access to agents soon</p>
+            </div>
+        </div>
+
+        <!-- ─────────────────────────────────────────────────────────────────
+             PAGE: CREATE ORG FORM
+             ───────────────────────────────────────────────────────────────── -->
+        <div id="page-create-org" class="page">
+            <div class="page-header">
+                <h1 class="page-title">Create Organization</h1>
+                <p class="page-subtitle">Set up your team workspace</p>
+            </div>
+
+            <div class="card card-elevated">
+                <div class="input-group">
+                    <label class="input-label">Your Full Name</label>
+                    <input type="text" id="create-admin-name" class="input" placeholder="e.g., John Smith">
+                </div>
+
+                <div class="input-group">
+                    <label class="input-label">Organization Name</label>
+                    <input type="text" id="create-org-name" class="input" placeholder="e.g., Acme Corp">
+                </div>
+
+                <button class="btn btn-primary btn-block" onclick="createOrganization()">
+                    Create Organization
+                </button>
+            </div>
+
+            <button class="btn btn-secondary btn-block mt-auto" onclick="showPage('onboarding')">
+                Back
+            </button>
+        </div>
+
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════════════════════
+         MODAL: APPROVE REQUEST
+         ═══════════════════════════════════════════════════════════════════════ -->
+    <div id="modal-approve" class="modal-backdrop">
+        <div class="modal-sheet">
+            <div class="modal-handle"></div>
+
+            <h2 class="modal-title">Approve Request</h2>
+
+            <div class="list-item mb-lg">
+                <div class="list-item-avatar" id="modal-user-avatar">?</div>
+                <div class="list-item-content">
+                    <div class="list-item-title" id="modal-user-name">User Name</div>
+                    <div class="list-item-subtitle" id="modal-user-username">@username</div>
+                </div>
+            </div>
+
+            <p class="input-label">Grant access to agents:</p>
+            <div class="chips-group mb-lg" id="modal-bots-chips">
+                <!-- Populated by JS -->
+            </div>
+
+            <div style="display: flex; gap: var(--space-sm);">
+                <button class="btn btn-secondary" style="flex: 1;" onclick="rejectRequest()">
+                    Reject
+                </button>
+                <button class="btn btn-success" style="flex: 2;" onclick="approveRequest()">
+                    Approve
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════════════════════
+         MODAL: EDIT ORGANIZATION
+         ═══════════════════════════════════════════════════════════════════════ -->
+    <div id="modal-edit-org" class="modal-backdrop">
+        <div class="modal-sheet">
+            <div class="modal-handle"></div>
+
+            <h2 class="modal-title">Edit Organization</h2>
+
+            <div class="input-group">
+                <label class="input-label">Organization Name</label>
+                <input type="text" id="edit-org-name" class="input" placeholder="Organization name">
+            </div>
+
+            <div class="input-group">
+                <label class="input-label">Description (optional)</label>
+                <textarea id="edit-org-description" class="textarea" placeholder="Describe your organization..."></textarea>
+            </div>
+
+            <div style="display: flex; gap: var(--space-sm);">
+                <button class="btn btn-secondary" style="flex: 1;" onclick="closeEditOrgModal()">
+                    Cancel
+                </button>
+                <button class="btn btn-primary" style="flex: 2;" onclick="saveOrgChanges()">
+                    Save Changes
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════════════════════
+         MODAL: MEMBER MANAGEMENT
+         ═══════════════════════════════════════════════════════════════════════ -->
+    <div id="modal-member" class="modal-backdrop">
+        <div class="modal-sheet">
+            <div class="modal-handle"></div>
+
+            <div class="member-detail-header">
+                <div class="member-detail-avatar" id="member-modal-avatar">?</div>
+                <div class="member-detail-info">
+                    <div class="member-detail-name" id="member-modal-name">Member Name</div>
+                    <div class="member-detail-meta" id="member-modal-meta">@username • Member</div>
+                </div>
+            </div>
+
+            <div class="mb-lg">
+                <p class="text-sm text-muted" id="member-modal-activity">Last active: Never</p>
+            </div>
+
+            <div class="section-title">User Role</div>
+            <div class="input-group mb-lg">
+                <select id="member-role-select" class="input" onchange="handleRoleChange()">
+                    <option value="member">Member</option>
+                    <option value="admin">Admin</option>
+                </select>
+                <p class="text-sm text-muted" style="margin-top: 8px;">
+                    Admins can view and edit all organization data
+                </p>
+            </div>
+
+            <div class="section-title">Agent Access</div>
+            <div class="bot-toggle-list" id="member-modal-bots">
+                <!-- Populated by JS -->
+            </div>
+
+            <button class="btn btn-primary btn-block mb-lg" onclick="saveMemberBots()">
+                Save Changes
+            </button>
+
+            <div class="danger-zone" id="member-danger-zone">
+                <div class="section-title">Danger Zone</div>
+                <button class="btn btn-danger btn-block" onclick="confirmRemoveMember()">
+                    Remove from Organization
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════════════════════
+         MODAL: CONFIRM ROLE CHANGE
+         ═══════════════════════════════════════════════════════════════════════ -->
+    <div id="modal-role-change" class="modal-backdrop">
+        <div class="modal-sheet">
+            <div class="modal-handle"></div>
+
+            <h2 class="modal-title">Change User Role</h2>
+
+            <p class="text-base mb-lg" id="role-change-message">
+                Admins can view and edit organization data. Are you sure you want to proceed?
+            </p>
+
+            <div style="display: flex; gap: var(--space-sm);">
+                <button class="btn btn-secondary" style="flex: 1;" onclick="closeRoleChangeModal()">
+                    Cancel
+                </button>
+                <button class="btn btn-primary" style="flex: 1;" onclick="confirmRoleChange()">
+                    Confirm
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════════════════════
+         APPLICATION LOGIC
+         ═══════════════════════════════════════════════════════════════════════ -->
+    <script>
+        /* ─────────────────────────────────────────────────────────────────────
+           TELEGRAM INTEGRATION
+           ───────────────────────────────────────────────────────────────────── */
+
+        const tg = window.Telegram.WebApp;
+        tg.ready();
+        tg.expand();
+
+        // Apply Telegram theme
+        const applyTheme = () => {
+            const root = document.documentElement;
+            if (tg.themeParams) {
+                Object.entries(tg.themeParams).forEach(([key, value]) => {
+                    const cssVar = `--tg-theme-${key.replace(/_/g, '-')}`;
+                    root.style.setProperty(cssVar, value);
+                });
+            }
+        };
+        applyTheme();
+        tg.onEvent('themeChanged', applyTheme);
+
+        /* ─────────────────────────────────────────────────────────────────────
+           STATE
+           ───────────────────────────────────────────────────────────────────── */
+
+        const state = {
+            user: null,
+            memberships: [],
+            pendingRequests: [],
+            currentOrg: null,
+            currentMembership: null,
+            orgDetails: null,
+            inviteCode: null,
+            membershipRequests: [],
+            members: [],
+            availableBots: [],
+            // For approval modal
+            selectedRequest: null,
+            selectedBotIds: [],
+            // For member modal
+            selectedMember: null,
+            selectedMemberBotIds: [],
+            pendingRoleChange: null,
+            // Admin dashboard sections
+            currentAdminSection: 'reports',
+            billingOverview: null,
+            // Reports
+            agentReportsLoaded: false,
+            memberReportsLoaded: false
+        };
+
+        /* ─────────────────────────────────────────────────────────────────────
+           CACHE LAYER - Prevents redundant API calls on navigation
+           ───────────────────────────────────────────────────────────────────── */
+
+        const cache = {
+            data: {},
+            timestamps: {},
+            ttls: {
+                orgDetails: 120000,
+                inviteCode: 120000,
+                members: 60000,
+                requests: 30000,
+                bots: 300000,
+                teamAnalytics: 30000,
+                reports: 60000,
+                billing: 60000,
+                plans: 600000
+            },
+
+            get(key) {
+                const ts = this.timestamps[key];
+                const ttl = this.ttls[key.split('_')[0]] || 60000;
+                if (ts && (Date.now() - ts) < ttl) {
+                    return this.data[key];
+                }
+                return null;
+            },
+
+            set(key, value) {
+                this.data[key] = value;
+                this.timestamps[key] = Date.now();
+            },
+
+            invalidate(key) {
+                delete this.data[key];
+                delete this.timestamps[key];
+            },
+
+            invalidatePrefix(prefix) {
+                Object.keys(this.timestamps).forEach(k => {
+                    if (k.startsWith(prefix)) {
+                        delete this.data[k];
+                        delete this.timestamps[k];
+                    }
+                });
+            },
+
+            invalidateAll() {
+                this.data = {};
+                this.timestamps = {};
+            }
+        };
+
+        /* ─────────────────────────────────────────────────────────────────────
+           SECURITY: Authorization Error Handler
+           ───────────────────────────────────────────────────────────────────── */
+
+        /**
+         * Check if an error is an authorization failure (403)
+         * and redirect to member dashboard if so.
+         * @param {Error} error - The error to check
+         * @returns {boolean} - True if it was an auth error and redirect was triggered
+         */
+        const handleAuthError = (error) => {
+            if (error.message && (error.message.includes('Admin access required') || error.message.includes('403'))) {
+                console.warn('[Security] Admin access denied by server, redirecting to member dashboard');
+                if (state.currentMembership) {
+                    state.currentMembership.role = 'member';
+                }
+                loadMemberDashboard();
+                return true;
+            }
+            return false;
+        };
+
+        /* ─────────────────────────────────────────────────────────────────────
+           API
+           ───────────────────────────────────────────────────────────────────── */
+
+        const API_BASE = '/api/hub';
+
+        const api = {
+            async fetch(endpoint, options = {}) {
+                const res = await fetch(`${API_BASE}${endpoint}`, {
+                    ...options,
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Telegram-Init-Data': tg.initData,
+                        ...options.headers
+                    }
+                });
+
+                if (!res.ok) {
+                    const error = await res.json().catch(() => ({ detail: 'Request failed' }));
+                    throw new Error(error.detail || `Error ${res.status}`);
+                }
+
+                return res.json();
+            },
+
+            getMe: () => api.fetch('/me'),
+            createOrg: (name, adminFullName) => api.fetch('/orgs', {
+                method: 'POST',
+                body: JSON.stringify({ name, admin_full_name: adminFullName })
+            }),
+            getOrgDetails: (orgId) => api.fetch(`/orgs/${orgId}/details`),
+            updateOrg: (orgId, data) => api.fetch(`/orgs/${orgId}`, {
+                method: 'PATCH',
+                body: JSON.stringify(data)
+            }),
+            getInviteCode: (orgId) => api.fetch(`/orgs/${orgId}/invite-code`),
+            regenerateInviteCode: (orgId) => api.fetch(`/orgs/${orgId}/regenerate-invite`, {
+                method: 'POST'
+            }),
+            sendInviteLink: (orgId) => api.fetch(`/orgs/${orgId}/send-invite-link`, {
+                method: 'POST'
+            }),
+            getInviteInfo: (code) => api.fetch(`/invite/${code}`),
+            submitJoinRequest: (inviteCode, fullName) => api.fetch('/membership-requests', {
+                method: 'POST',
+                body: JSON.stringify({ invite_code: inviteCode, full_name: fullName })
+            }),
+            getMembershipRequests: (orgId) => api.fetch(`/orgs/${orgId}/membership-requests`),
+            getMembers: (orgId) => api.fetch(`/orgs/${orgId}/members`),
+            removeMember: (orgId, memberId) => api.fetch(`/orgs/${orgId}/members/${memberId}`, {
+                method: 'DELETE'
+            }),
+            updateMemberBots: (orgId, memberId, botIds) => api.fetch(`/orgs/${orgId}/members/${memberId}/bots`, {
+                method: 'PUT',
+                body: JSON.stringify({ bot_ids: botIds })
+            }),
+            updateMemberRole: (orgId, memberId, role) => api.fetch(`/orgs/${orgId}/members/${memberId}/role`, {
+                method: 'PUT',
+                body: JSON.stringify({ role })
+            }),
+            getBots: () => api.fetch('/bots'),
+            approveRequest: (requestId, approved, botIds) => api.fetch(`/membership-requests/${requestId}/approve`, {
+                method: 'POST',
+                body: JSON.stringify({ request_id: requestId, approved, bot_ids: botIds })
+            }),
+            // Admin analytics
+            getTeamAnalytics: (orgId, period = 'week') => api.fetch(`/orgs/${orgId}/analytics/team?period=${period}`),
+            // Reports
+            getLatestReports: (orgId, periodType = 'weekly') => api.fetch(`/orgs/${orgId}/reports/latest?period_type=${periodType}`),
+            getBotTasks: (orgId) => api.fetch(`/orgs/${orgId}/bot-tasks?limit=100`),
+            getLeadAgentOverview: (orgId) => api.fetch(`/orgs/${orgId}/analytics/lead-agent-overview`),
+            // Billing
+            getBillingOverview: (orgId) => api.fetch(`/orgs/${orgId}/billing`),
+            getPlans: () => api.fetch('/plans'),
+            // Activity logging
+            logActivity: (orgId, botId, actionType, actionDetail = {}) => api.fetch('/activity', {
+                method: 'POST',
+                body: JSON.stringify({ org_id: orgId, bot_id: botId, action_type: actionType, action_detail: actionDetail })
+            })
+        };
+
+        /* ─────────────────────────────────────────────────────────────────────
+           PAGE NAVIGATION + TELEGRAM BACK BUTTON
+           ───────────────────────────────────────────────────────────────────── */
+
+        // Root pages have no back — they are landing pages for each user state
+        const rootPages = ['loading', 'onboarding', 'admin-home', 'member', 'pending'];
+        const navHistory = [];
+
+        const showPage = (pageName, { pushHistory = true } = {}) => {
+            const currentPage = document.querySelector('.page.active')?.id?.replace('page-', '');
+
+            if (rootPages.includes(pageName)) {
+                // Navigating to a root page resets history
+                navHistory.length = 0;
+            } else if (pushHistory && currentPage && currentPage !== pageName) {
+                navHistory.push(currentPage);
+            }
+
+            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+            document.getElementById(`page-${pageName}`)?.classList.add('active');
+
+            // Show/hide Telegram BackButton
+            if (navHistory.length > 0) {
+                tg.BackButton.show();
+            } else {
+                tg.BackButton.hide();
+            }
+        };
+
+        tg.BackButton.onClick(() => {
+            if (navHistory.length > 0) {
+                const prevPage = navHistory.pop();
+                showPage(prevPage, { pushHistory: false });
+            }
+        });
+
+        /* ─────────────────────────────────────────────────────────────────────
+           INITIALIZATION
+           ───────────────────────────────────────────────────────────────────── */
+
+        const init = async () => {
+            // Safety timeout - if init takes too long, show onboarding
+            const safetyTimeout = setTimeout(() => {
+                console.warn('[Hub Init] Timeout - showing onboarding');
+                showPage('onboarding');
+            }, 5000);
+
+            try {
+                // Get user data to check existing membership status
+                const data = await api.getMe();
+                console.log('[Hub Init] API response:', JSON.stringify(data, null, 2));
+
+                state.user = data.user;
+                state.memberships = data.memberships || [];
+                state.pendingRequests = data.pending_requests || [];
+
+                console.log('[Hub Init] User:', state.user?.id, state.user?.full_name);
+                console.log('[Hub Init] Memberships count:', state.memberships.length);
+                console.log('[Hub Init] Pending requests count:', state.pendingRequests.length);
+
+                // User not signed up yet - show onboarding (create org or join with invite code)
+                if (!state.user) {
+                    console.log('[Hub Init] User not signed up - showing onboarding');
+                    clearTimeout(safetyTimeout);
+                    showPage('onboarding');
+                    return;
+                }
+
+                // User has pending membership request - show pending approval screen
+                if (state.pendingRequests.length > 0) {
+                    const request = state.pendingRequests[0];
+                    console.log('[Hub Init] Showing pending page for request:', request.id);
+                    document.getElementById('pending-message').textContent =
+                        `Your request to join "${request.organizations?.name || 'the organization'}" is being reviewed.`;
+                    clearTimeout(safetyTimeout);
+                    showPage('pending');
+                    return;
+                }
+
+                // User is a member - show appropriate dashboard based on role
+                if (state.memberships.length > 0) {
+                    const membership = state.memberships[0];
+                    console.log('[Hub Init] Found membership:', membership.id, 'role:', membership.role);
+                    state.currentOrg = membership.organizations;
+                    state.currentMembership = membership;
+
+                    clearTimeout(safetyTimeout);
+                    if (membership.role === 'admin') {
+                        console.log('[Hub Init] Loading admin agent home');
+                        await loadAdminHome();
+                    } else {
+                        console.log('[Hub Init] Loading member dashboard (bot assignments)');
+                        await loadMemberDashboard();
+                    }
+                    return;
+                }
+
+                // User exists but no membership or pending request - edge case, show onboarding
+                // This can happen if a user's membership was revoked
+                console.log('[Hub Init] User exists but no membership - showing onboarding');
+                clearTimeout(safetyTimeout);
+                showPage('onboarding');
+
+            } catch (error) {
+                console.error('[Hub Init] Error:', error);
+                clearTimeout(safetyTimeout);
+                showPage('onboarding');
+            }
+        };
+
+        /* ─────────────────────────────────────────────────────────────────────
+           INVITE CODE HANDLING
+           ───────────────────────────────────────────────────────────────────── */
+
+        const showJoinWithCode = () => {
+            document.getElementById('join-code-input').value = '';
+            document.getElementById('join-name-input').value = state.user?.full_name || '';
+            document.getElementById('join-org-name').textContent = 'Enter your invite code to join';
+            showPage('join');
+        };
+
+        const submitJoinRequest = async () => {
+            const codeInput = document.getElementById('join-code-input');
+            const nameInput = document.getElementById('join-name-input');
+            const submitBtn = document.getElementById('join-submit-btn');
+            const code = codeInput.value.trim();
+            const name = nameInput.value.trim();
+
+            if (!code) {
+                alert('Please enter the invite code');
+                return;
+            }
+
+            if (!name) {
+                alert('Please enter your name');
+                return;
+            }
+
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Sending...';
+
+            try {
+                const result = await api.submitJoinRequest(code, name);
+                document.getElementById('pending-message').textContent =
+                    `Your request to join "${result.org_name}" has been sent. The admin will review it shortly.`;
+                showPage('pending');
+            } catch (error) {
+                if (error.message.includes('expired')) {
+                    alert('This invite code has expired. Please ask the organization admin for a new code.');
+                } else if (error.message.includes('Invalid')) {
+                    alert('Invalid invite code. Please check the code and try again.');
+                } else {
+                    alert(error.message);
+                }
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Request to Join';
+            }
+        };
+
+        /* ─────────────────────────────────────────────────────────────────────
+           CREATE ORGANIZATION
+           ───────────────────────────────────────────────────────────────────── */
+
+        const showCreateOrgForm = () => {
+            showPage('create-org');
+        };
+
+        const createOrganization = async () => {
+            const adminNameInput = document.getElementById('create-admin-name');
+            const orgNameInput = document.getElementById('create-org-name');
+            const adminName = adminNameInput.value.trim();
+            const orgName = orgNameInput.value.trim();
+
+            if (!adminName) {
+                alert('Please enter your full name');
+                return;
+            }
+
+            if (!orgName) {
+                alert('Please enter an organization name');
+                return;
+            }
+
+            try {
+                const org = await api.createOrg(orgName, adminName);
+                state.currentOrg = org;
+                state.currentMembership = { role: 'admin' };
+                await loadAdminHome();
+            } catch (error) {
+                alert(error.message);
+            }
+        };
+
+        /* ─────────────────────────────────────────────────────────────────────
+           ADMIN AGENT HOME
+           ───────────────────────────────────────────────────────────────────── */
+
+        const loadAdminHome = async () => {
+            const orgId = state.currentOrg.id;
+
+            // SECURITY: Verify admin access server-side
+            try {
+                const cachedDetails = cache.get('orgDetails');
+                if (cachedDetails) {
+                    state.orgDetails = cachedDetails;
+                } else {
+                    const orgDetails = await api.getOrgDetails(orgId);
+                    state.orgDetails = orgDetails;
+                    cache.set('orgDetails', orgDetails);
+                }
+            } catch (error) {
+                console.warn('[Security] Admin access denied, redirecting to member dashboard');
+                state.currentMembership.role = 'member';
+                await loadMemberDashboard();
+                return;
+            }
+
+            showPage('admin-home');
+            document.getElementById('admin-home-org-name').textContent = state.currentOrg.name;
+
+            // Fetch all active bots (ALL org bots, not member-specific)
+            const cachedBots = cache.get('bots');
+            let bots;
+            if (cachedBots) {
+                bots = cachedBots;
+            } else {
+                bots = await api.getBots().catch(() => []);
+                cache.set('bots', bots);
+            }
+            state.availableBots = bots;
+
+            if (bots && bots.length > 0) {
+                document.getElementById('admin-no-bots').classList.add('hidden');
+                document.getElementById('admin-bots-list').innerHTML = bots.map(bot => `
+                    <div class="list-item list-item-clickable" onclick="openAgent('${bot.id}')">
+                        <div class="list-item-avatar" style="background: var(--color-success);">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="10" rx="2"></rect><circle cx="12" cy="5" r="2"></circle><path d="M12 7v4"></path><circle cx="8" cy="16" r="1" fill="currentColor"></circle><circle cx="16" cy="16" r="1" fill="currentColor"></circle></svg>
+                        </div>
+                        <div class="list-item-content">
+                            <div class="list-item-title">${escapeHtml(bot.name)}</div>
+                            <div class="list-item-subtitle">Active</div>
+                        </div>
+                        <span class="chip chip-success">Open</span>
+                    </div>
+                `).join('');
+            } else {
+                document.getElementById('admin-bots-list').innerHTML = '';
+                document.getElementById('admin-no-bots').classList.remove('hidden');
+            }
+
+            // Log page view
+            api.logActivity(orgId, null, 'page_view', { section: 'admin-home' }).catch(() => {});
+        };
+
+        const openAdminDashboard = async () => {
+            await loadAdminDashboard();
+        };
+
+        const backToAdminHome = () => {
+            showPage('admin-home');
+        };
+
+        /* ─────────────────────────────────────────────────────────────────────
+           ADMIN DASHBOARD
+           ───────────────────────────────────────────────────────────────────── */
+
+        const loadAdminDashboard = async () => {
+            const orgId = state.currentOrg.id;
+
+            // SECURITY: Verify admin access server-side if not already verified
+            if (!state.orgDetails) {
+                try {
+                    const orgDetails = await api.getOrgDetails(orgId);
+                    state.orgDetails = orgDetails;
+                    cache.set('orgDetails', orgDetails);
+                } catch (error) {
+                    console.warn('[Security] Admin access denied by server, redirecting to member dashboard');
+                    state.currentMembership.role = 'member';
+                    await loadMemberDashboard();
+                    return;
+                }
+            }
+
+            showPage('admin');
+
+            // Use cache for parallel data loads — only fetch what's missing
+            const cachedInvite = cache.get('inviteCode');
+            const cachedRequests = cache.get('requests');
+            const cachedMembers = cache.get('members');
+            const cachedBots = cache.get('bots');
+
+            const fetches = [];
+            const fetchKeys = [];
+
+            if (!cachedInvite) { fetches.push(api.getInviteCode(orgId)); fetchKeys.push('inviteCode'); }
+            if (!cachedRequests) { fetches.push(api.getMembershipRequests(orgId)); fetchKeys.push('requests'); }
+            if (!cachedMembers) { fetches.push(api.getMembers(orgId)); fetchKeys.push('members'); }
+            if (!cachedBots) { fetches.push(api.getBots().catch(() => [])); fetchKeys.push('bots'); }
+
+            if (fetches.length > 0) {
+                const results = await Promise.all(fetches);
+                fetchKeys.forEach((key, i) => cache.set(key, results[i]));
+            }
+
+            state.inviteCode = cache.get('inviteCode') || cachedInvite;
+            state.membershipRequests = cache.get('requests') || cachedRequests;
+            state.members = cache.get('members') || cachedMembers;
+            state.availableBots = cache.get('bots') || cachedBots;
+
+            updateOrgHeader(state.orgDetails);
+            updateInviteCodeDisplay(state.inviteCode);
+            renderRequests();
+            renderMembers();
+
+            // Load reports (default tab) and log page view
+            if (!state.agentReportsLoaded) loadAgentReports();
+            api.logActivity(orgId, null, 'page_view', { section: 'reports' }).catch(() => {});
+        };
+
+        const updateOrgHeader = (details) => {
+            const initials = details.name.split(' ').map(w => w[0]).join('').substring(0, 2).toUpperCase();
+            document.getElementById('org-avatar').textContent = initials;
+            document.getElementById('admin-org-name').textContent = details.name;
+
+            const descEl = document.getElementById('org-description');
+            if (details.description) {
+                descEl.textContent = details.description;
+                descEl.classList.remove('hidden');
+            } else {
+                descEl.classList.add('hidden');
+            }
+
+            const createdDate = new Date(details.created_at).toLocaleDateString('en-US', {
+                month: 'short',
+                year: 'numeric'
+            });
+            document.getElementById('org-stats').textContent =
+                `Created ${createdDate} • ${details.stats.member_count} member${details.stats.member_count !== 1 ? 's' : ''}`;
+        };
+
+        const updateInviteCodeDisplay = (inviteCode) => {
+            const codeDisplay = document.getElementById('invite-code-display');
+            const statusBadge = document.getElementById('invite-status-badge');
+            const statusText = document.getElementById('invite-status-text');
+            const sendBtn = document.getElementById('send-invite-btn');
+            const regenerateBtn = document.getElementById('regenerate-btn');
+            const card = document.getElementById('invite-card');
+
+            codeDisplay.textContent = `Code: ${inviteCode.code}`;
+
+            if (inviteCode.is_expired) {
+                // Code is expired
+                statusBadge.textContent = 'Expired';
+                statusBadge.style.background = 'rgba(239, 68, 68, 0.3)';
+                statusText.textContent = 'This invite code has expired. Generate a new one to invite team members.';
+                sendBtn.classList.add('hidden');
+                regenerateBtn.classList.remove('hidden');
+                card.style.background = 'linear-gradient(135deg, #6b7280 0%, #4b5563 100%)';
+            } else {
+                // Code is active - show time remaining
+                const expiresAt = new Date(inviteCode.expires_at);
+                const now = new Date();
+                const hoursLeft = Math.max(0, Math.floor((expiresAt - now) / (1000 * 60 * 60)));
+                const minsLeft = Math.max(0, Math.floor(((expiresAt - now) % (1000 * 60 * 60)) / (1000 * 60)));
+
+                statusBadge.textContent = `${hoursLeft}h ${minsLeft}m left`;
+                statusBadge.style.background = 'rgba(255, 255, 255, 0.2)';
+                statusText.textContent = 'Tap below to receive an invite link you can forward';
+                sendBtn.classList.remove('hidden');
+                regenerateBtn.classList.add('hidden');
+                card.style.background = 'var(--gradient-accent)';
+            }
+        };
+
+        const sendInviteLink = async () => {
+            if (!state.currentOrg) return;
+
+            const sendBtn = document.getElementById('send-invite-btn');
+            const regenerateBtn = document.getElementById('regenerate-btn');
+            const activeBtn = sendBtn.classList.contains('hidden') ? regenerateBtn : sendBtn;
+
+            activeBtn.disabled = true;
+            activeBtn.textContent = 'Sending...';
+
+            try {
+                const result = await api.sendInviteLink(state.currentOrg.id);
+
+                // If code was regenerated, refresh the display
+                if (result.code_regenerated) {
+                    cache.invalidate('inviteCode');
+                    const newCode = await api.getInviteCode(state.currentOrg.id);
+                    state.inviteCode = newCode;
+                    cache.set('inviteCode', newCode);
+                    updateInviteCodeDisplay(newCode);
+                }
+
+                // Show success feedback
+                activeBtn.textContent = 'Sent!';
+                tg.showAlert('Invite link sent to your Telegram chat. Forward it to invite team members!');
+
+                setTimeout(() => {
+                    activeBtn.textContent = activeBtn === sendBtn ? 'Generate Invite Link' : 'Generate New Invite Link';
+                }, 2000);
+            } catch (error) {
+                tg.showAlert(error.message || 'Failed to send invite link');
+                activeBtn.textContent = activeBtn === sendBtn ? 'Generate Invite Link' : 'Generate New Invite Link';
+            } finally {
+                activeBtn.disabled = false;
+            }
+        };
+
+        const switchAdminTab = (tab) => {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelector(`.tab[onclick="switchAdminTab('${tab}')"]`).classList.add('active');
+
+            document.getElementById('tab-requests').classList.toggle('hidden', tab !== 'requests');
+            document.getElementById('tab-members').classList.toggle('hidden', tab !== 'members');
+        };
+
+        const renderRequests = () => {
+            const list = document.getElementById('requests-list');
+            const empty = document.getElementById('requests-empty');
+            const countBadge = document.getElementById('requests-count');
+
+            if (state.membershipRequests.length === 0) {
+                list.classList.add('hidden');
+                empty.classList.remove('hidden');
+                countBadge.textContent = '';
+                return;
+            }
+
+            list.classList.remove('hidden');
+            empty.classList.add('hidden');
+            countBadge.textContent = `(${state.membershipRequests.length})`;
+
+            list.innerHTML = state.membershipRequests.map(req => `
+                <div class="list-item list-item-clickable" onclick="openApproveModal('${req.id}')">
+                    <div class="list-item-avatar">${req.full_name.charAt(0).toUpperCase()}</div>
+                    <div class="list-item-content">
+                        <div class="list-item-title">${escapeHtml(req.full_name)}</div>
+                        <div class="list-item-subtitle">${req.telegram_username ? '@' + req.telegram_username : 'Pending'}</div>
+                    </div>
+                    <div class="list-item-action">
+                        <span class="chip chip-warning">Review</span>
+                    </div>
+                </div>
+            `).join('');
+        };
+
+        const renderMembers = () => {
+            const list = document.getElementById('members-list');
+
+            list.innerHTML = state.members.map(member => {
+                const lastActive = member.last_active_at
+                    ? formatTimeAgo(new Date(member.last_active_at))
+                    : 'Never';
+
+                const activityCount = member.activity_count || 0;
+                const botsUsed = member.bots_accessed || [];
+
+                return `
+                <div class="list-item list-item-clickable"
+                     onclick="openMemberModal('${member.id}')">
+                    <div class="list-item-avatar">${member.full_name.charAt(0).toUpperCase()}</div>
+                    <div class="list-item-content">
+                        <div class="list-item-title">${escapeHtml(member.full_name)}</div>
+                        <div class="list-item-subtitle">
+                            ${member.role === 'admin' ? '👑 Admin' : `${member.bot_access.length} agents • Active ${lastActive}`}
+                        </div>
+                        ${botsUsed.length > 0 ? `
+                            <div class="activity-bots-used">
+                                ${botsUsed.slice(0, 3).map(botId => `<span class="bot-mini-chip">${botId}</span>`).join('')}
+                                ${botsUsed.length > 3 ? `<span class="bot-mini-chip">+${botsUsed.length - 3}</span>` : ''}
+                            </div>
+                        ` : ''}
+                    </div>
+                    ${member.role === 'admin'
+                        ? '<span class="chip">Admin</span>'
+                        : activityCount > 0
+                            ? `<span class="activity-count-badge">${activityCount}</span>`
+                            : '<span class="chip">Manage</span>'}
+                </div>
+            `;
+            }).join('');
+        };
+
+        const formatTimeAgo = (date) => {
+            const now = new Date();
+            const diffMs = now - date;
+            const diffMins = Math.floor(diffMs / 60000);
+            const diffHours = Math.floor(diffMs / 3600000);
+            const diffDays = Math.floor(diffMs / 86400000);
+
+            if (diffMins < 1) return 'just now';
+            if (diffMins < 60) return `${diffMins}m ago`;
+            if (diffHours < 24) return `${diffHours}h ago`;
+            if (diffDays < 7) return `${diffDays}d ago`;
+            return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        };
+
+        /* ─────────────────────────────────────────────────────────────────────
+           APPROVAL MODAL
+           ───────────────────────────────────────────────────────────────────── */
+
+        const openApproveModal = (requestId) => {
+            const request = state.membershipRequests.find(r => r.id === requestId);
+            if (!request) return;
+
+            state.selectedRequest = request;
+            state.selectedBotIds = [];
+
+            document.getElementById('modal-user-name').textContent = request.full_name;
+            document.getElementById('modal-user-username').textContent =
+                request.telegram_username ? '@' + request.telegram_username : 'No username';
+            document.getElementById('modal-user-avatar').textContent =
+                request.full_name.charAt(0).toUpperCase();
+
+            // Render bot chips
+            const chipsContainer = document.getElementById('modal-bots-chips');
+            if (state.availableBots.length > 0) {
+                chipsContainer.innerHTML = state.availableBots.map(bot => `
+                    <button class="chip chip-selectable" data-bot-id="${bot.id}" onclick="toggleBotSelection('${bot.id}')">
+                        ${escapeHtml(bot.name)}
+                    </button>
+                `).join('');
+            } else {
+                chipsContainer.innerHTML = '<p class="text-muted text-sm">No agents available yet</p>';
+            }
+
+            document.getElementById('modal-approve').classList.add('active');
+        };
+
+        const closeApproveModal = () => {
+            document.getElementById('modal-approve').classList.remove('active');
+            state.selectedRequest = null;
+            state.selectedBotIds = [];
+        };
+
+        const toggleBotSelection = (botId) => {
+            const index = state.selectedBotIds.indexOf(botId);
+            if (index > -1) {
+                state.selectedBotIds.splice(index, 1);
+            } else {
+                state.selectedBotIds.push(botId);
+            }
+
+            // Update chip visual
+            const chip = document.querySelector(`[data-bot-id="${botId}"]`);
+            chip?.classList.toggle('selected', state.selectedBotIds.includes(botId));
+        };
+
+        const approveRequest = async () => {
+            if (!state.selectedRequest) return;
+
+            try {
+                await api.approveRequest(state.selectedRequest.id, true, state.selectedBotIds);
+
+                // Invalidate caches affected by membership change
+                cache.invalidate('requests');
+                cache.invalidate('members');
+                cache.invalidate('orgDetails');
+
+                // Remove from list and refresh
+                state.membershipRequests = state.membershipRequests.filter(
+                    r => r.id !== state.selectedRequest.id
+                );
+                closeApproveModal();
+                renderRequests();
+
+                // Refresh members
+                const members = await api.getMembers(state.currentOrg.id);
+                state.members = members;
+                cache.set('members', members);
+                renderMembers();
+
+            } catch (error) {
+                alert(error.message);
+            }
+        };
+
+        const rejectRequest = async () => {
+            if (!state.selectedRequest) return;
+
+            if (!confirm('Are you sure you want to reject this request?')) return;
+
+            try {
+                await api.approveRequest(state.selectedRequest.id, false, []);
+
+                cache.invalidate('requests');
+
+                state.membershipRequests = state.membershipRequests.filter(
+                    r => r.id !== state.selectedRequest.id
+                );
+                closeApproveModal();
+                renderRequests();
+
+            } catch (error) {
+                alert(error.message);
+            }
+        };
+
+        // Close modal on backdrop click
+        document.getElementById('modal-approve').addEventListener('click', (e) => {
+            if (e.target.classList.contains('modal-backdrop')) {
+                closeApproveModal();
+            }
+        });
+
+        /* ─────────────────────────────────────────────────────────────────────
+           EDIT ORGANIZATION MODAL
+           ───────────────────────────────────────────────────────────────────── */
+
+        const openEditOrgModal = () => {
+            document.getElementById('edit-org-name').value = state.orgDetails?.name || state.currentOrg.name;
+            document.getElementById('edit-org-description').value = state.orgDetails?.description || '';
+            document.getElementById('modal-edit-org').classList.add('active');
+        };
+
+        const closeEditOrgModal = () => {
+            document.getElementById('modal-edit-org').classList.remove('active');
+        };
+
+        const saveOrgChanges = async () => {
+            const name = document.getElementById('edit-org-name').value.trim();
+            const description = document.getElementById('edit-org-description').value.trim();
+
+            if (!name) {
+                alert('Organization name is required');
+                return;
+            }
+
+            try {
+                const result = await api.updateOrg(state.currentOrg.id, {
+                    name,
+                    description: description || null
+                });
+
+                // Update local state
+                state.currentOrg.name = name;
+                if (state.orgDetails) {
+                    state.orgDetails.name = name;
+                    state.orgDetails.description = description || null;
+                    updateOrgHeader(state.orgDetails);
+                }
+
+                closeEditOrgModal();
+            } catch (error) {
+                alert(error.message);
+            }
+        };
+
+        document.getElementById('modal-edit-org').addEventListener('click', (e) => {
+            if (e.target.classList.contains('modal-backdrop')) {
+                closeEditOrgModal();
+            }
+        });
+
+        /* ─────────────────────────────────────────────────────────────────────
+           MEMBER MANAGEMENT MODAL
+           ───────────────────────────────────────────────────────────────────── */
+
+        const openMemberModal = (memberId) => {
+            const member = state.members.find(m => m.id === memberId);
+            if (!member) return;
+
+            state.selectedMember = member;
+            state.selectedMemberBotIds = member.bot_access.map(b => b.bot_id);
+
+            document.getElementById('member-modal-avatar').textContent = member.full_name.charAt(0).toUpperCase();
+            document.getElementById('member-modal-name').textContent = member.full_name;
+            document.getElementById('member-modal-meta').textContent =
+                `${member.telegram_username ? '@' + member.telegram_username : 'No username'} • Member`;
+
+            const lastActive = member.last_active_at
+                ? `Last active: ${formatTimeAgo(new Date(member.last_active_at))}`
+                : 'Last active: Never';
+            document.getElementById('member-modal-activity').textContent = lastActive;
+
+            // Set current role in dropdown
+            document.getElementById('member-role-select').value = member.role || 'member';
+
+            // Render bot toggles
+            const botsContainer = document.getElementById('member-modal-bots');
+            if (state.availableBots.length > 0) {
+                botsContainer.innerHTML = state.availableBots.map(bot => {
+                    const hasAccess = state.selectedMemberBotIds.includes(bot.id);
+                    return `
+                        <div class="bot-toggle-item">
+                            <span class="bot-toggle-name">${escapeHtml(bot.name)}</span>
+                            <div class="toggle ${hasAccess ? 'active' : ''}"
+                                 data-bot-id="${bot.id}"
+                                 onclick="toggleMemberBot('${bot.id}')"></div>
+                        </div>
+                    `;
+                }).join('');
+            } else {
+                botsContainer.innerHTML = '<p class="text-muted text-sm">No agents available</p>';
+            }
+
+            document.getElementById('modal-member').classList.add('active');
+        };
+
+        const closeMemberModal = () => {
+            document.getElementById('modal-member').classList.remove('active');
+            state.selectedMember = null;
+            state.selectedMemberBotIds = [];
+            state.pendingRoleChange = null;
+        };
+
+        const handleRoleChange = () => {
+            if (!state.selectedMember) return;
+
+            const newRole = document.getElementById('member-role-select').value;
+            const currentRole = state.selectedMember.role || 'member';
+
+            // If no change, do nothing
+            if (newRole === currentRole) {
+                state.pendingRoleChange = null;
+                return;
+            }
+
+            // If changing to admin, show confirmation
+            if (newRole === 'admin') {
+                state.pendingRoleChange = newRole;
+                document.getElementById('role-change-message').textContent =
+                    'Admins can view and edit organization data. Are you sure you want to proceed?';
+                document.getElementById('modal-role-change').classList.add('active');
+            } else {
+                // Changing to member - also show confirmation
+                state.pendingRoleChange = newRole;
+                document.getElementById('role-change-message').textContent =
+                    'This will revoke admin privileges. Are you sure you want to proceed?';
+                document.getElementById('modal-role-change').classList.add('active');
+            }
+        };
+
+        const closeRoleChangeModal = () => {
+            document.getElementById('modal-role-change').classList.remove('active');
+            // Reset dropdown to current role
+            if (state.selectedMember) {
+                document.getElementById('member-role-select').value = state.selectedMember.role || 'member';
+            }
+            state.pendingRoleChange = null;
+        };
+
+        const confirmRoleChange = async () => {
+            if (!state.selectedMember || !state.pendingRoleChange) return;
+
+            try {
+                await api.updateMemberRole(
+                    state.currentOrg.id,
+                    state.selectedMember.id,
+                    state.pendingRoleChange
+                );
+
+                cache.invalidate('members');
+                cache.invalidate('orgDetails');
+
+                // Refresh members list and org details
+                const [members, orgDetails] = await Promise.all([
+                    api.getMembers(state.currentOrg.id),
+                    api.getOrgDetails(state.currentOrg.id)
+                ]);
+                state.members = members;
+                state.orgDetails = orgDetails;
+                cache.set('members', members);
+                cache.set('orgDetails', orgDetails);
+                renderMembers();
+                updateOrgHeader(orgDetails);
+
+                // Update the selected member's role in state
+                state.selectedMember.role = state.pendingRoleChange;
+
+                closeRoleChangeModal();
+                closeMemberModal();
+
+                tg.showAlert('Role updated successfully');
+            } catch (error) {
+                closeRoleChangeModal();
+                alert(error.message || 'Failed to update role');
+                // Reset dropdown to current role
+                document.getElementById('member-role-select').value = state.selectedMember.role || 'member';
+            }
+        };
+
+        // Close role change modal on backdrop click
+        document.getElementById('modal-role-change').addEventListener('click', (e) => {
+            if (e.target.classList.contains('modal-backdrop')) {
+                closeRoleChangeModal();
+            }
+        });
+
+        const toggleMemberBot = (botId) => {
+            const index = state.selectedMemberBotIds.indexOf(botId);
+            if (index > -1) {
+                state.selectedMemberBotIds.splice(index, 1);
+            } else {
+                state.selectedMemberBotIds.push(botId);
+            }
+
+            // Update toggle visual
+            const toggle = document.querySelector(`#member-modal-bots [data-bot-id="${botId}"]`);
+            toggle?.classList.toggle('active', state.selectedMemberBotIds.includes(botId));
+        };
+
+        const saveMemberBots = async () => {
+            if (!state.selectedMember) return;
+
+            try {
+                await api.updateMemberBots(
+                    state.currentOrg.id,
+                    state.selectedMember.id,
+                    state.selectedMemberBotIds
+                );
+
+                cache.invalidate('members');
+
+                // Refresh members list
+                const members = await api.getMembers(state.currentOrg.id);
+                state.members = members;
+                cache.set('members', members);
+                renderMembers();
+
+                closeMemberModal();
+            } catch (error) {
+                alert(error.message);
+            }
+        };
+
+        const confirmRemoveMember = async () => {
+            if (!state.selectedMember) return;
+
+            const confirmed = confirm(
+                `Remove ${state.selectedMember.full_name} from ${state.currentOrg.name}?\n\nThis will revoke all their agent access.`
+            );
+
+            if (!confirmed) return;
+
+            try {
+                await api.removeMember(state.currentOrg.id, state.selectedMember.id);
+
+                cache.invalidate('members');
+                cache.invalidate('orgDetails');
+
+                // Refresh members list and org details
+                const [members, orgDetails] = await Promise.all([
+                    api.getMembers(state.currentOrg.id),
+                    api.getOrgDetails(state.currentOrg.id)
+                ]);
+                state.members = members;
+                state.orgDetails = orgDetails;
+                cache.set('members', members);
+                cache.set('orgDetails', orgDetails);
+                renderMembers();
+                updateOrgHeader(orgDetails);
+
+                closeMemberModal();
+            } catch (error) {
+                alert(error.message);
+            }
+        };
+
+        document.getElementById('modal-member').addEventListener('click', (e) => {
+            if (e.target.classList.contains('modal-backdrop')) {
+                closeMemberModal();
+            }
+        });
+
+        /* ─────────────────────────────────────────────────────────────────────
+           MEMBER DASHBOARD
+           ───────────────────────────────────────────────────────────────────── */
+
+        const loadMemberDashboard = async () => {
+            document.getElementById('member-org-name').textContent = state.currentOrg.name;
+            showPage('member');
+
+            // Get member's bot access
+            const members = await api.getMembers(state.currentOrg.id);
+            const me = members.find(m => m.user_id === state.user.id);
+
+            if (me && me.bot_access.length > 0) {
+                document.getElementById('member-no-bots').classList.add('hidden');
+                document.getElementById('member-bots-list').innerHTML = me.bot_access.map(bot => `
+                    <div class="list-item list-item-clickable" onclick="openAgent('${bot.bot_id}')">
+                        <div class="list-item-avatar" style="background: var(--color-success);">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="10" rx="2"></rect><circle cx="12" cy="5" r="2"></circle><path d="M12 7v4"></path><circle cx="8" cy="16" r="1" fill="currentColor"></circle><circle cx="16" cy="16" r="1" fill="currentColor"></circle></svg>
+                        </div>
+                        <div class="list-item-content">
+                            <div class="list-item-title">${escapeHtml(bot.bot_name)}</div>
+                            <div class="list-item-subtitle">Access granted</div>
+                        </div>
+                        <span class="chip chip-success">Active</span>
+                    </div>
+                `).join('');
+            } else {
+                document.getElementById('member-bots-list').classList.add('hidden');
+                document.getElementById('member-no-bots').classList.remove('hidden');
+            }
+        };
+
+        const openAgent = (agentName) => {
+            // Navigate to the agent's mini-app
+            window.location.href = `/app/${agentName}`;
+        };
+
+        /* ─────────────────────────────────────────────────────────────────────
+           UTILITIES
+           ───────────────────────────────────────────────────────────────────── */
+
+        const escapeHtml = (text) => {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        };
+
+        /* ─────────────────────────────────────────────────────────────────────
+           ADMIN DASHBOARD: SECTION NAVIGATION
+           ───────────────────────────────────────────────────────────────────── */
+
+        const switchAdminSection = async (section) => {
+            state.currentAdminSection = section;
+
+            // Update nav items
+            document.querySelectorAll('#admin-bottom-nav .nav-item').forEach(item => {
+                item.classList.remove('active');
+            });
+            document.querySelector(`#admin-bottom-nav .nav-item[onclick="switchAdminSection('${section}')"]`)?.classList.add('active');
+
+            // Update sections
+            document.querySelectorAll('.admin-section').forEach(s => s.classList.remove('active'));
+            document.getElementById(`section-${section}`)?.classList.add('active');
+
+            // Load section-specific data
+            if (section === 'reports' && !state.agentReportsLoaded) {
+                await loadAgentReports();
+            } else if (section === 'billing' && !state.billingOverview) {
+                await loadBillingOverview();
+            }
+
+            // Log activity
+            if (state.currentOrg) {
+                api.logActivity(state.currentOrg.id, null, 'page_view', { section }).catch(() => {});
+            }
+        };
+
+        /* ─────────────────────────────────────────────────────────────────────
+           ADMIN DASHBOARD: REPORTS (Agents + Members)
+           ───────────────────────────────────────────────────────────────────── */
+
+        const switchReportsTab = (tab) => {
+            document.querySelectorAll('#reports-sub-tabs .tab').forEach(t => t.classList.remove('active'));
+            document.querySelector(`#reports-sub-tabs .tab[onclick="switchReportsTab('${tab}')"]`)?.classList.add('active');
+
+            document.getElementById('reports-tab-agents').classList.toggle('hidden', tab !== 'agents');
+            document.getElementById('reports-tab-members').classList.toggle('hidden', tab !== 'members');
+
+            if (tab === 'agents' && !state.agentReportsLoaded) {
+                loadAgentReports();
+            } else if (tab === 'members' && !state.memberReportsLoaded) {
+                loadMemberReports();
+            }
+        };
+
+        const loadAgentReports = async () => {
+            if (!state.currentOrg) return;
+            const orgId = state.currentOrg.id;
+
+            try {
+                const bots = state.availableBots || await api.getBots().catch(() => []);
+                state.availableBots = bots;
+
+                // Fetch today's bot tasks, latest weekly AI reports, and lead agent overview in parallel
+                const [todayTasks, latestReports, leadOverview] = await Promise.all([
+                    api.getBotTasks(orgId).catch(() => []),
+                    api.getLatestReports(orgId, 'weekly').catch(() => ({ agent_reports: [] })),
+                    api.getLeadAgentOverview(orgId).catch(() => ({ active_leads: 0, scheduled_followups: 0, today_events: [] }))
+                ]);
+
+                state.agentReportsLoaded = true;
+                renderAgentReports(bots, latestReports, todayTasks, leadOverview);
+            } catch (error) {
+                if (handleAuthError(error)) return;
+                console.error('Failed to load agent reports:', error);
+                document.getElementById('agent-reports-container').innerHTML = '';
+                document.getElementById('agent-reports-empty').classList.remove('hidden');
+            }
+        };
+
+        const renderAgentReports = (bots, latestReports, todayTasks, leadOverview) => {
+            const container = document.getElementById('agent-reports-container');
+            const empty = document.getElementById('agent-reports-empty');
+
+            if (!bots || bots.length === 0) {
+                container.innerHTML = '';
+                empty.classList.remove('hidden');
+                return;
+            }
+            empty.classList.add('hidden');
+
+            // Group tasks by bot
+            const tasksByBot = {};
+            (todayTasks || []).forEach(t => {
+                if (!tasksByBot[t.bot_id]) tasksByBot[t.bot_id] = [];
+                tasksByBot[t.bot_id].push(t);
+            });
+
+            // Map AI reports by bot_id
+            const reportsByBot = {};
+            if (latestReports.agent_reports) {
+                latestReports.agent_reports.forEach(r => {
+                    reportsByBot[r.bot_id] = r;
+                });
+            }
+
+            // Detect which bot is the lead agent (by name)
+            const leadAgentNames = ['lead agent', 'lead_agent', 'leadagent', 'b2b lead'];
+            const isLeadAgent = (name) => leadAgentNames.some(n => name.toLowerCase().includes(n));
+
+            container.innerHTML = bots.map(bot => {
+                const tasks = tasksByBot[bot.id] || [];
+                const report = reportsByBot[bot.id];
+                const isLA = isLeadAgent(bot.name);
+
+                return `
+                    <div class="report-card" style="margin-bottom: var(--space-md);">
+                        <div class="report-card-header">
+                            <div class="report-card-icon">${bot.icon || '🤖'}</div>
+                            <div class="report-card-title">${escapeHtml(bot.name)}</div>
+                            <div class="report-card-period">${tasks.length} tasks today</div>
+                        </div>
+                        <div class="report-card-body">
+                            ${isLA && leadOverview ? `
+                                <div style="display: flex; gap: var(--space-sm); margin-bottom: var(--space-md);">
+                                    <div style="flex: 1; background: var(--tg-theme-bg-color); border-radius: var(--radius-md); padding: var(--space-sm) var(--space-md); text-align: center;">
+                                        <div style="font-size: 22px; font-weight: 700; color: var(--color-cyan-400);">${leadOverview.active_leads}</div>
+                                        <div style="font-size: 11px; color: var(--tg-theme-hint-color);">Active Leads</div>
+                                    </div>
+                                    <div style="flex: 1; background: var(--tg-theme-bg-color); border-radius: var(--radius-md); padding: var(--space-sm) var(--space-md); text-align: center;">
+                                        <div style="font-size: 22px; font-weight: 700; color: var(--color-warning);">${leadOverview.scheduled_followups}</div>
+                                        <div style="font-size: 11px; color: var(--tg-theme-hint-color);">Follow-ups Scheduled</div>
+                                    </div>
+                                </div>
+                            ` : ''}
+                            ${isLA && leadOverview && leadOverview.today_summary ? `
+                                <div class="section-title" style="margin-bottom: 8px; font-size: 13px;">Today's Events</div>
+                                <p style="font-size: 13px; color: var(--tg-theme-text-color); margin: 0; line-height: 1.4;">${escapeHtml(leadOverview.today_summary)}</p>
+                            ` : !isLA && tasks.length > 0 ? `
+                                <div class="section-title" style="margin-bottom: 8px; font-size: 13px;">Today's Tasks</div>
+                                <div class="report-highlights">
+                                    ${tasks.slice(0, 10).map(t =>
+                                        `<div class="report-highlight">${escapeHtml(t.task_type)}${t.task_detail ? ': ' + escapeHtml(typeof t.task_detail === 'string' ? t.task_detail.substring(0, 80) : JSON.stringify(t.task_detail).substring(0, 80)) : ''}</div>`
+                                    ).join('')}
+                                    ${tasks.length > 10 ? `<div class="text-muted" style="font-size: 12px;">+${tasks.length - 10} more tasks</div>` : ''}
+                                </div>
+                            ` : !isLA ? '<p class="text-muted" style="font-size: 13px;">No tasks performed today</p>' : ''}
+                            ${isLA && (!leadOverview || !leadOverview.today_summary) ? '<p class="text-muted" style="font-size: 13px;">No events today</p>' : ''}
+                            ${report ? `
+                                <div class="section-title" style="margin-top: 12px; margin-bottom: 8px; font-size: 13px;">Weekly Summary</div>
+                                <p class="report-summary">${escapeHtml(report.summary_text)}</p>
+                            ` : ''}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        };
+
+        const loadMemberReports = async () => {
+            if (!state.currentOrg) return;
+
+            try {
+                // Fetch team analytics for all three periods in parallel
+                const [dayData, weekData, monthData] = await Promise.all([
+                    api.getTeamAnalytics(state.currentOrg.id, 'day'),
+                    api.getTeamAnalytics(state.currentOrg.id, 'week'),
+                    api.getTeamAnalytics(state.currentOrg.id, 'month')
+                ]);
+
+                state.memberReportsLoaded = true;
+                renderMemberReports(dayData, weekData, monthData);
+            } catch (error) {
+                if (handleAuthError(error)) return;
+                console.error('Failed to load member reports:', error);
+                document.getElementById('member-reports-container').innerHTML = '';
+                document.getElementById('member-reports-empty').classList.remove('hidden');
+            }
+        };
+
+        const renderMemberReports = (dayData, weekData, monthData) => {
+            const container = document.getElementById('member-reports-container');
+            const empty = document.getElementById('member-reports-empty');
+
+            const allMembers = weekData.members || [];
+
+            if (allMembers.length === 0) {
+                container.innerHTML = '';
+                empty.classList.remove('hidden');
+                return;
+            }
+            empty.classList.add('hidden');
+
+            // Build lookup maps for day and month data
+            const dayMap = new Map((dayData.members || []).map(m => [m.membership_id, m]));
+            const monthMap = new Map((monthData.members || []).map(m => [m.membership_id, m]));
+
+            container.innerHTML = allMembers.map(member => {
+                const dayMember = dayMap.get(member.membership_id) || {};
+                const monthMember = monthMap.get(member.membership_id) || {};
+
+                return `
+                <div class="report-card" style="margin-bottom: var(--space-md);">
+                    <div class="report-card-header">
+                        <div class="list-item-avatar" style="width: 36px; height: 36px; font-size: 15px;">${member.full_name.charAt(0).toUpperCase()}</div>
+                        <div class="report-card-title" style="font-size: 15px;">${escapeHtml(member.full_name)}</div>
+                        <div class="report-card-period">${escapeHtml(member.role || 'member')}</div>
+                    </div>
+                    <div class="report-card-body">
+                        <div style="font-size: 12px; font-weight: 600; margin-bottom: 4px;">Leads Generated</div>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: var(--space-xs); font-size: 11px; color: var(--tg-theme-hint-color);">
+                            <div style="text-align: center;">Today</div>
+                            <div style="text-align: center;">This Week</div>
+                            <div style="text-align: center;">This Month</div>
+                        </div>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: var(--space-xs); font-size: 13px; padding: var(--space-xs) 0 var(--space-sm) 0; border-bottom: 1px solid var(--tg-theme-bg-color);">
+                            <div style="text-align: center;"><strong>${dayMember.leads_generated || 0}</strong></div>
+                            <div style="text-align: center;"><strong>${member.leads_generated || 0}</strong></div>
+                            <div style="text-align: center;"><strong>${monthMember.leads_generated || 0}</strong></div>
+                        </div>
+                        <div style="font-size: 12px; font-weight: 600; margin-top: var(--space-sm); margin-bottom: 4px;">Diary Entries</div>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: var(--space-xs); font-size: 11px; color: var(--tg-theme-hint-color);">
+                            <div style="text-align: center;">Today</div>
+                            <div style="text-align: center;">This Week</div>
+                            <div style="text-align: center;">This Month</div>
+                        </div>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: var(--space-xs); font-size: 13px; padding: var(--space-xs) 0;">
+                            <div style="text-align: center;"><strong>${dayMember.diary_entries || 0}</strong></div>
+                            <div style="text-align: center;"><strong>${member.diary_entries || 0}</strong></div>
+                            <div style="text-align: center;"><strong>${monthMember.diary_entries || 0}</strong></div>
+                        </div>
+                    </div>
+                </div>
+                `;
+            }).join('');
+        };
+
+        const getBotIcon = (botId) => {
+            const bot = (state.availableBots || []).find(b => b.id === botId);
+            return bot?.icon || '🤖';
+        };
+
+        const getBotName = (botId) => {
+            const bot = (state.availableBots || []).find(b => b.id === botId);
+            return bot?.name || botId;
+        };
+
+        /* ─────────────────────────────────────────────────────────────────────
+           ADMIN DASHBOARD: BILLING
+           ───────────────────────────────────────────────────────────────────── */
+
+        const loadBillingOverview = async () => {
+            if (!state.currentOrg) return;
+
+            try {
+                const cached = cache.get('billing');
+                if (cached) {
+                    state.billingOverview = cached;
+                    renderBillingOverview(cached);
+                    return;
+                }
+
+                const billing = await api.getBillingOverview(state.currentOrg.id);
+                state.billingOverview = billing;
+                cache.set('billing', billing);
+                renderBillingOverview(billing);
+            } catch (error) {
+                // SECURITY: Check for authorization failure
+                if (handleAuthError(error)) return;
+
+                console.error('Failed to load billing:', error);
+            }
+        };
+
+        const renderBillingOverview = (billing) => {
+            const { subscription, usage, invoices } = billing;
+
+            // Plan info
+            document.getElementById('billing-plan-name').textContent = subscription.plan.name;
+            document.getElementById('billing-plan-description').textContent = subscription.plan.description || '';
+
+            const periodEnd = new Date(subscription.current_period_end);
+            const periodText = subscription.status === 'active'
+                ? `Renews ${periodEnd.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`
+                : `Status: ${subscription.status}`;
+            document.getElementById('billing-period-info').textContent = periodText;
+
+            // Usage
+            const membersLimit = usage.members_limit || 'Unlimited';
+            document.getElementById('usage-members-text').textContent =
+                `${usage.members_used} / ${membersLimit}`;
+
+            // Calculate percentages
+            if (usage.members_limit) {
+                const percent = Math.min(100, (usage.members_used / usage.members_limit) * 100);
+                const bar = document.getElementById('usage-members-bar');
+                bar.style.width = `${percent}%`;
+                bar.className = 'usage-fill' + (percent > 90 ? ' danger' : percent > 70 ? ' warning' : '');
+            } else {
+                document.getElementById('usage-members-bar').style.width = '30%';
+            }
+
+
+            // Invoices
+            const invoicesList = document.getElementById('invoices-list');
+            const invoicesEmpty = document.getElementById('invoices-empty');
+
+            if (invoices.length === 0) {
+                invoicesList.innerHTML = '';
+                invoicesEmpty.classList.remove('hidden');
+            } else {
+                invoicesEmpty.classList.add('hidden');
+                invoicesList.innerHTML = invoices.map(inv => `
+                    <div class="list-item">
+                        <div class="list-item-content">
+                            <div class="list-item-title">${inv.invoice_number}</div>
+                            <div class="list-item-subtitle">${new Date(inv.issue_date).toLocaleDateString()} • ${formatCurrency(inv.total, inv.currency)}</div>
+                        </div>
+                        <span class="chip ${inv.status === 'paid' ? 'chip-success' : 'chip-warning'}">${inv.status}</span>
+                    </div>
+                `).join('');
+            }
+        };
+
+        const formatCurrency = (cents, currency = 'USD') => {
+            return new Intl.NumberFormat('en-US', {
+                style: 'currency',
+                currency: currency
+            }).format(cents / 100);
+        };
+
+        /* ─────────────────────────────────────────────────────────────────────
+           ADMIN DASHBOARD: HELP
+           ───────────────────────────────────────────────────────────────────── */
+
+        const openHelpLink = (type) => {
+            const urls = {
+                docs: 'https://docs.apexsolutions.io/workforce',
+                tutorials: 'https://www.youtube.com/@apexsolutions',
+                support: 'https://t.me/apex_support',
+                faq: 'https://docs.apexsolutions.io/workforce/faq'
+            };
+
+            const url = urls[type];
+            if (url) {
+                tg.openLink(url);
+            }
+        };
+
+        /* ─────────────────────────────────────────────────────────────────────
+           START APP
+           ───────────────────────────────────────────────────────────────────── */
+
+        init();
+    </script>
+</body>
+</html>

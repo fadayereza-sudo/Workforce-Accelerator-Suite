@@ -1,9 +1,13 @@
 """
-Pydantic models for API requests and responses.
+Pydantic models — compatibility shim.
+
+Core models re-exported from core.models.*.
+App-specific models remain in their local files until Phase 2 migration.
 """
-from .user import TelegramUser, User, UserCreate
-from .org import Organization, OrgCreate, InviteCode, OrgStats, OrgDetails, OrgUpdate
-from .membership import (
+# ── Core models (from core.models) ──────────────────────────────────────────
+from core.models.user import TelegramUser, User, UserCreate
+from core.models.org import Organization, OrgCreate, InviteCode, OrgStats, OrgDetails, OrgUpdate
+from core.models.membership import (
     MembershipRequest,
     MembershipRequestCreate,
     MembershipRequestResponse,
@@ -13,6 +17,25 @@ from .membership import (
     MemberBotsUpdate,
     MemberRoleUpdate
 )
+from core.models.billing import (
+    SubscriptionPlan,
+    OrgSubscription,
+    SubscriptionUpgrade,
+    Invoice,
+    InvoiceLineItem,
+    InvoiceList,
+    BillingOverview
+)
+from core.models.reports import (
+    BotTaskLogEntry,
+    ActivityReport,
+    ReportListItem,
+    ReportsList,
+    GenerateReportRequest,
+    ReportSummaryResponse
+)
+
+# ── App-specific models (stay local until Phase 2) ──────────────────────────
 from .lead_agent import (
     ProductCreate,
     ProductUpdate,
@@ -47,85 +70,31 @@ from .admin import (
     CustomerList,
     ImportJobCreate,
     ImportJobResponse,
-    SubscriptionPlan,
-    OrgSubscription,
-    SubscriptionUpgrade,
-    Invoice,
-    InvoiceLineItem,
-    InvoiceList,
-    BillingOverview
-)
-from .reports import (
-    BotTaskLogEntry,
-    ActivityReport,
-    ReportListItem,
-    ReportsList,
-    GenerateReportRequest,
-    ReportSummaryResponse
 )
 
 __all__ = [
-    "TelegramUser",
-    "User",
-    "UserCreate",
-    "Organization",
-    "OrgCreate",
-    "InviteCode",
-    "OrgStats",
-    "OrgDetails",
-    "OrgUpdate",
-    "MembershipRequest",
-    "MembershipRequestCreate",
-    "MembershipRequestResponse",
-    "MembershipApproval",
-    "Member",
-    "BotAccess",
-    "MemberBotsUpdate",
-    "MemberRoleUpdate",
-    "ProductCreate",
-    "ProductUpdate",
-    "Product",
-    "PainPoint",
-    "ProspectCreate",
-    "ProspectManualCreate",
-    "ProspectStatusUpdate",
-    "ProspectContactUpdate",
-    "Prospect",
-    "ProspectCard",
-    "SearchRequest",
-    "ScrapeRequest",
-    "SearchResult",
-    "SearchHistory",
-    "LeadAgentDashboard",
-    "CurrencyUpdate",
-    "JournalEntryCreate",
-    "JournalEntryUpdate",
-    "JournalEntry",
-    # Admin models
-    "ActivityLogCreate",
-    "MemberActivity",
-    "LeadAgentOverview",
-    "TeamAnalytics",
-    "AgentUsage",
-    "AgentAnalytics",
-    "CustomerCreate",
-    "CustomerUpdate",
-    "Customer",
-    "CustomerList",
-    "ImportJobCreate",
-    "ImportJobResponse",
-    "SubscriptionPlan",
-    "OrgSubscription",
-    "SubscriptionUpgrade",
-    "Invoice",
-    "InvoiceLineItem",
-    "InvoiceList",
-    "BillingOverview",
-    # Report models
-    "BotTaskLogEntry",
-    "ActivityReport",
-    "ReportListItem",
-    "ReportsList",
-    "GenerateReportRequest",
-    "ReportSummaryResponse"
+    # Core — User
+    "TelegramUser", "User", "UserCreate",
+    # Core — Org
+    "Organization", "OrgCreate", "InviteCode", "OrgStats", "OrgDetails", "OrgUpdate",
+    # Core — Membership
+    "MembershipRequest", "MembershipRequestCreate", "MembershipRequestResponse",
+    "MembershipApproval", "Member", "BotAccess", "MemberBotsUpdate", "MemberRoleUpdate",
+    # Core — Billing
+    "SubscriptionPlan", "OrgSubscription", "SubscriptionUpgrade",
+    "Invoice", "InvoiceLineItem", "InvoiceList", "BillingOverview",
+    # Core — Reports
+    "BotTaskLogEntry", "ActivityReport", "ReportListItem", "ReportsList",
+    "GenerateReportRequest", "ReportSummaryResponse",
+    # App — Lead Agent
+    "ProductCreate", "ProductUpdate", "Product", "PainPoint",
+    "ProspectCreate", "ProspectManualCreate", "ProspectStatusUpdate", "ProspectContactUpdate",
+    "Prospect", "ProspectCard", "SearchRequest", "ScrapeRequest",
+    "SearchResult", "SearchHistory", "LeadAgentDashboard", "CurrencyUpdate",
+    "JournalEntryCreate", "JournalEntryUpdate", "JournalEntry",
+    # App — Admin
+    "ActivityLogCreate", "MemberActivity", "LeadAgentOverview",
+    "TeamAnalytics", "AgentUsage", "AgentAnalytics",
+    "CustomerCreate", "CustomerUpdate", "Customer", "CustomerList",
+    "ImportJobCreate", "ImportJobResponse",
 ]

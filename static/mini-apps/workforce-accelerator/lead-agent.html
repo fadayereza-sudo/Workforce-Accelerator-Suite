@@ -1,0 +1,3346 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>B2B Lead Agent</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        /* ═══════════════════════════════════════════════════════════════
+           DESIGN SYSTEM & CSS VARIABLES
+           High-tech, forward-thinking, structured color scheme
+           ═══════════════════════════════════════════════════════════════ */
+
+        :root {
+            /* Core Palette - Deep tech blues with cyan accents */
+            --color-slate-900: #0f172a;
+            --color-slate-800: #1e293b;
+            --color-slate-700: #334155;
+            --color-slate-600: #475569;
+            --color-slate-500: #64748b;
+            --color-slate-400: #94a3b8;
+            --color-slate-300: #cbd5e1;
+            --color-slate-200: #e2e8f0;
+            --color-slate-100: #f1f5f9;
+            --color-slate-50: #f8fafc;
+
+            /* Accent - Cyan for tech feel */
+            --color-cyan-500: #06b6d4;
+            --color-cyan-400: #22d3ee;
+            --color-cyan-600: #0891b2;
+            --color-cyan-700: #0e7490;
+
+            /* Semantic Colors */
+            --color-success: #10b981;
+            --color-success-light: #d1fae5;
+            --color-warning: #f59e0b;
+            --color-warning-light: #fef3c7;
+            --color-error: #ef4444;
+            --color-error-light: #fee2e2;
+
+            /* Theme mappings */
+            --tg-theme-bg-color: #ffffff;
+            --tg-theme-secondary-bg-color: var(--color-slate-50);
+            --tg-theme-text-color: var(--color-slate-900);
+            --tg-theme-hint-color: var(--color-slate-500);
+            --tg-theme-link-color: var(--color-cyan-600);
+            --tg-theme-button-color: var(--color-cyan-500);
+            --tg-theme-button-text-color: #ffffff;
+
+            /* Gradients */
+            --gradient-primary: linear-gradient(135deg, var(--color-slate-800) 0%, var(--color-slate-900) 100%);
+            --gradient-accent: linear-gradient(135deg, var(--color-cyan-500) 0%, var(--color-cyan-600) 100%);
+            --gradient-surface: linear-gradient(180deg, var(--color-slate-50) 0%, #ffffff 100%);
+
+            /* Spacing */
+            --space-xs: 4px;
+            --space-sm: 8px;
+            --space-md: 16px;
+            --space-lg: 24px;
+            --space-xl: 32px;
+
+            /* Border Radius */
+            --radius-sm: 6px;
+            --radius-md: 10px;
+            --radius-lg: 14px;
+            --radius-full: 9999px;
+
+            /* Shadows - subtle, layered */
+            --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.06);
+            --shadow-md: 0 4px 12px rgba(15, 23, 42, 0.08);
+            --shadow-lg: 0 12px 24px rgba(15, 23, 42, 0.12);
+            --shadow-glow: 0 0 20px rgba(6, 182, 212, 0.15);
+        }
+
+        /* ═══════════════════════════════════════════════════════════════
+           RESET & BASE STYLES
+           ═══════════════════════════════════════════════════════════════ */
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background-color: var(--tg-theme-bg-color);
+            color: var(--tg-theme-text-color);
+            line-height: 1.5;
+            -webkit-font-smoothing: antialiased;
+            overflow-x: hidden;
+        }
+
+        #app {
+            min-height: 100vh;
+            padding-bottom: 80px;
+        }
+
+        /* ═══════════════════════════════════════════════════════════════
+           PAGE NAVIGATION
+           ═══════════════════════════════════════════════════════════════ */
+
+        .page {
+            display: none;
+            animation: fadeIn 0.3s ease-in-out;
+        }
+
+        .page.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(8px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* ═══════════════════════════════════════════════════════════════
+           LAYOUT COMPONENTS
+           ═══════════════════════════════════════════════════════════════ */
+
+        .page-header {
+            padding: var(--space-lg);
+            background: var(--gradient-primary);
+            color: white;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            border-bottom: 1px solid rgba(6, 182, 212, 0.2);
+        }
+
+        .page-title {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: var(--space-xs);
+            letter-spacing: -0.02em;
+        }
+
+        .page-subtitle {
+            font-size: 13px;
+            opacity: 0.7;
+            font-weight: 400;
+        }
+
+        .container {
+            padding: var(--space-md);
+        }
+
+        .section {
+            margin-bottom: var(--space-xl);
+        }
+
+        .section-title {
+            font-size: 13px;
+            font-weight: 600;
+            margin-bottom: var(--space-md);
+            color: var(--color-slate-700);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        /* ═══════════════════════════════════════════════════════════════
+           CARD COMPONENTS
+           ═══════════════════════════════════════════════════════════════ */
+
+        .card {
+            background: #ffffff;
+            border-radius: var(--radius-md);
+            padding: var(--space-md);
+            margin-bottom: var(--space-md);
+            border: 1px solid var(--color-slate-200);
+        }
+
+        .card-elevated {
+            box-shadow: var(--shadow-md);
+            border: none;
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: var(--space-md);
+        }
+
+        .card-title {
+            font-size: 15px;
+            font-weight: 600;
+            color: var(--color-slate-800);
+        }
+
+        /* ═══════════════════════════════════════════════════════════════
+           BUTTON COMPONENTS
+           ═══════════════════════════════════════════════════════════════ */
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: var(--space-sm);
+            padding: 12px 20px;
+            border: none;
+            border-radius: var(--radius-sm);
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            text-decoration: none;
+        }
+
+        .btn-primary {
+            background: var(--color-cyan-500);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: var(--color-cyan-600);
+        }
+
+        .btn-primary:active {
+            transform: scale(0.98);
+            background: var(--color-cyan-700);
+        }
+
+        .btn-secondary {
+            background: var(--color-slate-100);
+            color: var(--color-slate-700);
+            border: 1px solid var(--color-slate-200);
+        }
+
+        .btn-secondary:hover {
+            background: var(--color-slate-200);
+        }
+
+        .btn-secondary:active {
+            transform: scale(0.98);
+        }
+
+        .btn-success {
+            background: var(--color-success);
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #059669;
+        }
+
+        .btn-danger {
+            background: transparent;
+            color: var(--color-error);
+            border: 1px solid var(--color-error);
+        }
+
+        .btn-danger:hover {
+            background: var(--color-error-light);
+        }
+
+        .btn-ghost {
+            background: transparent;
+            color: var(--color-slate-600);
+        }
+
+        .btn-ghost:hover {
+            background: var(--color-slate-100);
+        }
+
+        .btn-block {
+            width: 100%;
+        }
+
+        .btn-sm {
+            padding: 8px 14px;
+            font-size: 13px;
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        /* ═══════════════════════════════════════════════════════════════
+           FORM COMPONENTS
+           ═══════════════════════════════════════════════════════════════ */
+
+        .form-group {
+            margin-bottom: var(--space-md);
+        }
+
+        .input-label {
+            display: block;
+            font-size: 13px;
+            font-weight: 500;
+            margin-bottom: var(--space-sm);
+            color: var(--color-slate-700);
+        }
+
+        .input,
+        .textarea,
+        .select {
+            width: 100%;
+            padding: 12px 14px;
+            border: 1px solid var(--color-slate-300);
+            border-radius: var(--radius-sm);
+            font-size: 14px;
+            font-family: inherit;
+            background: #ffffff;
+            color: var(--color-slate-900);
+            transition: border-color 0.15s ease, box-shadow 0.15s ease;
+        }
+
+        .textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        .input:focus,
+        .textarea:focus,
+        .select:focus {
+            outline: none;
+            border-color: var(--color-cyan-500);
+            box-shadow: 0 0 0 3px rgba(6, 182, 212, 0.1);
+        }
+
+        .input::placeholder,
+        .textarea::placeholder {
+            color: var(--color-slate-400);
+        }
+
+        /* ═══════════════════════════════════════════════════════════════
+           CHIP/TAG COMPONENTS
+           ═══════════════════════════════════════════════════════════════ */
+
+        .chip {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: var(--radius-sm);
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+        }
+
+        .chip-not-contacted {
+            background: var(--color-slate-100);
+            color: var(--color-slate-600);
+        }
+
+        .chip-contacted {
+            background: rgba(6, 182, 212, 0.1);
+            color: var(--color-cyan-700);
+        }
+
+        .chip-ongoing {
+            background: var(--color-warning-light);
+            color: #b45309;
+        }
+
+        .chip-closed {
+            background: var(--color-success-light);
+            color: #047857;
+        }
+
+        /* ═══════════════════════════════════════════════════════════════
+           LIST COMPONENTS
+           ═══════════════════════════════════════════════════════════════ */
+
+        .list {
+            display: flex;
+            flex-direction: column;
+            gap: var(--space-sm);
+        }
+
+        .list-item {
+            display: flex;
+            align-items: center;
+            gap: var(--space-md);
+            padding: var(--space-md);
+            background: #ffffff;
+            border: 1px solid var(--color-slate-200);
+            border-radius: var(--radius-md);
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+
+        .list-item:hover {
+            border-color: var(--color-slate-300);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .list-item:active {
+            transform: scale(0.99);
+        }
+
+        .list-item-icon {
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--color-slate-100);
+            border-radius: var(--radius-sm);
+            color: var(--color-slate-600);
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .list-item-content {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .list-item-title {
+            font-size: 14px;
+            font-weight: 500;
+            margin-bottom: 2px;
+            color: var(--color-slate-800);
+        }
+
+        .list-item-subtitle {
+            font-size: 12px;
+            color: var(--color-slate-500);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .list-item-action {
+            margin-left: auto;
+            flex-shrink: 0;
+        }
+
+        /* ═══════════════════════════════════════════════════════════════
+           PROSPECT CARD
+           ═══════════════════════════════════════════════════════════════ */
+
+        .prospect-card {
+            background: #ffffff;
+            border-radius: var(--radius-lg);
+            margin-bottom: var(--space-md);
+            border: 1px solid var(--color-slate-200);
+            overflow: hidden;
+        }
+
+        .prospect-card-header {
+            padding: var(--space-lg);
+            border-bottom: 1px solid var(--color-slate-100);
+        }
+
+        .prospect-card-body {
+            padding: var(--space-lg);
+        }
+
+        .prospect-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: var(--space-md);
+        }
+
+        .prospect-name {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--color-slate-900);
+            flex: 1;
+            line-height: 1.3;
+        }
+
+        .prospect-summary {
+            font-size: 14px;
+            line-height: 1.6;
+            color: var(--color-slate-600);
+            margin-bottom: var(--space-lg);
+            padding: var(--space-md);
+            background: var(--color-slate-50);
+            border-radius: var(--radius-sm);
+            border-left: 3px solid var(--color-cyan-500);
+        }
+
+        .prospect-pain-points {
+            margin-bottom: var(--space-lg);
+        }
+
+        .prospect-pain-points h4 {
+            font-size: 13px;
+            font-weight: 600;
+            margin-bottom: var(--space-md);
+            color: var(--color-slate-700);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .pain-points-list {
+            list-style: none;
+            counter-reset: item;
+        }
+
+        .pain-points-list li {
+            counter-increment: item;
+            margin-bottom: var(--space-md);
+            padding-left: 32px;
+            position: relative;
+        }
+
+        .pain-points-list li::before {
+            content: counter(item);
+            position: absolute;
+            left: 0;
+            top: 2px;
+            width: 22px;
+            height: 22px;
+            background: var(--color-slate-800);
+            color: white;
+            border-radius: var(--radius-sm);
+            font-size: 11px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .pain-point-title {
+            font-weight: 600;
+            font-size: 14px;
+            margin-bottom: 4px;
+            color: var(--color-slate-800);
+        }
+
+        .pain-point-description {
+            font-size: 13px;
+            color: var(--color-slate-600);
+            line-height: 1.5;
+        }
+
+        .relevant-product {
+            display: inline-block;
+            margin-top: 6px;
+            padding: 3px 8px;
+            background: rgba(6, 182, 212, 0.1);
+            color: var(--color-cyan-700);
+            border-radius: var(--radius-sm);
+            font-size: 11px;
+            font-weight: 500;
+        }
+
+        /* ═══════════════════════════════════════════════════════════════
+           PROSPECT DETAIL PAGE (Redesigned)
+           ═══════════════════════════════════════════════════════════════ */
+
+        .prospect-detail-header {
+            background: var(--gradient-primary);
+            padding: var(--space-lg);
+            color: white;
+            margin: calc(-1 * var(--space-md));
+            margin-bottom: var(--space-lg);
+        }
+
+        .prospect-detail-name {
+            font-size: 22px;
+            font-weight: 700;
+            margin-bottom: var(--space-xs);
+            line-height: 1.2;
+        }
+
+        .prospect-detail-meta {
+            display: flex;
+            align-items: center;
+            gap: var(--space-sm);
+            flex-wrap: wrap;
+            font-size: 13px;
+            opacity: 0.8;
+        }
+
+        .prospect-detail-source {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        /* Quick Actions Bar */
+        .quick-actions-bar {
+            display: flex;
+            gap: var(--space-sm);
+            margin-bottom: var(--space-lg);
+            padding-bottom: var(--space-lg);
+            border-bottom: 1px solid var(--color-slate-200);
+        }
+
+        .quick-action-btn {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 6px;
+            padding: var(--space-md);
+            background: var(--color-slate-50);
+            border: 1px solid var(--color-slate-200);
+            border-radius: var(--radius-md);
+            cursor: pointer;
+            transition: all 0.15s ease;
+            text-decoration: none;
+            color: var(--color-slate-700);
+        }
+
+        .quick-action-btn:hover {
+            background: var(--color-slate-100);
+            border-color: var(--color-slate-300);
+        }
+
+        .quick-action-btn:active {
+            transform: scale(0.98);
+        }
+
+        .quick-action-btn.primary {
+            background: var(--color-cyan-500);
+            border-color: var(--color-cyan-500);
+            color: white;
+        }
+
+        .quick-action-btn.primary:hover {
+            background: var(--color-cyan-600);
+        }
+
+        .quick-action-btn:disabled,
+        .quick-action-btn.disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+            pointer-events: none;
+        }
+
+        .quick-action-icon {
+            font-size: 20px;
+        }
+
+        .quick-action-label {
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.02em;
+        }
+
+        /* Status Selector Pills */
+        .status-selector-section {
+            margin-bottom: var(--space-lg);
+        }
+
+        .status-selector-label {
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--color-slate-700);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: var(--space-sm);
+            display: block;
+        }
+
+        .status-pills {
+            display: flex;
+            gap: var(--space-xs);
+            flex-wrap: wrap;
+        }
+
+        .status-pill {
+            padding: 8px 14px;
+            border-radius: var(--radius-full);
+            font-size: 12px;
+            font-weight: 500;
+            border: 1px solid var(--color-slate-200);
+            background: white;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            color: var(--color-slate-600);
+        }
+
+        .status-pill:hover {
+            border-color: var(--color-slate-300);
+            background: var(--color-slate-50);
+        }
+
+        .status-pill.active {
+            border-color: var(--color-cyan-500);
+            background: rgba(6, 182, 212, 0.1);
+            color: var(--color-cyan-700);
+        }
+
+        /* Contact Info Card */
+        .contact-info-card {
+            background: var(--color-slate-50);
+            border-radius: var(--radius-md);
+            padding: var(--space-md);
+            margin-bottom: var(--space-lg);
+        }
+
+        .contact-info-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: var(--space-md);
+        }
+
+        .contact-info-title {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--color-slate-700);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .contact-info-grid {
+            display: grid;
+            gap: var(--space-md);
+        }
+
+        .contact-info-item {
+            display: flex;
+            align-items: flex-start;
+            gap: var(--space-sm);
+        }
+
+        .contact-info-icon {
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: white;
+            border-radius: var(--radius-sm);
+            color: var(--color-slate-500);
+            flex-shrink: 0;
+            font-size: 14px;
+        }
+
+        .contact-info-content {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .contact-info-label {
+            font-size: 11px;
+            color: var(--color-slate-500);
+            margin-bottom: 2px;
+        }
+
+        .contact-info-value {
+            font-size: 14px;
+            color: var(--color-slate-800);
+            word-break: break-word;
+        }
+
+        .contact-info-value a {
+            color: var(--color-cyan-600);
+            text-decoration: none;
+        }
+
+        .contact-info-value a:hover {
+            text-decoration: underline;
+        }
+
+        .contact-info-empty {
+            color: var(--color-slate-400);
+            font-style: italic;
+        }
+
+        /* Edit Contact Inline */
+        .edit-contact-toggle {
+            font-size: 12px;
+            color: var(--color-cyan-600);
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 4px 8px;
+            border-radius: var(--radius-sm);
+        }
+
+        .edit-contact-toggle:hover {
+            background: rgba(6, 182, 212, 0.1);
+        }
+
+        .contact-edit-form {
+            display: none;
+            margin-top: var(--space-md);
+            padding-top: var(--space-md);
+            border-top: 1px solid var(--color-slate-200);
+        }
+
+        .contact-edit-form.visible {
+            display: block;
+        }
+
+        .contact-edit-row {
+            display: flex;
+            gap: var(--space-sm);
+            margin-bottom: var(--space-sm);
+        }
+
+        .contact-edit-row input {
+            flex: 1;
+            padding: 10px 12px;
+            border: 1px solid var(--color-slate-300);
+            border-radius: var(--radius-sm);
+            font-size: 14px;
+            background: white;
+        }
+
+        .contact-edit-row input:focus {
+            outline: none;
+            border-color: var(--color-cyan-500);
+        }
+
+        .contact-edit-actions {
+            display: flex;
+            gap: var(--space-sm);
+            justify-content: flex-end;
+        }
+
+        /* AI Insights Section */
+        .ai-insights-section {
+            margin-bottom: var(--space-lg);
+        }
+
+        .ai-insights-section .section-title {
+            margin-bottom: var(--space-md);
+        }
+
+        .ai-summary-box {
+            padding: var(--space-md);
+            background: linear-gradient(135deg, var(--color-slate-800) 0%, var(--color-slate-900) 100%);
+            border-radius: var(--radius-md);
+            color: white;
+            font-size: 14px;
+            line-height: 1.6;
+            margin-bottom: var(--space-md);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .ai-summary-box::before {
+            content: '"';
+            position: absolute;
+            top: -10px;
+            left: 10px;
+            font-size: 80px;
+            opacity: 0.1;
+            font-family: Georgia, serif;
+        }
+
+        .ai-summary-text {
+            position: relative;
+            z-index: 1;
+        }
+
+        .ai-generating {
+            color: var(--color-slate-400);
+            font-style: italic;
+            text-align: center;
+            padding: var(--space-lg);
+            background: var(--color-slate-50);
+            border-radius: var(--radius-md);
+        }
+
+        /* Opportunities (Pain Points) */
+        .opportunities-list {
+            display: flex;
+            flex-direction: column;
+            gap: var(--space-sm);
+        }
+
+        .opportunity-card {
+            background: white;
+            border: 1px solid var(--color-slate-200);
+            border-radius: var(--radius-md);
+            padding: var(--space-md);
+            display: flex;
+            gap: var(--space-md);
+        }
+
+        .opportunity-number {
+            width: 28px;
+            height: 28px;
+            background: var(--color-slate-800);
+            color: white;
+            border-radius: var(--radius-sm);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 13px;
+            font-weight: 600;
+            flex-shrink: 0;
+        }
+
+        .opportunity-content {
+            flex: 1;
+        }
+
+        .opportunity-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--color-slate-800);
+            margin-bottom: 4px;
+        }
+
+        .opportunity-description {
+            font-size: 13px;
+            color: var(--color-slate-600);
+            line-height: 1.5;
+        }
+
+        .opportunity-product {
+            display: inline-block;
+            margin-top: 8px;
+            padding: 3px 10px;
+            background: rgba(6, 182, 212, 0.1);
+            color: var(--color-cyan-700);
+            border-radius: var(--radius-full);
+            font-size: 11px;
+            font-weight: 500;
+        }
+
+        /* Danger Zone */
+        .danger-zone {
+            margin-top: var(--space-xl);
+            padding-top: var(--space-lg);
+            border-top: 1px solid var(--color-slate-200);
+        }
+
+        .danger-zone-btn {
+            width: 100%;
+            padding: 12px;
+            background: white;
+            border: 1px solid var(--color-error);
+            color: var(--color-error);
+            border-radius: var(--radius-md);
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+
+        .danger-zone-btn:hover {
+            background: var(--color-error-light);
+        }
+
+        /* ═══════════════════════════════════════════════════════════════
+           CALL SCRIPT SECTION
+           ═══════════════════════════════════════════════════════════════ */
+
+        .call-script-section {
+            margin-top: var(--space-lg);
+            border-top: 1px solid var(--color-slate-200);
+            padding-top: var(--space-lg);
+        }
+
+        .call-script-container {
+            display: flex;
+            flex-direction: column;
+            gap: var(--space-md);
+        }
+
+        .cue-card {
+            background: #ffffff;
+            border-radius: var(--radius-md);
+            padding: 0;
+            border: 1px solid var(--color-slate-200);
+            overflow: hidden;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .cue-card-question-section {
+            background: var(--color-slate-800);
+            padding: var(--space-md);
+            position: relative;
+        }
+
+        .cue-card-number {
+            position: absolute;
+            top: var(--space-md);
+            right: var(--space-md);
+            width: 24px;
+            height: 24px;
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            border-radius: var(--radius-sm);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .cue-card-label {
+            font-size: 10px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            margin-bottom: 6px;
+            display: block;
+        }
+
+        .cue-card-label-ask {
+            color: var(--color-cyan-400);
+        }
+
+        .cue-card-label-response {
+            color: var(--color-slate-400);
+        }
+
+        .cue-card-question {
+            font-size: 16px;
+            font-weight: 500;
+            color: #ffffff;
+            line-height: 1.4;
+            padding-right: 36px;
+        }
+
+        .cue-card-answer-section {
+            padding: var(--space-md);
+            background: var(--color-slate-50);
+            border-top: 3px solid var(--color-cyan-500);
+        }
+
+        .cue-card-answer {
+            font-size: 14px;
+            color: var(--color-slate-700);
+            line-height: 1.6;
+        }
+
+        /* AI Overview Section */
+        .ai-overview-section {
+            margin: var(--space-lg) 0;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            border-radius: var(--radius-md);
+            padding: var(--space-lg);
+            color: white;
+        }
+
+        .ai-overview-title {
+            font-size: 13px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: var(--color-cyan-400);
+            margin-bottom: var(--space-md);
+            display: flex;
+            align-items: center;
+            gap: var(--space-xs);
+        }
+
+        .ai-overview-summary {
+            font-size: 14px;
+            line-height: 1.6;
+            color: var(--color-slate-200);
+            margin-bottom: var(--space-lg);
+        }
+
+        .follow-up-card {
+            background: rgba(255, 255, 255, 0.08);
+            border-radius: var(--radius-sm);
+            padding: var(--space-md);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .follow-up-date {
+            font-size: 15px;
+            font-weight: 600;
+            color: var(--color-cyan-400);
+            margin-bottom: var(--space-xs);
+        }
+
+        .follow-up-message {
+            font-size: 13px;
+            color: var(--color-slate-300);
+            line-height: 1.5;
+            margin-bottom: var(--space-sm);
+        }
+
+        .follow-up-reasoning {
+            font-size: 12px;
+            color: var(--color-slate-400);
+            font-style: italic;
+        }
+
+        /* Call Script Reveal Toggle */
+        .script-reveal-toggle {
+            display: flex;
+            align-items: center;
+            gap: var(--space-sm);
+            width: 100%;
+            padding: 14px var(--space-md);
+            background: var(--color-slate-800);
+            border: none;
+            border-radius: var(--radius-md);
+            font-size: 14px;
+            font-weight: 500;
+            color: white;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+
+        .script-reveal-toggle:hover {
+            background: var(--color-slate-700);
+        }
+
+        .script-reveal-toggle.open {
+            border-radius: var(--radius-md) var(--radius-md) 0 0;
+        }
+
+        .script-reveal-icon {
+            font-size: 16px;
+            opacity: 0.8;
+        }
+
+        .script-reveal-text {
+            flex: 1;
+            text-align: left;
+        }
+
+        .script-reveal-arrow {
+            transition: transform 0.2s ease;
+            font-size: 10px;
+            opacity: 0.6;
+        }
+
+        .script-reveal-toggle.open .script-reveal-arrow {
+            transform: rotate(180deg);
+        }
+
+        .call-script-content-wrapper {
+            display: none;
+            background: var(--color-slate-50);
+            border: 1px solid var(--color-slate-200);
+            border-top: none;
+            border-radius: 0 0 var(--radius-md) var(--radius-md);
+            padding: var(--space-md);
+            animation: slideDown 0.2s ease-out;
+        }
+
+        .call-script-content-wrapper.open {
+            display: block;
+        }
+
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-8px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Tips Collapsible */
+        .tips-section {
+            margin-top: var(--space-md);
+        }
+
+        .tips-toggle {
+            display: flex;
+            align-items: center;
+            gap: var(--space-sm);
+            padding: 10px var(--space-md);
+            background: var(--color-slate-100);
+            border: none;
+            border-radius: var(--radius-sm);
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--color-slate-600);
+            cursor: pointer;
+            width: 100%;
+            text-align: left;
+            transition: background 0.15s ease;
+        }
+
+        .tips-toggle:hover {
+            background: var(--color-slate-200);
+        }
+
+        .tips-toggle-icon {
+            transition: transform 0.2s;
+            font-size: 10px;
+        }
+
+        .tips-toggle.open .tips-toggle-icon {
+            transform: rotate(180deg);
+        }
+
+        .tips-content {
+            display: none;
+            padding: var(--space-md);
+            background: var(--color-slate-100);
+            border-radius: 0 0 var(--radius-sm) var(--radius-sm);
+            font-size: 13px;
+            line-height: 1.7;
+            color: var(--color-slate-700);
+        }
+
+        .tips-content.open {
+            display: block;
+        }
+
+        .tips-content p {
+            margin-bottom: var(--space-md);
+        }
+
+        .tips-content p:last-child {
+            margin-bottom: 0;
+        }
+
+        /* ═══════════════════════════════════════════════════════════════
+           STATS GRID
+           ═══════════════════════════════════════════════════════════════ */
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: var(--space-sm);
+            margin-bottom: var(--space-lg);
+        }
+
+        .stat-card {
+            background: #ffffff;
+            border: 1px solid var(--color-slate-200);
+            border-radius: var(--radius-md);
+            padding: var(--space-md);
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 28px;
+            font-weight: 700;
+            color: var(--color-slate-800);
+            letter-spacing: -0.02em;
+        }
+
+        .stat-label {
+            font-size: 11px;
+            color: var(--color-slate-500);
+            margin-top: var(--space-xs);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            font-weight: 500;
+        }
+
+        /* ═══════════════════════════════════════════════════════════════
+           BOTTOM NAV
+           ═══════════════════════════════════════════════════════════════ */
+
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: #ffffff;
+            border-top: 1px solid var(--color-slate-200);
+            display: flex;
+            justify-content: space-around;
+            padding: 8px 0 calc(8px + env(safe-area-inset-bottom));
+            z-index: 1000;
+        }
+
+        .nav-item {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            padding: var(--space-sm);
+            cursor: pointer;
+            color: var(--color-slate-400);
+            transition: color 0.15s ease;
+        }
+
+        .nav-item:hover {
+            color: var(--color-slate-600);
+        }
+
+        .nav-item.active {
+            color: var(--color-cyan-500);
+        }
+
+        .nav-item-icon {
+            font-size: 18px;
+            font-weight: 500;
+        }
+
+        .nav-item-label {
+            font-size: 10px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.02em;
+        }
+
+        /* ═══════════════════════════════════════════════════════════════
+           JOURNAL SECTION
+           ═══════════════════════════════════════════════════════════════ */
+
+        .journal-section {
+            margin: var(--space-lg) 0;
+        }
+
+        .journal-section .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: var(--space-md);
+        }
+
+        .journal-entries {
+            display: flex;
+            flex-direction: column;
+            gap: var(--space-sm);
+        }
+
+        .journal-entry {
+            background: #ffffff;
+            border: 1px solid var(--color-slate-200);
+            border-radius: var(--radius-md);
+            padding: var(--space-md);
+        }
+
+        .journal-entry-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: var(--space-sm);
+        }
+
+        .journal-entry-type {
+            display: inline-flex;
+            align-items: center;
+            gap: var(--space-xs);
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            color: var(--color-cyan-700);
+            background: rgba(6, 182, 212, 0.1);
+            padding: 4px 8px;
+            border-radius: var(--radius-sm);
+        }
+
+        .journal-entry-date {
+            font-size: 12px;
+            color: var(--color-slate-500);
+        }
+
+        .journal-entry-content {
+            font-size: 14px;
+            line-height: 1.5;
+            color: var(--color-slate-700);
+            white-space: pre-wrap;
+        }
+
+        .journal-entry-actions {
+            display: flex;
+            gap: var(--space-xs);
+            margin-top: var(--space-sm);
+            padding-top: var(--space-sm);
+            border-top: 1px solid var(--color-slate-100);
+        }
+
+        .journal-empty {
+            text-align: center;
+            padding: var(--space-xl);
+            color: var(--color-slate-500);
+            background: var(--color-slate-50);
+            border-radius: var(--radius-md);
+        }
+
+        .journal-empty-icon {
+            font-size: 32px;
+            margin-bottom: var(--space-sm);
+        }
+
+        /* Journal Modal */
+        .journal-type-selector {
+            display: flex;
+            flex-wrap: wrap;
+            gap: var(--space-sm);
+            margin-bottom: var(--space-md);
+        }
+
+        .journal-type-btn {
+            padding: 8px 12px;
+            border: 1px solid var(--color-slate-200);
+            border-radius: var(--radius-sm);
+            background: #ffffff;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+
+        .journal-type-btn.active {
+            border-color: var(--color-cyan-500);
+            background: rgba(6, 182, 212, 0.1);
+            color: var(--color-cyan-700);
+        }
+
+        .journal-type-btn:hover:not(.active) {
+            background: var(--color-slate-50);
+        }
+
+        /* ═══════════════════════════════════════════════════════════════
+           MODAL
+           ═══════════════════════════════════════════════════════════════ */
+
+        .modal-backdrop {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(15, 23, 42, 0.6);
+            z-index: 2000;
+            animation: fadeIn 0.15s;
+            backdrop-filter: blur(4px);
+        }
+
+        .modal-backdrop.active {
+            display: flex;
+            align-items: flex-end;
+        }
+
+        .modal-sheet {
+            background: #ffffff;
+            border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+            padding: var(--space-lg);
+            padding-bottom: calc(var(--space-lg) + env(safe-area-inset-bottom));
+            width: 100%;
+            max-height: 85vh;
+            overflow-y: auto;
+            animation: slideUp 0.25s ease-out;
+        }
+
+        @keyframes slideUp {
+            from {
+                transform: translateY(100%);
+            }
+            to {
+                transform: translateY(0);
+            }
+        }
+
+        .modal-header {
+            font-size: 17px;
+            font-weight: 600;
+            margin-bottom: var(--space-lg);
+            color: var(--color-slate-900);
+        }
+
+        .modal-description {
+            font-size: 14px;
+            color: var(--color-slate-600);
+            line-height: 1.6;
+            margin-bottom: var(--space-lg);
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: var(--space-sm);
+            margin-top: var(--space-lg);
+        }
+
+        /* ═══════════════════════════════════════════════════════════════
+           UTILITY CLASSES
+           ═══════════════════════════════════════════════════════════════ */
+
+        .empty-state {
+            text-align: center;
+            padding: var(--space-xl) var(--space-md);
+        }
+
+        .empty-state-icon {
+            width: 64px;
+            height: 64px;
+            margin: 0 auto var(--space-md);
+            background: var(--color-slate-100);
+            border-radius: var(--radius-lg);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            color: var(--color-slate-400);
+        }
+
+        .empty-state-title {
+            font-size: 15px;
+            font-weight: 600;
+            margin-bottom: var(--space-sm);
+            color: var(--color-slate-700);
+        }
+
+        .empty-state p {
+            font-size: 13px;
+            color: var(--color-slate-500);
+            line-height: 1.5;
+        }
+
+        .loading {
+            text-align: center;
+            padding: var(--space-xl);
+        }
+
+        .loading-spinner {
+            width: 36px;
+            height: 36px;
+            border: 3px solid var(--color-slate-200);
+            border-top-color: var(--color-cyan-500);
+            border-radius: 50%;
+            animation: spin 0.7s linear infinite;
+            margin: 0 auto var(--space-md);
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .loading p {
+            font-size: 13px;
+            color: var(--color-slate-500);
+        }
+
+        .text-center {
+            text-align: center;
+        }
+
+        .mt-lg {
+            margin-top: var(--space-lg);
+        }
+
+        .mb-md {
+            margin-bottom: var(--space-md);
+        }
+
+        /* Info Box */
+        .info-box {
+            padding: var(--space-md);
+            background: var(--color-slate-50);
+            border: 1px solid var(--color-slate-200);
+            border-radius: var(--radius-md);
+            font-size: 13px;
+            color: var(--color-slate-600);
+            line-height: 1.5;
+        }
+
+        .info-box strong {
+            color: var(--color-slate-800);
+        }
+
+        /* Success Box */
+        .success-box {
+            padding: var(--space-md);
+            background: var(--color-success-light);
+            border-left: 3px solid var(--color-success);
+            border-radius: var(--radius-sm);
+        }
+
+        /* Warning notice */
+        .warning-notice {
+            padding: var(--space-md);
+            background: var(--color-warning-light);
+            border-left: 3px solid var(--color-warning);
+            border-radius: var(--radius-sm);
+            font-size: 13px;
+            color: #92400e;
+        }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <!-- Loading Page -->
+        <div id="page-loading" class="page active">
+            <div class="loading">
+                <div class="loading-spinner"></div>
+                <p>Loading Lead Agent...</p>
+            </div>
+        </div>
+
+        <!-- Dashboard Page -->
+        <div id="page-dashboard" class="page">
+            <div class="page-header">
+                <div class="page-title">Lead Agent</div>
+                <div class="page-subtitle" id="org-name"></div>
+            </div>
+            <div class="container">
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-value" id="stat-total">0</div>
+                        <div class="stat-label">Total Leads</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="stat-products">0</div>
+                        <div class="stat-label">Products</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="stat-not-contacted">0</div>
+                        <div class="stat-label">Not Contacted</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="stat-ongoing">0</div>
+                        <div class="stat-label">Ongoing</div>
+                    </div>
+                </div>
+
+                <div class="section">
+                    <div class="section-title">Quick Actions</div>
+                    <button class="btn btn-primary btn-block mb-md" onclick="showPage('search')">
+                        Add New Lead
+                    </button>
+                    <button class="btn btn-secondary btn-block" onclick="showPage('products')">
+                        Manage Products
+                    </button>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- Products Page -->
+        <div id="page-products" class="page">
+            <div class="page-header">
+                <div class="page-title">Products & Services</div>
+                <div class="page-subtitle">Manage your offerings</div>
+            </div>
+            <div class="container">
+                <button class="btn btn-primary btn-block mb-md" onclick="openAddProductModal()">
+                    Add Product
+                </button>
+                <div id="products-list"></div>
+            </div>
+        </div>
+
+        <!-- Add Lead Page -->
+        <div id="page-search" class="page">
+            <div class="page-header">
+                <div class="page-title">Add New Lead</div>
+                <div class="page-subtitle">Enter a business website URL</div>
+            </div>
+            <div class="container">
+                <div class="info-box mb-md">
+                    <strong>How it works:</strong> Paste the business website URL below. Our AI will extract their info and generate insights based on your products.
+                </div>
+
+                <div class="form-group">
+                    <label class="input-label">Business Website URL</label>
+                    <input
+                        type="url"
+                        class="input"
+                        id="url-input"
+                        placeholder="e.g., https://example.com"
+                    />
+                </div>
+                <button class="btn btn-primary btn-block" onclick="scrapeURL()" id="scrape-btn">
+                    Add Lead
+                </button>
+
+                <div id="scrape-result" style="display: none;" class="mt-lg">
+                    <div class="section-title">Lead Added</div>
+                    <div id="scrape-result-content"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Prospects Page -->
+        <div id="page-prospects" class="page">
+            <div class="page-header">
+                <div class="page-title">Prospects</div>
+                <div class="page-subtitle">Manage your leads</div>
+            </div>
+            <div class="container">
+                <div class="form-group">
+                    <label class="input-label">Search</label>
+                    <input
+                        type="text"
+                        class="input"
+                        id="search-prospects"
+                        placeholder="Search by name, phone, address..."
+                        oninput="filterProspectsBySearch()"
+                    />
+                </div>
+                <div class="form-group">
+                    <label class="input-label">Filter by Status</label>
+                    <select class="select" id="filter-status" onchange="loadProspects()">
+                        <option value="">All</option>
+                        <option value="not_contacted">Not Contacted</option>
+                        <option value="contacted">Contacted</option>
+                        <option value="ongoing_conversations">Ongoing Conversations</option>
+                        <option value="closed">Closed</option>
+                    </select>
+                </div>
+                <div id="prospects-list"></div>
+            </div>
+        </div>
+
+        <!-- Prospect Detail Page -->
+        <div id="page-prospect-detail" class="page">
+            <div style="position: sticky; top: 0; z-index: 100; padding: var(--space-sm) var(--space-md); background: var(--color-slate-900);">
+                <button class="btn btn-ghost btn-sm" style="color: white; padding: 8px 12px;" onclick="showPage('prospects')">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"></path><path d="M12 19l-7-7 7-7"></path></svg>
+                    Back
+                </button>
+            </div>
+            <div class="container">
+                <div id="prospect-detail-content"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bottom Navigation -->
+    <div class="bottom-nav">
+        <div class="nav-item" onclick="showPage('dashboard')">
+            <svg class="nav-item-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
+            <div class="nav-item-label">Home</div>
+        </div>
+        <div class="nav-item" onclick="showPage('search')">
+            <svg class="nav-item-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+            <div class="nav-item-label">Add</div>
+        </div>
+        <div class="nav-item" onclick="showPage('prospects')">
+            <svg class="nav-item-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+            <div class="nav-item-label">Leads</div>
+        </div>
+        <div class="nav-item" onclick="showPage('products')">
+            <svg class="nav-item-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path></svg>
+            <div class="nav-item-label">Products</div>
+        </div>
+    </div>
+
+    <!-- Add/Edit Product Modal -->
+    <div id="modal-product" class="modal-backdrop">
+        <div class="modal-sheet">
+            <div class="modal-header" id="modal-product-title">Add Product</div>
+            <div class="form-group">
+                <label class="input-label">Product/Service Name</label>
+                <input type="text" class="input" id="product-name" maxlength="200" />
+                <div style="text-align: right; font-size: 12px; color: #9ca3af; margin-top: 4px;">
+                    <span id="name-counter">0</span>/200
+                </div>
+            </div>
+            <div class="form-group">
+                <label class="input-label">Description (optional)</label>
+                <textarea class="textarea" id="product-description" maxlength="1000" rows="4"></textarea>
+                <div style="text-align: right; font-size: 12px; color: #9ca3af; margin-top: 4px;">
+                    <span id="description-counter">0</span>/1000
+                </div>
+            </div>
+            <div class="form-group">
+                <label class="input-label">Price</label>
+                <div style="display: flex; gap: 8px;">
+                    <input type="number" class="input" id="product-price" step="0.01" placeholder="Optional" style="flex: 1;" />
+                    <select class="select" id="product-currency" style="width: 100px;">
+                        <option value="USD">USD</option>
+                        <option value="EUR">EUR</option>
+                        <option value="GBP">GBP</option>
+                        <option value="CAD">CAD</option>
+                        <option value="AUD">AUD</option>
+                        <option value="JPY">JPY</option>
+                        <option value="CNY">CNY</option>
+                        <option value="INR">INR</option>
+                        <option value="BRL">BRL</option>
+                        <option value="MXN">MXN</option>
+                        <option value="AED">AED</option>
+                        <option value="SAR">SAR</option>
+                        <option value="CHF">CHF</option>
+                        <option value="SEK">SEK</option>
+                        <option value="NOK">NOK</option>
+                        <option value="DKK">DKK</option>
+                        <option value="PLN">PLN</option>
+                        <option value="TRY">TRY</option>
+                        <option value="ZAR">ZAR</option>
+                        <option value="SGD">SGD</option>
+                        <option value="HKD">HKD</option>
+                        <option value="KRW">KRW</option>
+                        <option value="NZD">NZD</option>
+                        <option value="RUB">RUB</option>
+                    </select>
+                </div>
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-secondary" style="flex: 1;" onclick="closeProductModal()">Cancel</button>
+                <button class="btn btn-success" style="flex: 1;" onclick="saveProduct()" id="save-product-btn">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Delete Product Confirmation Modal -->
+    <div id="modal-delete-product" class="modal-backdrop">
+        <div class="modal-sheet">
+            <div class="modal-header">Delete Product</div>
+            <div class="modal-description">
+                <p>Are you sure you want to delete <strong id="delete-product-name"></strong>?</p>
+                <p style="margin-top: var(--space-sm); color: var(--color-error);">This action cannot be undone.</p>
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-secondary" style="flex: 1;" onclick="closeDeleteProductModal()">Cancel</button>
+                <button class="btn btn-danger" style="flex: 1;" onclick="deleteProduct()" id="confirm-delete-product-btn">Delete</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- No Products Warning Modal -->
+    <div id="modal-no-products" class="modal-backdrop">
+        <div class="modal-sheet">
+            <div class="modal-header">No Products Added</div>
+            <div class="modal-description">
+                <p>You need to add at least one product or service before searching for leads.</p>
+                <p style="margin-top: var(--space-sm);">The AI uses your products to generate relevant insights and pain points for prospects.</p>
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-secondary" style="flex: 1;" onclick="closeNoProductsModal()">Cancel</button>
+                <button class="btn btn-primary" style="flex: 1;" onclick="goToProducts()">Add Products</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Manual Lead Entry Modal -->
+    <div id="modal-manual-entry" class="modal-backdrop">
+        <div class="modal-sheet">
+            <div class="modal-header">Add Lead Manually</div>
+            <div class="modal-description">
+                <p>The website couldn't be scraped automatically. Please enter the business information manually.</p>
+            </div>
+            <div class="form-group">
+                <label class="input-label">Business Name *</label>
+                <input type="text" class="input" id="manual-business-name" maxlength="200" placeholder="e.g., Acme Corporation" />
+            </div>
+            <div class="form-group">
+                <label class="input-label">Business Description</label>
+                <textarea class="textarea" id="manual-description" maxlength="2000" rows="3" placeholder="What does this business do?"></textarea>
+            </div>
+            <div class="form-group">
+                <label class="input-label">Website</label>
+                <input type="url" class="input" id="manual-website" maxlength="500" placeholder="https://example.com" />
+            </div>
+            <div class="form-group">
+                <label class="input-label">Phone (optional)</label>
+                <input type="tel" class="input" id="manual-phone" maxlength="50" placeholder="+1 234 567 8900" />
+            </div>
+            <div class="form-group">
+                <label class="input-label">Email (optional)</label>
+                <input type="email" class="input" id="manual-email" maxlength="200" placeholder="contact@example.com" />
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-secondary" style="flex: 1;" onclick="closeManualEntryModal()">Cancel</button>
+                <button class="btn btn-success" style="flex: 1;" onclick="saveManualLead()" id="save-manual-btn">Save Lead</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Journal Entry Modal -->
+    <div id="modal-journal" class="modal-backdrop">
+        <div class="modal-sheet">
+            <div class="modal-header" id="journal-modal-title">Add Entry</div>
+            <div class="form-group">
+                <label class="input-label">Type of Interaction</label>
+                <div class="journal-type-selector">
+                    <button type="button" class="journal-type-btn active" data-type="note" onclick="selectJournalType(this)">Note</button>
+                    <button type="button" class="journal-type-btn" data-type="call" onclick="selectJournalType(this)">Call</button>
+                    <button type="button" class="journal-type-btn" data-type="email" onclick="selectJournalType(this)">Email</button>
+                    <button type="button" class="journal-type-btn" data-type="whatsapp" onclick="selectJournalType(this)">WhatsApp</button>
+                    <button type="button" class="journal-type-btn" data-type="meeting" onclick="selectJournalType(this)">Meeting</button>
+                    <button type="button" class="journal-type-btn" data-type="text" onclick="selectJournalType(this)">Text</button>
+                </div>
+            </div>
+            <div class="form-group">
+                <label class="input-label">What happened?</label>
+                <textarea class="textarea" id="journal-content" rows="4" maxlength="2000" placeholder="E.g., Spoke over phone, they're interested in the premium package. Will send pricing by email."></textarea>
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-secondary" style="flex: 1;" onclick="closeJournalModal()">Cancel</button>
+                <button class="btn btn-primary" style="flex: 1;" id="save-journal-btn" onclick="saveJournalEntry()">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ═══════════════════════════════════════════════════════════════
+        // TELEGRAM SDK INTEGRATION
+        // ═══════════════════════════════════════════════════════════════
+
+        const tg = window.Telegram.WebApp;
+        tg.ready();
+        tg.expand();
+
+        // ═══════════════════════════════════════════════════════════════
+        // STATE MANAGEMENT
+        // ═══════════════════════════════════════════════════════════════
+
+        const state = {
+            orgId: null,
+            orgName: null,
+            currency: 'USD',
+            products: [],
+            prospects: [],
+            dashboard: null,
+            currentProspect: null,
+            editingProduct: null,
+            deletingProductId: null,
+            journalEntries: [],
+            editingJournalEntry: null
+        };
+
+        // ═══════════════════════════════════════════════════════════════
+        // CACHE LAYER - Prevents redundant API calls
+        // ═══════════════════════════════════════════════════════════════
+
+        const cache = {
+            timestamps: {},
+            ttls: {
+                products: 120000,    // 2 min - rarely changes
+                prospects: 30000,    // 30s - changes frequently
+                dashboard: 30000,    // 30s
+                searches: 60000,     // 1 min
+                journal: 30000,      // 30s
+                prospect: 30000      // 30s - individual prospect detail
+            },
+
+            isValid(key) {
+                const ts = this.timestamps[key];
+                const baseKey = key.split('_')[0];
+                const ttl = this.ttls[baseKey] || 30000;
+                return ts && (Date.now() - ts) < ttl;
+            },
+
+            set(key) {
+                this.timestamps[key] = Date.now();
+            },
+
+            invalidate(key) {
+                delete this.timestamps[key];
+            },
+
+            invalidatePrefix(prefix) {
+                Object.keys(this.timestamps).forEach(k => {
+                    if (k.startsWith(prefix)) {
+                        delete this.timestamps[k];
+                    }
+                });
+            },
+
+            invalidateAll() {
+                this.timestamps = {};
+            }
+        };
+
+        // ═══════════════════════════════════════════════════════════════
+        // STATE SYNC UTILITIES - Keep list and detail views in sync
+        // ═══════════════════════════════════════════════════════════════
+
+        function syncProspectToList(id, updates) {
+            const prospect = state.prospects.find(p => p.id === id);
+            if (prospect) {
+                Object.assign(prospect, updates);
+                // Re-render the specific list item instead of entire list
+                const listItem = document.querySelector(`.list-item[onclick*="${id}"]`);
+                if (listItem && updates.status) {
+                    const chip = listItem.querySelector('.chip');
+                    if (chip) {
+                        const statusClass = updates.status.replace('_', '-');
+                        const statusLabel = updates.status.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+                        chip.className = `chip chip-${statusClass}`;
+                        chip.textContent = statusLabel;
+                    }
+                }
+                if (listItem && (updates.phone !== undefined || updates.email !== undefined)) {
+                    const subtitle = listItem.querySelector('.list-item-subtitle');
+                    if (subtitle) {
+                        subtitle.textContent = updates.phone || prospect.address || 'No contact info';
+                    }
+                }
+            }
+        }
+
+        // ═══════════════════════════════════════════════════════════════
+        // API LAYER
+        // ═══════════════════════════════════════════════════════════════
+
+        const API_BASE = '/api/lead-agent';
+
+        const api = {
+            async fetch(endpoint, options = {}) {
+                const url = `${API_BASE}${endpoint}`;
+                console.log(`[API] ${options.method || 'GET'} ${url}`);
+
+                const res = await fetch(url, {
+                    ...options,
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Telegram-Init-Data': tg.initData,
+                        ...options.headers
+                    }
+                });
+
+                console.log(`[API] Response status: ${res.status} ${res.statusText}`);
+
+                if (!res.ok) {
+                    const errorText = await res.text();
+                    console.error(`[API] Error response body:`, errorText);
+
+                    let error;
+                    try {
+                        error = JSON.parse(errorText);
+                    } catch {
+                        error = { detail: errorText || 'Request failed' };
+                    }
+
+                    // Handle FastAPI validation errors (422) which return array of errors
+                    if (Array.isArray(error.detail)) {
+                        const messages = error.detail.map(e => e.msg || JSON.stringify(e)).join(', ');
+                        throw new Error(messages);
+                    }
+
+                    throw new Error(error.detail || `Error ${res.status}`);
+                }
+
+                return res.json();
+            },
+
+            // Products
+            getProducts: (orgId) => api.fetch(`/products?org_id=${orgId}`),
+            createProduct: (orgId, data) => api.fetch(`/products?org_id=${orgId}`, {
+                method: 'POST',
+                body: JSON.stringify(data)
+            }),
+            updateProduct: (productId, data) => api.fetch(`/products/${productId}`, {
+                method: 'PUT',
+                body: JSON.stringify(data)
+            }),
+            deleteProduct: (productId) => api.fetch(`/products/${productId}`, { method: 'DELETE' }),
+            updateCurrency: (orgId, currency) => api.fetch(`/currency?org_id=${orgId}`, {
+                method: 'PATCH',
+                body: JSON.stringify({ currency })
+            }),
+
+            // Prospects
+            getProspects: (orgId, filters = {}) => {
+                const params = new URLSearchParams({ org_id: orgId, ...filters });
+                return api.fetch(`/prospects?${params}`);
+            },
+            scrapeProspect: (orgId, url) => api.fetch(`/prospects/scrape?org_id=${orgId}`, {
+                method: 'POST',
+                body: JSON.stringify({ url })
+            }),
+            createManualProspect: (orgId, data) => api.fetch(`/prospects/manual?org_id=${orgId}`, {
+                method: 'POST',
+                body: JSON.stringify(data)
+            }),
+            getProspect: (id) => api.fetch(`/prospects/${id}`),
+            updateProspectStatus: (id, status) => api.fetch(`/prospects/${id}/status`, {
+                method: 'PATCH',
+                body: JSON.stringify({ status })
+            }),
+            updateProspectContact: (id, phone, email) => api.fetch(`/prospects/${id}/contact`, {
+                method: 'PATCH',
+                body: JSON.stringify({ phone, email })
+            }),
+            deleteProspect: (id) => api.fetch(`/prospects/${id}`, { method: 'DELETE' }),
+            getVCard: (id) => api.fetch(`/prospects/${id}/vcard`),
+            getCallScript: (id) => api.fetch(`/prospects/${id}/call-script`),
+
+            // Journal Entries
+            getJournalEntries: (prospectId) => api.fetch(`/prospects/${prospectId}/journal`),
+            createJournalEntry: (prospectId, data) => api.fetch(`/prospects/${prospectId}/journal`, {
+                method: 'POST',
+                body: JSON.stringify(data)
+            }),
+            updateJournalEntry: (prospectId, entryId, data) => api.fetch(`/prospects/${prospectId}/journal/${entryId}`, {
+                method: 'PUT',
+                body: JSON.stringify(data)
+            }),
+            deleteJournalEntry: (prospectId, entryId) => api.fetch(`/prospects/${prospectId}/journal/${entryId}`, {
+                method: 'DELETE'
+            }),
+
+            // Dashboard
+            getDashboard: (orgId) => api.fetch(`/dashboard?org_id=${orgId}`),
+
+            // Activity Logging (for admin analytics)
+            logActivity: (orgId, actionType, actionDetail = {}) => {
+                // Fire and forget - don't block UI for analytics
+                fetch('/api/hub/activity', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Telegram-Init-Data': tg.initData
+                    },
+                    body: JSON.stringify({
+                        org_id: orgId,
+                        bot_id: 'lead-agent',
+                        action_type: actionType,
+                        action_detail: actionDetail
+                    })
+                }).catch(() => {}); // Ignore errors silently
+            }
+        };
+
+        // ═══════════════════════════════════════════════════════════════
+        // PAGE NAVIGATION + TELEGRAM BACK BUTTON
+        // ═══════════════════════════════════════════════════════════════
+
+        const mainTabs = ['dashboard', 'search', 'prospects', 'products'];
+        const navHistory = [];
+        // Detect if we were opened from the Hub (browser has a page to go back to)
+        const canGoBackToHub = window.history.length > 1;
+
+        function showPage(pageName, { pushHistory = true } = {}) {
+            const currentPage = document.querySelector('.page.active')?.id?.replace('page-', '');
+
+            if (mainTabs.includes(pageName) || pageName === 'loading') {
+                // Navigating to any main tab or loading page resets in-app history
+                navHistory.length = 0;
+            } else if (pushHistory && currentPage && currentPage !== pageName) {
+                // Sub-page (e.g. prospect-detail) — push parent into history
+                navHistory.push(currentPage);
+            }
+
+            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+            document.getElementById(`page-${pageName}`).classList.add('active');
+
+            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+            const navIndex = mainTabs.indexOf(pageName);
+            if (navIndex >= 0) {
+                document.querySelectorAll('.nav-item')[navIndex].classList.add('active');
+            }
+
+            // Show/hide Telegram BackButton
+            if (navHistory.length > 0 || canGoBackToHub) {
+                tg.BackButton.show();
+            } else {
+                tg.BackButton.hide();
+            }
+
+            // Load data when page is shown - with caching to avoid redundant calls
+            // Only load data if orgId is set (prevents org_id=null errors)
+            if (!state.orgId) {
+                console.warn('[showPage] orgId not set, skipping data load');
+                return;
+            }
+            if (pageName === 'dashboard' && !cache.isValid('dashboard')) loadDashboard();
+            if (pageName === 'products' && !cache.isValid('products')) loadProducts();
+            if (pageName === 'prospects') {
+                // Always re-render prospects from state, only fetch if cache invalid
+                if (!cache.isValid('prospects')) {
+                    loadProspects();
+                } else {
+                    renderProspects(); // Re-render from cached state
+                }
+            }
+            if (pageName === 'search' && !cache.isValid('products')) loadProducts();
+        }
+
+        tg.BackButton.onClick(() => {
+            if (navHistory.length > 0) {
+                // Navigate back within the app (e.g. prospect-detail → prospects)
+                const prevPage = navHistory.pop();
+                showPage(prevPage, { pushHistory: false });
+            } else if (canGoBackToHub) {
+                // On a main tab — go back to Hub
+                window.history.back();
+            }
+        });
+
+        // ═══════════════════════════════════════════════════════════════
+        // INITIALIZATION
+        // ═══════════════════════════════════════════════════════════════
+
+        async function init() {
+            try {
+                // Get org from hub (assuming user already has org)
+                const hubData = await fetch('/api/hub/me', {
+                    headers: { 'X-Telegram-Init-Data': tg.initData }
+                }).then(r => r.json());
+
+                console.log('[Lead Agent] Hub data received:', hubData);
+
+                if (!hubData.memberships || hubData.memberships.length === 0) {
+                    showPage('loading');
+                    document.getElementById('page-loading').innerHTML = `
+                        <div class="empty-state">
+                            <div class="empty-state-icon">
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+                            </div>
+                            <div class="empty-state-title">No Organization</div>
+                            <p>Please create or join an organization in the Hub first.</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                console.log('[Lead Agent] First membership:', hubData.memberships[0]);
+
+                // Safely extract org data
+                const membership = hubData.memberships[0];
+                if (!membership.organizations) {
+                    throw new Error('Organization data not found in membership. Please contact support.');
+                }
+
+                state.orgId = membership.organizations.id;
+                state.orgName = membership.organizations.name;
+
+                console.log('[Lead Agent] Org loaded:', state.orgId, state.orgName);
+
+                await loadDashboard();
+                showPage('dashboard');
+
+                // Log activity for analytics
+                api.logActivity(state.orgId, 'page_view', { page: 'dashboard' });
+            } catch (error) {
+                console.error('Init error:', error);
+                showPage('loading');
+                document.getElementById('page-loading').innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg>
+                        </div>
+                        <div class="empty-state-title">Failed to Load</div>
+                        <p>${error.message}</p>
+                        <p style="font-size: 11px; margin-top: 8px; color: var(--color-slate-400);">Check console for details</p>
+                    </div>
+                `;
+            }
+        }
+
+        // ═══════════════════════════════════════════════════════════════
+        // DASHBOARD
+        // ═══════════════════════════════════════════════════════════════
+
+        async function loadDashboard() {
+            try {
+                const dashboard = await api.getDashboard(state.orgId);
+                state.dashboard = dashboard;
+                state.currency = dashboard.currency;
+                cache.set('dashboard');
+
+                document.getElementById('org-name').textContent = state.orgName;
+                document.getElementById('stat-total').textContent = dashboard.total_prospects;
+                document.getElementById('stat-products').textContent = dashboard.products_count;
+                document.getElementById('stat-not-contacted').textContent = dashboard.by_status.not_contacted || 0;
+                document.getElementById('stat-ongoing').textContent = dashboard.by_status.ongoing_conversations || 0;
+            } catch (error) {
+                console.error('Dashboard load error:', error);
+            }
+        }
+
+        // ═══════════════════════════════════════════════════════════════
+        // PRODUCTS
+        // ═══════════════════════════════════════════════════════════════
+
+        async function loadProducts() {
+            try {
+                state.products = await api.getProducts(state.orgId);
+                cache.set('products');
+                renderProducts();
+            } catch (error) {
+                console.error('Products load error:', error);
+            }
+        }
+
+        function renderProducts() {
+            const list = document.getElementById('products-list');
+
+            if (state.products.length === 0) {
+                list.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path></svg>
+                        </div>
+                        <div class="empty-state-title">No Products Yet</div>
+                        <p>Add your products and services to get AI-powered insights for prospects.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            list.innerHTML = state.products.map(p => `
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title">${p.name}</div>
+                        <div style="display: flex; gap: 4px;">
+                            <button class="btn btn-sm btn-ghost" onclick="editProduct('${p.id}')">Edit</button>
+                            <button class="btn btn-sm btn-ghost" style="color: var(--color-error);" onclick="confirmDeleteProduct('${p.id}', '${p.name.replace(/'/g, "\\'")}')">Delete</button>
+                        </div>
+                    </div>
+                    ${p.description ? `<p style="font-size: 13px; color: var(--color-slate-600); margin-bottom: 8px;">${p.description}</p>` : ''}
+                    ${p.price ? `<div style="font-size: 15px; font-weight: 600; color: var(--color-slate-800);">${p.price} ${state.currency}</div>` : ''}
+                </div>
+            `).join('');
+        }
+
+        function updateCharCounters() {
+            const nameInput = document.getElementById('product-name');
+            const descInput = document.getElementById('product-description');
+            document.getElementById('name-counter').textContent = nameInput.value.length;
+            document.getElementById('description-counter').textContent = descInput.value.length;
+        }
+
+        function openAddProductModal() {
+            state.editingProduct = null;
+            document.getElementById('modal-product-title').textContent = 'Add Product';
+            document.getElementById('product-name').value = '';
+            document.getElementById('product-description').value = '';
+            document.getElementById('product-price').value = '';
+            document.getElementById('product-currency').value = state.currency || 'USD';
+            updateCharCounters();
+            document.getElementById('modal-product').classList.add('active');
+        }
+
+        function editProduct(id) {
+            const product = state.products.find(p => p.id === id);
+            if (!product) return;
+
+            state.editingProduct = product;
+            document.getElementById('modal-product-title').textContent = 'Edit Product';
+            document.getElementById('product-name').value = product.name;
+            document.getElementById('product-description').value = product.description || '';
+            document.getElementById('product-price').value = product.price || '';
+            document.getElementById('product-currency').value = state.currency || 'USD';
+            updateCharCounters();
+            document.getElementById('modal-product').classList.add('active');
+        }
+
+        function closeProductModal() {
+            document.getElementById('modal-product').classList.remove('active');
+        }
+
+        async function saveProduct() {
+            const name = document.getElementById('product-name').value.trim();
+            if (!name) {
+                alert('Please enter a product name');
+                return;
+            }
+
+            // Parse and validate price
+            const priceInput = document.getElementById('product-price').value.trim();
+            let price = null;
+            if (priceInput) {
+                const parsedPrice = parseFloat(priceInput);
+                if (isNaN(parsedPrice) || parsedPrice < 0) {
+                    alert('Please enter a valid price (must be 0 or greater)');
+                    return;
+                }
+                price = parsedPrice;
+            }
+
+            const data = {
+                name,
+                description: document.getElementById('product-description').value.trim() || null,
+                price
+            };
+
+            // Get selected currency
+            const selectedCurrency = document.getElementById('product-currency').value;
+
+            try {
+                document.getElementById('save-product-btn').disabled = true;
+
+                // Update currency if it changed
+                if (selectedCurrency !== state.currency) {
+                    await api.updateCurrency(state.orgId, selectedCurrency);
+                    state.currency = selectedCurrency;
+                }
+
+                if (state.editingProduct) {
+                    await api.updateProduct(state.editingProduct.id, data);
+                    api.logActivity(state.orgId, 'task_completed', { action: 'update_product', product_id: state.editingProduct.id });
+                } else {
+                    await api.createProduct(state.orgId, data);
+                    api.logActivity(state.orgId, 'task_completed', { action: 'create_product' });
+                }
+
+                closeProductModal();
+                cache.invalidate('products');
+                cache.invalidate('dashboard');
+                await loadProducts();
+            } catch (error) {
+                alert('Failed to save product: ' + error.message);
+            } finally {
+                document.getElementById('save-product-btn').disabled = false;
+            }
+        }
+
+        function confirmDeleteProduct(id, name) {
+            state.deletingProductId = id;
+            document.getElementById('delete-product-name').textContent = name;
+            document.getElementById('modal-delete-product').classList.add('active');
+        }
+
+        function closeDeleteProductModal() {
+            document.getElementById('modal-delete-product').classList.remove('active');
+            state.deletingProductId = null;
+        }
+
+        async function deleteProduct() {
+            if (!state.deletingProductId) return;
+
+            const btn = document.getElementById('confirm-delete-product-btn');
+            btn.disabled = true;
+            btn.textContent = 'Deleting...';
+
+            try {
+                await api.deleteProduct(state.deletingProductId);
+                closeDeleteProductModal();
+                cache.invalidate('products');
+                cache.invalidate('dashboard');
+                await loadProducts();
+            } catch (error) {
+                alert('Failed to delete product: ' + error.message);
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Delete';
+            }
+        }
+
+        // ═══════════════════════════════════════════════════════════════
+        // URL SCRAPING
+        // ═══════════════════════════════════════════════════════════════
+
+        async function scrapeURL() {
+            const url = document.getElementById('url-input').value.trim();
+            if (!url) {
+                alert('Please enter a website URL');
+                return;
+            }
+
+            // Basic URL validation
+            if (!url.match(/^https?:\/\/.+/) && !url.match(/^[a-zA-Z0-9][a-zA-Z0-9-]+\.[a-zA-Z]{2,}/)) {
+                alert('Please enter a valid URL (e.g., https://example.com)');
+                return;
+            }
+
+            // Check if organization has any products
+            if (!state.products || state.products.length === 0) {
+                document.getElementById('modal-no-products').classList.add('active');
+                return;
+            }
+
+            const btn = document.getElementById('scrape-btn');
+            btn.disabled = true;
+            btn.textContent = 'Processing...';
+
+            try {
+                const prospect = await api.scrapeProspect(state.orgId, url);
+
+                // Log activity
+                api.logActivity(state.orgId, 'task_completed', { action: 'scrape_prospect', prospect_id: prospect.id });
+
+                // Show success result
+                const resultContent = document.getElementById('scrape-result-content');
+                resultContent.innerHTML = `
+                    <div class="card card-elevated" style="border-left: 3px solid var(--color-success);">
+                        <div class="card-header">
+                            <div class="card-title">${prospect.business_name}</div>
+                            <span class="chip chip-not-contacted">New</span>
+                        </div>
+                        <p style="font-size: 13px; color: var(--color-slate-600); margin-bottom: 12px;">
+                            ${prospect.address || prospect.website || 'Lead added successfully'}
+                        </p>
+                        <div style="display: flex; gap: 8px;">
+                            <button class="btn btn-primary btn-sm" onclick="viewProspect('${prospect.id}')">View Details</button>
+                            <button class="btn btn-secondary btn-sm" onclick="clearAndAddAnother()">Add Another</button>
+                        </div>
+                    </div>
+                `;
+                document.getElementById('scrape-result').style.display = 'block';
+
+                // Clear input for next entry
+                document.getElementById('url-input').value = '';
+
+                // Invalidate caches so lists refresh
+                cache.invalidate('prospects');
+                cache.invalidate('dashboard');
+
+            } catch (error) {
+                // Show manual entry modal instead of alert
+                openManualEntryModal(url, error.message);
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Add Lead';
+            }
+        }
+
+        // ═══════════════════════════════════════════════════════════════
+        // MANUAL LEAD ENTRY
+        // ═══════════════════════════════════════════════════════════════
+
+        function openManualEntryModal(failedUrl = '', errorMessage = '') {
+            // Clear form
+            document.getElementById('manual-business-name').value = '';
+            document.getElementById('manual-description').value = '';
+            document.getElementById('manual-website').value = failedUrl || '';
+            document.getElementById('manual-phone').value = '';
+            document.getElementById('manual-email').value = '';
+
+            // Show modal
+            document.getElementById('modal-manual-entry').classList.add('active');
+        }
+
+        function closeManualEntryModal() {
+            document.getElementById('modal-manual-entry').classList.remove('active');
+        }
+
+        async function saveManualLead() {
+            const businessName = document.getElementById('manual-business-name').value.trim();
+            if (!businessName) {
+                alert('Please enter the business name');
+                return;
+            }
+
+            const data = {
+                business_name: businessName,
+                description: document.getElementById('manual-description').value.trim() || null,
+                website: document.getElementById('manual-website').value.trim() || null,
+                phone: document.getElementById('manual-phone').value.trim() || null,
+                email: document.getElementById('manual-email').value.trim() || null
+            };
+
+            const btn = document.getElementById('save-manual-btn');
+            btn.disabled = true;
+            btn.textContent = 'Saving...';
+
+            try {
+                const prospect = await api.createManualProspect(state.orgId, data);
+
+                closeManualEntryModal();
+
+                // Show success result
+                const resultContent = document.getElementById('scrape-result-content');
+                resultContent.innerHTML = `
+                    <div class="card card-elevated" style="border-left: 3px solid var(--color-success);">
+                        <div class="card-header">
+                            <div class="card-title">${prospect.business_name}</div>
+                            <span class="chip chip-not-contacted">New</span>
+                        </div>
+                        <p style="font-size: 13px; color: var(--color-slate-600); margin-bottom: 12px;">
+                            ${prospect.address || prospect.website || 'Lead added successfully'}
+                        </p>
+                        <div style="display: flex; gap: 8px;">
+                            <button class="btn btn-primary btn-sm" onclick="viewProspect('${prospect.id}')">View Details</button>
+                            <button class="btn btn-secondary btn-sm" onclick="clearAndAddAnother()">Add Another</button>
+                        </div>
+                    </div>
+                `;
+                document.getElementById('scrape-result').style.display = 'block';
+
+                // Clear URL input
+                document.getElementById('url-input').value = '';
+
+                // Invalidate caches so lists refresh
+                cache.invalidate('prospects');
+                cache.invalidate('dashboard');
+
+            } catch (error) {
+                alert('Failed to save lead: ' + error.message);
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Save Lead';
+            }
+        }
+
+        function clearAndAddAnother() {
+            document.getElementById('scrape-result').style.display = 'none';
+            document.getElementById('url-input').value = '';
+            document.getElementById('url-input').focus();
+        }
+
+        // ═══════════════════════════════════════════════════════════════
+        // PROSPECTS
+        // ═══════════════════════════════════════════════════════════════
+
+        async function loadProspects(forceRefresh = false) {
+            const status = document.getElementById('filter-status').value;
+            try {
+                const filters = {};
+                if (status) filters.status = status;
+
+                state.prospects = await api.getProspects(state.orgId, filters);
+                cache.set('prospects');
+                renderProspects();
+            } catch (error) {
+                console.error('Prospects load error:', error);
+            }
+        }
+
+        function filterProspectsBySearch() {
+            renderProspects();
+        }
+
+        function renderProspects() {
+            const list = document.getElementById('prospects-list');
+            const searchTerm = (document.getElementById('search-prospects')?.value || '').toLowerCase().trim();
+
+            // Filter prospects by search term
+            const filteredProspects = searchTerm
+                ? state.prospects.filter(p => {
+                    const name = (p.business_name || '').toLowerCase();
+                    const phone = (p.phone || '').toLowerCase();
+                    const address = (p.address || '').toLowerCase();
+                    const email = (p.email || '').toLowerCase();
+                    return name.includes(searchTerm) ||
+                           phone.includes(searchTerm) ||
+                           address.includes(searchTerm) ||
+                           email.includes(searchTerm);
+                })
+                : state.prospects;
+
+            if (filteredProspects.length === 0) {
+                const emptyMessage = searchTerm
+                    ? `No prospects matching "${searchTerm}"`
+                    : 'No Prospects Yet';
+                const emptySubtext = searchTerm
+                    ? 'Try a different search term.'
+                    : 'Add new leads to get started.';
+                list.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+                        </div>
+                        <div class="empty-state-title">${emptyMessage}</div>
+                        <p>${emptySubtext}</p>
+                    </div>
+                `;
+                return;
+            }
+
+            list.innerHTML = filteredProspects.map(p => {
+                const statusClass = p.status.replace('_', '-');
+                const statusLabel = p.status.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+                const initials = p.business_name.split(' ').map(w => w[0]).join('').substring(0, 2).toUpperCase();
+
+                return `
+                    <div class="list-item" onclick="viewProspect('${p.id}')">
+                        <div class="list-item-icon">${initials}</div>
+                        <div class="list-item-content">
+                            <div class="list-item-title">${p.business_name}</div>
+                            <div class="list-item-subtitle">${p.phone || p.address || 'No contact info'}</div>
+                        </div>
+                        <div class="list-item-action">
+                            <span class="chip chip-${statusClass}">${statusLabel}</span>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        async function viewProspect(id) {
+            try {
+                const prospect = await api.getProspect(id);
+                state.currentProspect = prospect;
+                renderProspectDetail(prospect);
+                showPage('prospect-detail');
+                // Load journal entries after rendering
+                loadJournalEntries(id);
+            } catch (error) {
+                alert('Failed to load prospect: ' + error.message);
+            }
+        }
+
+        function getHostname(url) {
+            try {
+                return new URL(url).hostname;
+            } catch {
+                return url;
+            }
+        }
+
+        function renderProspectDetail(p) {
+            const statuses = [
+                { value: 'not_contacted', label: 'Not Contacted' },
+                { value: 'contacted', label: 'Contacted' },
+                { value: 'ongoing_conversations', label: 'Ongoing' },
+                { value: 'closed', label: 'Closed' }
+            ];
+
+            document.getElementById('prospect-detail-content').innerHTML = `
+                <!-- Header -->
+                <div class="prospect-detail-header">
+                    <div class="prospect-detail-name">${p.business_name}</div>
+                    ${p.address ? `<div class="prospect-detail-meta"><span>${p.address}</span></div>` : ''}
+                </div>
+
+                <!-- Quick Actions Bar -->
+                <div class="quick-actions-bar">
+                    ${p.phone ? `
+                        <a href="tel:${p.phone.replace(/[^0-9+]/g, '')}" class="quick-action-btn primary">
+                            <span class="quick-action-icon">&#128222;</span>
+                            <span class="quick-action-label">Call</span>
+                        </a>
+                    ` : `
+                        <div class="quick-action-btn disabled">
+                            <span class="quick-action-icon">&#128222;</span>
+                            <span class="quick-action-label">Call</span>
+                        </div>
+                    `}
+                    ${p.website ? `
+                        <a href="${p.website}" target="_blank" class="quick-action-btn">
+                            <span class="quick-action-icon">&#127760;</span>
+                            <span class="quick-action-label">Website</span>
+                        </a>
+                    ` : `
+                        <div class="quick-action-btn disabled">
+                            <span class="quick-action-icon">&#127760;</span>
+                            <span class="quick-action-label">Website</span>
+                        </div>
+                    `}
+                </div>
+
+                <!-- Status Pills -->
+                <div class="status-selector-section">
+                    <span class="status-selector-label">Status</span>
+                    <div class="status-pills">
+                        ${statuses.map(s => `
+                            <button class="status-pill ${p.status === s.value ? 'active' : ''}" onclick="updateStatus('${p.id}', '${s.value}')">${s.label}</button>
+                        `).join('')}
+                    </div>
+                </div>
+
+                <!-- Contact Info Card -->
+                <div class="contact-info-card">
+                    <div class="contact-info-header">
+                        <span class="contact-info-title">Contact Info</span>
+                        <button class="edit-contact-toggle" onclick="toggleContactEdit()">Edit</button>
+                    </div>
+                    <div class="contact-info-grid">
+                        <div class="contact-info-item">
+                            <div class="contact-info-icon">&#128222;</div>
+                            <div class="contact-info-content">
+                                <div class="contact-info-label">Phone</div>
+                                <div class="contact-info-value">
+                                    ${p.phone ? `<a href="tel:${p.phone.replace(/[^0-9+]/g, '')}">${p.phone}</a>` : '<span class="contact-info-empty">Not set</span>'}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="contact-info-item">
+                            <div class="contact-info-icon">&#9993;</div>
+                            <div class="contact-info-content">
+                                <div class="contact-info-label">Email</div>
+                                <div class="contact-info-value">
+                                    ${p.email ? `<a href="mailto:${p.email}">${p.email}</a>` : '<span class="contact-info-empty">Not set</span>'}
+                                </div>
+                            </div>
+                        </div>
+                        ${p.address ? `
+                        <div class="contact-info-item">
+                            <div class="contact-info-icon">&#128205;</div>
+                            <div class="contact-info-content">
+                                <div class="contact-info-label">Address</div>
+                                <div class="contact-info-value">${p.address}</div>
+                            </div>
+                        </div>
+                        ` : ''}
+                    </div>
+                    <div class="contact-edit-form" id="contact-edit-form">
+                        <div class="contact-edit-row">
+                            <input type="tel" id="contact-phone" placeholder="Phone number" value="${p.phone || ''}">
+                        </div>
+                        <div class="contact-edit-row">
+                            <input type="email" id="contact-email" placeholder="Email address" value="${p.email || ''}">
+                        </div>
+                        <div class="contact-edit-actions">
+                            <button class="btn btn-secondary btn-sm" onclick="toggleContactEdit()">Cancel</button>
+                            <button class="btn btn-primary btn-sm" onclick="saveContact('${p.id}')">Save</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- AI Insights Section -->
+                <div class="ai-insights-section">
+                    <div class="section-title">AI Insights</div>
+                    ${p.summary ? `
+                        <div class="ai-summary-box">
+                            <div class="ai-summary-text">${p.summary}</div>
+                        </div>
+                    ` : `
+                        <div class="ai-generating">AI insights are being generated...</div>
+                    `}
+
+                    ${p.pain_points && p.pain_points.length > 0 ? `
+                        <div class="section-title" style="margin-top: var(--space-lg);">Opportunities</div>
+                        <div class="opportunities-list">
+                            ${p.pain_points.map((pp, index) => `
+                                <div class="opportunity-card">
+                                    <div class="opportunity-number">${index + 1}</div>
+                                    <div class="opportunity-content">
+                                        <div class="opportunity-title">${pp.title}</div>
+                                        <div class="opportunity-description">${pp.description}</div>
+                                        ${pp.relevant_product ? `<span class="opportunity-product">${pp.relevant_product}</span>` : ''}
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    ` : ''}
+                </div>
+
+                <!-- Interaction Journal Section -->
+                <div class="journal-section">
+                    <div class="section-header">
+                        <div class="section-title" style="margin-bottom: 0;">Interaction Journal</div>
+                        <button class="btn btn-primary btn-sm" onclick="openJournalModal()">+ Add Entry</button>
+                    </div>
+                    <div id="journal-entries-list" class="journal-entries">
+                        <div class="journal-empty">
+                            <div class="journal-empty-icon">
+                                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg>
+                            </div>
+                            <p>Loading entries...</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- AI Overview Section -->
+                ${p.ai_overview || p.next_follow_up ? `
+                <div class="ai-overview-section">
+                    <div class="ai-overview-title">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M12 16v-4"></path><path d="M12 8h.01"></path></svg>
+                        AI Overview
+                    </div>
+                    ${p.ai_overview ? `<div class="ai-overview-summary">${p.ai_overview}</div>` : ''}
+                    ${p.next_follow_up ? `
+                    <div class="follow-up-card">
+                        <div class="follow-up-date">Next Follow-Up: ${new Date(p.next_follow_up.date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}</div>
+                        <div class="follow-up-message">${p.next_follow_up.message}</div>
+                        ${p.next_follow_up.reasoning ? `<div class="follow-up-reasoning">${p.next_follow_up.reasoning}</div>` : ''}
+                    </div>
+                    ` : ''}
+                </div>
+                ` : ''}
+
+                <!-- Call Script Section -->
+                ${p.pain_points && p.pain_points.length > 0 ? `
+                <div class="call-script-section">
+                    <button class="script-reveal-toggle" onclick="toggleCallScript(this)">
+                        <svg class="script-reveal-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+                        <span class="script-reveal-text">Call Script</span>
+                        <span class="script-reveal-arrow">&#9662;</span>
+                    </button>
+                    <div class="call-script-content-wrapper">
+                        ${p.call_script && p.call_script.length > 0 ? `
+                        <div class="call-script-container">
+                            ${p.call_script.map((item, index) => `
+                                <div class="cue-card">
+                                    <div class="cue-card-question-section">
+                                        <div class="cue-card-number">${index + 1}</div>
+                                        <span class="cue-card-label cue-card-label-ask">Ask</span>
+                                        <div class="cue-card-question">${item.question}</div>
+                                    </div>
+                                    <div class="cue-card-answer-section">
+                                        <span class="cue-card-label cue-card-label-response">Say</span>
+                                        <div class="cue-card-answer">${item.answer || ''}</div>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                        ` : `
+                        <div id="call-script-content-${p.id}" class="call-script-pending">
+                            <p style="color: var(--color-slate-500); font-size: 13px; text-align: center; padding: var(--space-md);">
+                                Loading call script...
+                            </p>
+                        </div>
+                        `}
+                        <div class="tips-section">
+                            <button class="tips-toggle" onclick="toggleTips(this)">
+                                <span class="tips-toggle-icon">&#9662;</span>
+                                <span>Tips for cold calling</span>
+                            </button>
+                            <div class="tips-content">
+                                <p>Get to the point quickly. They don't know you yet, so respect their time.</p>
+                                <p>Questions invite engagement. Answers should focus on solutions, not product pitches.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                ` : ''}
+
+                <!-- Danger Zone -->
+                <div class="danger-zone">
+                    <button class="danger-zone-btn" onclick="deleteProspectConfirm('${p.id}')">Delete This Lead</button>
+                </div>
+            `;
+        }
+
+        function toggleContactEdit() {
+            const form = document.getElementById('contact-edit-form');
+            form.classList.toggle('visible');
+        }
+
+        async function updateStatus(id, status) {
+            try {
+                await api.updateProspectStatus(id, status);
+                state.currentProspect.status = status;
+
+                // Log activity
+                api.logActivity(state.orgId, 'task_completed', { action: 'update_status', prospect_id: id, status });
+
+                // Partial DOM update - only update status pills instead of full re-render
+                document.querySelectorAll('.status-pill').forEach(pill => {
+                    const pillStatus = pill.getAttribute('onclick')?.match(/'([^']+)'\s*\)$/)?.[1];
+                    if (pillStatus === status) {
+                        pill.classList.add('active');
+                    } else {
+                        pill.classList.remove('active');
+                    }
+                });
+
+                // Sync to list view state
+                syncProspectToList(id, { status });
+
+                // Invalidate dashboard cache since status counts changed
+                cache.invalidate('dashboard');
+
+                // Haptic feedback on success
+                if (window.Telegram?.WebApp?.HapticFeedback) {
+                    window.Telegram.WebApp.HapticFeedback.selectionChanged();
+                }
+            } catch (error) {
+                alert('Failed to update status: ' + error.message);
+            }
+        }
+
+        async function saveContact(id) {
+            try {
+                const phone = document.getElementById('contact-phone').value.trim();
+                const email = document.getElementById('contact-email').value.trim();
+
+                const updatedProspect = await api.updateProspectContact(id, phone || null, email || null);
+
+                // Update state
+                state.currentProspect.phone = updatedProspect.phone;
+                state.currentProspect.email = updatedProspect.email;
+
+                // Partial DOM update - only update contact display values
+                const contactInfoItems = document.querySelectorAll('.contact-info-item');
+                contactInfoItems.forEach(item => {
+                    const label = item.querySelector('.contact-info-label')?.textContent;
+                    const valueEl = item.querySelector('.contact-info-value');
+                    if (!valueEl) return;
+
+                    if (label === 'Phone') {
+                        valueEl.innerHTML = updatedProspect.phone
+                            ? `<a href="tel:${updatedProspect.phone.replace(/[^0-9+]/g, '')}">${updatedProspect.phone}</a>`
+                            : '<span class="contact-info-empty">Not set</span>';
+                    } else if (label === 'Email') {
+                        valueEl.innerHTML = updatedProspect.email
+                            ? `<a href="mailto:${updatedProspect.email}">${updatedProspect.email}</a>`
+                            : '<span class="contact-info-empty">Not set</span>';
+                    }
+                });
+
+                // Update quick action call button
+                const callBtn = document.querySelector('.quick-actions-bar a[href^="tel:"], .quick-actions-bar .quick-action-btn.disabled:first-child');
+                if (callBtn) {
+                    if (updatedProspect.phone) {
+                        callBtn.outerHTML = `<a href="tel:${updatedProspect.phone.replace(/[^0-9+]/g, '')}" class="quick-action-btn primary">
+                            <span class="quick-action-icon">&#128222;</span>
+                            <span class="quick-action-label">Call</span>
+                        </a>`;
+                    } else {
+                        callBtn.outerHTML = `<div class="quick-action-btn disabled">
+                            <span class="quick-action-icon">&#128222;</span>
+                            <span class="quick-action-label">Call</span>
+                        </div>`;
+                    }
+                }
+
+                // Hide edit form
+                toggleContactEdit();
+
+                // Sync to list view state
+                syncProspectToList(id, { phone: updatedProspect.phone, email: updatedProspect.email });
+
+                // Show brief success feedback
+                if (window.Telegram?.WebApp) {
+                    window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
+                }
+            } catch (error) {
+                alert('Failed to save contact: ' + error.message);
+            }
+        }
+
+        async function downloadVCard(id) {
+            try {
+                const vcard = await api.getVCard(id);
+
+                // Create blob for vCard
+                const blob = new Blob([vcard.vcard], { type: 'text/vcard;charset=utf-8' });
+                const url = URL.createObjectURL(blob);
+
+                // Create temporary link element
+                const a = document.createElement('a');
+                a.style.display = 'none';
+                a.href = url;
+                a.download = vcard.filename;
+                document.body.appendChild(a);
+
+                // Trigger the download/open
+                a.click();
+
+                // Cleanup
+                setTimeout(() => {
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                }, 100);
+
+                // Show success message
+                if (window.Telegram?.WebApp) {
+                    window.Telegram.WebApp.showAlert('Contact file downloaded! Open it to add to your contacts.');
+                }
+
+            } catch (error) {
+                console.error('vCard error:', error);
+                alert('Failed to create contact: ' + error.message);
+            }
+        }
+
+        async function deleteProspectConfirm(id) {
+            if (!confirm('Are you sure you want to delete this prospect?')) return;
+
+            try {
+                await api.deleteProspect(id);
+                cache.invalidate('prospects');
+                cache.invalidate('dashboard');
+                showPage('prospects');
+                await loadProspects();
+            } catch (error) {
+                alert('Failed to delete prospect: ' + error.message);
+            }
+        }
+
+        // ═══════════════════════════════════════════════════════════════
+        // JOURNAL ENTRIES
+        // ═══════════════════════════════════════════════════════════════
+
+        async function loadJournalEntries(prospectId) {
+            const list = document.getElementById('journal-entries-list');
+            if (!list) return;
+
+            try {
+                const entries = await api.getJournalEntries(prospectId);
+                state.journalEntries = entries;
+
+                if (entries.length === 0) {
+                    list.innerHTML = `
+                        <div class="journal-empty">
+                            <div class="journal-empty-icon">
+                                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg>
+                            </div>
+                            <p>No entries yet</p>
+                            <p style="font-size: 12px; margin-top: 4px;">Add your first interaction note</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                list.innerHTML = entries.map(entry => renderJournalEntry(entry)).join('');
+            } catch (error) {
+                console.error('Failed to load journal entries:', error);
+                list.innerHTML = '<p class="error" style="color: var(--color-error); text-align: center; padding: var(--space-md);">Failed to load entries</p>';
+            }
+        }
+
+        function renderJournalEntry(entry) {
+            const typeIcons = {
+                call: '&#128222;',
+                email: '&#9993;',
+                whatsapp: '&#128172;',
+                meeting: '&#128197;',
+                text: '&#128241;',
+                note: '&#128221;',
+                other: '&#128196;'
+            };
+
+            const icon = typeIcons[entry.interaction_type] || typeIcons.note;
+            const date = new Date(entry.created_at).toLocaleDateString('en-US', {
+                month: 'short',
+                day: 'numeric',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+
+            return `
+                <div class="journal-entry" data-entry-id="${entry.id}">
+                    <div class="journal-entry-header">
+                        <span class="journal-entry-type">${icon} ${entry.interaction_type}</span>
+                        <span class="journal-entry-date">${date}</span>
+                    </div>
+                    ${entry.author_name ? `<div style="font-size: 12px; color: var(--tg-theme-hint-color); margin-bottom: 4px;">${escapeHtml(entry.author_name)}</div>` : ''}
+                    <div class="journal-entry-content">${escapeHtml(entry.content)}</div>
+                    <div class="journal-entry-actions">
+                        <button class="btn btn-ghost btn-sm" onclick="editJournalEntry('${entry.id}')">Edit</button>
+                        <button class="btn btn-ghost btn-sm" style="color: var(--color-error);" onclick="deleteJournalEntry('${entry.id}')">Delete</button>
+                    </div>
+                </div>
+            `;
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function openJournalModal(entry = null) {
+            state.editingJournalEntry = entry;
+
+            // Reset form
+            document.getElementById('journal-content').value = entry?.content || '';
+
+            // Reset type buttons
+            document.querySelectorAll('.journal-type-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.type === (entry?.interaction_type || 'note'));
+            });
+
+            // Update modal title
+            document.getElementById('journal-modal-title').textContent = entry ? 'Edit Entry' : 'Add Entry';
+
+            document.getElementById('modal-journal').classList.add('active');
+        }
+
+        function closeJournalModal() {
+            document.getElementById('modal-journal').classList.remove('active');
+            state.editingJournalEntry = null;
+        }
+
+        function selectJournalType(btn) {
+            document.querySelectorAll('.journal-type-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+        }
+
+        async function saveJournalEntry() {
+            const content = document.getElementById('journal-content').value.trim();
+            if (!content) {
+                alert('Please enter some content');
+                return;
+            }
+
+            const activeTypeBtn = document.querySelector('.journal-type-btn.active');
+            const interactionType = activeTypeBtn?.dataset.type || 'note';
+
+            const btn = document.getElementById('save-journal-btn');
+            btn.disabled = true;
+            btn.textContent = 'Saving...';
+
+            try {
+                const prospectId = state.currentProspect.id;
+
+                if (state.editingJournalEntry) {
+                    await api.updateJournalEntry(prospectId, state.editingJournalEntry.id, {
+                        content,
+                        interaction_type: interactionType
+                    });
+                    api.logActivity(state.orgId, 'task_completed', { action: 'update_journal', prospect_id: prospectId });
+                } else {
+                    await api.createJournalEntry(prospectId, {
+                        content,
+                        interaction_type: interactionType
+                    });
+                    api.logActivity(state.orgId, 'task_completed', { action: 'create_journal', prospect_id: prospectId, interaction_type: interactionType });
+                }
+
+                closeJournalModal();
+                await loadJournalEntries(prospectId);
+
+                // Haptic feedback
+                if (window.Telegram?.WebApp?.HapticFeedback) {
+                    window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
+                }
+            } catch (error) {
+                alert('Failed to save entry: ' + error.message);
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Save';
+            }
+        }
+
+        async function editJournalEntry(entryId) {
+            const entry = state.journalEntries.find(e => e.id === entryId);
+            if (entry) {
+                openJournalModal(entry);
+            }
+        }
+
+        async function deleteJournalEntry(entryId) {
+            if (!confirm('Delete this entry?')) return;
+
+            try {
+                await api.deleteJournalEntry(state.currentProspect.id, entryId);
+                await loadJournalEntries(state.currentProspect.id);
+
+                if (window.Telegram?.WebApp?.HapticFeedback) {
+                    window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
+                }
+            } catch (error) {
+                alert('Failed to delete entry: ' + error.message);
+            }
+        }
+
+        // ═══════════════════════════════════════════════════════════════
+        // CALL SCRIPT TOGGLE
+        // ═══════════════════════════════════════════════════════════════
+
+        async function toggleCallScript(button) {
+            button.classList.toggle('open');
+            const content = button.nextElementSibling;
+            content.classList.toggle('open');
+
+            // Update button text
+            const textSpan = button.querySelector('.script-reveal-text');
+            if (button.classList.contains('open')) {
+                textSpan.textContent = 'Hide Call Script';
+
+                // Check if we need to fetch the call script (for existing prospects)
+                const pendingContainer = content.querySelector('.call-script-pending');
+                if (pendingContainer && state.currentProspect) {
+                    await fetchCallScript(state.currentProspect.id, pendingContainer);
+                }
+            } else {
+                textSpan.textContent = 'View Call Script';
+            }
+        }
+
+        async function fetchCallScript(prospectId, container) {
+            try {
+                const result = await api.getCallScript(prospectId);
+
+                if (result.script_items && result.script_items.length > 0) {
+                    // Replace the pending container with the actual cue cards
+                    const parent = container.parentElement;
+                    const newContent = document.createElement('div');
+                    newContent.className = 'call-script-container';
+                    newContent.innerHTML = result.script_items.map((item, index) => `
+                        <div class="cue-card">
+                            <div class="cue-card-question-section">
+                                <div class="cue-card-number">${index + 1}</div>
+                                <span class="cue-card-label cue-card-label-ask">Ask</span>
+                                <div class="cue-card-question">${item.question}</div>
+                            </div>
+                            <div class="cue-card-answer-section">
+                                <span class="cue-card-label cue-card-label-response">Say</span>
+                                <div class="cue-card-answer">${item.answer || ''}</div>
+                            </div>
+                        </div>
+                    `).join('');
+
+                    parent.replaceChild(newContent, container);
+
+                    // Update the state so we don't fetch again
+                    if (state.currentProspect) {
+                        state.currentProspect.call_script = result.script_items;
+                    }
+                } else {
+                    container.innerHTML = `
+                        <div style="text-align: center; padding: var(--space-lg); color: var(--color-slate-700);">
+                            <div style="margin-bottom: var(--space-sm);">
+                                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                            </div>
+                            <p style="font-size: 13px; margin-bottom: var(--space-xs);">Call script is being generated...</p>
+                            <p style="font-size: 12px; opacity: 0.7;">Check back in a moment</p>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                // Check if it's a "no pain points" error
+                const isPainPointsError = error.message && error.message.includes('pain points');
+                container.innerHTML = `
+                    <div style="text-align: center; padding: var(--space-lg); color: var(--color-slate-700);">
+                        <div style="margin-bottom: var(--space-sm);">
+                            ${isPainPointsError
+                                ? '<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>'
+                                : '<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>'
+                            }
+                        </div>
+                        <p style="font-size: 13px; margin-bottom: var(--space-xs);">
+                            ${isPainPointsError ? 'AI insights are still being generated...' : 'Call script is being prepared...'}
+                        </p>
+                        <p style="font-size: 12px; opacity: 0.7;">
+                            ${isPainPointsError ? 'The call script will be available once AI analysis is complete' : 'Please check back in a moment'}
+                        </p>
+                    </div>
+                `;
+            }
+        }
+
+        function toggleTips(button) {
+            button.classList.toggle('open');
+            const content = button.nextElementSibling;
+            content.classList.toggle('open');
+        }
+
+        // ═══════════════════════════════════════════════════════════════
+        // NO PRODUCTS MODAL
+        // ═══════════════════════════════════════════════════════════════
+
+        function closeNoProductsModal() {
+            document.getElementById('modal-no-products').classList.remove('active');
+        }
+
+        function goToProducts() {
+            closeNoProductsModal();
+            showPage('products');
+        }
+
+        // ═══════════════════════════════════════════════════════════════
+        // MODAL BACKDROP CLICK
+        // ═══════════════════════════════════════════════════════════════
+
+        document.getElementById('modal-product').addEventListener('click', (e) => {
+            if (e.target.classList.contains('modal-backdrop')) {
+                closeProductModal();
+            }
+        });
+
+        document.getElementById('modal-no-products').addEventListener('click', (e) => {
+            if (e.target.classList.contains('modal-backdrop')) {
+                closeNoProductsModal();
+            }
+        });
+
+        document.getElementById('modal-manual-entry').addEventListener('click', (e) => {
+            if (e.target.classList.contains('modal-backdrop')) {
+                closeManualEntryModal();
+            }
+        });
+
+        document.getElementById('modal-journal').addEventListener('click', (e) => {
+            if (e.target.classList.contains('modal-backdrop')) {
+                closeJournalModal();
+            }
+        });
+
+        // Character counter event listeners
+        document.getElementById('product-name').addEventListener('input', updateCharCounters);
+        document.getElementById('product-description').addEventListener('input', updateCharCounters);
+
+        // ═══════════════════════════════════════════════════════════════
+        // START APP
+        // ═══════════════════════════════════════════════════════════════
+
+        init();
+    </script>
+</body>
+</html>

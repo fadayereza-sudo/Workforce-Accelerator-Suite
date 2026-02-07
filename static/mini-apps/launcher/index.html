@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Apex Solutions</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <link rel="stylesheet" href="/static/shared/design-system.css">
+    <style>
+        /* Launcher-specific styles */
+        .launcher-header {
+            background: var(--gradient-primary);
+            color: white;
+            padding: var(--space-xl) var(--space-lg);
+            text-align: center;
+        }
+
+        .launcher-logo {
+            font-size: 40px;
+            margin-bottom: var(--space-sm);
+        }
+
+        .launcher-title {
+            font-size: 24px;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+        }
+
+        .launcher-subtitle {
+            font-size: 14px;
+            opacity: 0.7;
+            margin-top: var(--space-xs);
+        }
+
+        .org-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: var(--space-sm);
+            background: rgba(255, 255, 255, 0.15);
+            padding: 8px 16px;
+            border-radius: var(--radius-full);
+            font-size: 14px;
+            font-weight: 500;
+            margin-top: var(--space-md);
+        }
+
+        .apps-grid {
+            padding: var(--space-lg);
+            display: grid;
+            gap: var(--space-md);
+        }
+
+        .apps-section-title {
+            font-size: 13px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--tg-theme-hint-color);
+            margin-bottom: var(--space-sm);
+        }
+
+        .app-card {
+            background: var(--tg-theme-secondary-bg-color);
+            border-radius: var(--radius-lg);
+            padding: var(--space-lg);
+            display: flex;
+            align-items: center;
+            gap: var(--space-md);
+            cursor: pointer;
+            transition: all var(--transition-fast);
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .app-card:active {
+            transform: scale(0.98);
+        }
+
+        .app-card.locked {
+            opacity: 0.5;
+            pointer-events: none;
+        }
+
+        .app-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: var(--radius-md);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            flex-shrink: 0;
+        }
+
+        .app-icon.workforce {
+            background: var(--gradient-accent);
+        }
+
+        .app-icon.coming-soon {
+            background: var(--color-slate-200);
+        }
+
+        .app-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .app-name {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 2px;
+        }
+
+        .app-description {
+            font-size: 13px;
+            color: var(--tg-theme-hint-color);
+            line-height: 1.4;
+        }
+
+        .app-arrow {
+            color: var(--tg-theme-hint-color);
+            font-size: 18px;
+        }
+
+        .app-badge-locked {
+            font-size: 11px;
+            font-weight: 600;
+            padding: 3px 8px;
+            border-radius: var(--radius-full);
+            background: var(--color-slate-200);
+            color: var(--color-slate-500);
+        }
+
+        /* Loading state */
+        .launcher-loading {
+            text-align: center;
+            padding: var(--space-2xl);
+            color: var(--tg-theme-hint-color);
+        }
+
+        .spinner {
+            width: 32px;
+            height: 32px;
+            border: 3px solid var(--color-slate-200);
+            border-top-color: var(--color-cyan-500);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin: 0 auto var(--space-md);
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <!-- LOADING -->
+        <div id="page-loading" class="page active">
+            <div class="launcher-header">
+                <div class="launcher-logo">&#9889;</div>
+                <div class="launcher-title">Apex Solutions</div>
+                <div class="launcher-subtitle">Your business, supercharged</div>
+            </div>
+            <div class="launcher-loading">
+                <div class="spinner"></div>
+                <p>Loading your apps...</p>
+            </div>
+        </div>
+
+        <!-- MAIN -->
+        <div id="page-main" class="page">
+            <div class="launcher-header">
+                <div class="launcher-logo">&#9889;</div>
+                <div class="launcher-title">Apex Solutions</div>
+                <div class="launcher-subtitle">Your business, supercharged</div>
+                <div class="org-badge" id="org-badge" style="display:none">
+                    <span id="org-name"></span>
+                </div>
+            </div>
+
+            <div class="apps-grid">
+                <div class="apps-section-title">Your Apps</div>
+
+                <div class="app-card" onclick="openApp('workforce-accelerator', 'hub')">
+                    <div class="app-icon workforce">&#128188;</div>
+                    <div class="app-info">
+                        <div class="app-name">Workforce Accelerator</div>
+                        <div class="app-description">B2B sales suite with AI lead generation and smart follow-ups</div>
+                    </div>
+                    <div class="app-arrow">&#8250;</div>
+                </div>
+
+                <div class="apps-section-title" style="margin-top: var(--space-md)">Coming Soon</div>
+
+                <div class="app-card locked">
+                    <div class="app-icon coming-soon">&#128640;</div>
+                    <div class="app-info">
+                        <div class="app-name">Project Tracker</div>
+                        <div class="app-description">AI project management with auto-scheduling</div>
+                    </div>
+                    <div class="app-badge-locked">Soon</div>
+                </div>
+
+                <div class="app-card locked">
+                    <div class="app-icon coming-soon">&#128200;</div>
+                    <div class="app-info">
+                        <div class="app-name">Finance Hub</div>
+                        <div class="app-description">Smart invoicing, expense tracking, and forecasting</div>
+                    </div>
+                    <div class="app-badge-locked">Soon</div>
+                </div>
+
+                <div class="app-card locked">
+                    <div class="app-icon coming-soon">&#129309;</div>
+                    <div class="app-info">
+                        <div class="app-name">HR Suite</div>
+                        <div class="app-description">Recruitment, onboarding, and performance management</div>
+                    </div>
+                    <div class="app-badge-locked">Soon</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/shared/core.js"></script>
+    <script>
+        // ─────────────────────────────────────────────────────────────
+        // INIT
+        // ─────────────────────────────────────────────────────────────
+
+        const tg = initTelegram();
+        const api = createApiClient('/api/hub', tg);
+
+        async function init() {
+            try {
+                const data = await api.get('/me');
+
+                // Show main page
+                document.getElementById('page-loading').classList.remove('active');
+                document.getElementById('page-main').classList.add('active');
+
+                // Show org name if user has a membership
+                if (data.memberships && data.memberships.length > 0) {
+                    const org = data.memberships[0].organizations;
+                    document.getElementById('org-name').textContent = org.name;
+                    document.getElementById('org-badge').style.display = 'inline-flex';
+                }
+            } catch (err) {
+                console.error('Init error:', err);
+                document.getElementById('page-loading').classList.remove('active');
+                document.getElementById('page-main').classList.add('active');
+            }
+        }
+
+        function openApp(appName, subApp) {
+            haptic('selection');
+            // Open the app's mini-app in the same webview
+            window.location.href = `/app/${appName}/${subApp}`;
+        }
+
+        init();
+    </script>
+</body>
+</html>
