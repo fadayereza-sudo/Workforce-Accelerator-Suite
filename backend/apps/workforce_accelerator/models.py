@@ -133,6 +133,9 @@ class ProspectCard(BaseModel):
     google_maps_url: Optional[str] = None
     summary: Optional[str] = None
     pain_points: List[PainPoint] = []
+    sales_toolkit: List[dict] = []
+    sales_script: Optional[str] = None
+    whatsapp_messages: List[dict] = []
     call_script: List[CallScriptItem] = []
     ai_overview: Optional[str] = None
     next_follow_up: Optional[dict] = None
@@ -205,7 +208,10 @@ class OrgSettingsUpdate(BaseModel):
     """Update organization's lead agent settings."""
     website: Optional[str] = Field(None, max_length=500)
     instagram: Optional[str] = Field(None, max_length=200)
-    credibility_facts: Optional[str] = Field(None, max_length=2000)
+    achievements: Optional[str] = Field(None, max_length=2000)
+    partnerships: Optional[str] = Field(None, max_length=2000)
+    outstanding_facts: Optional[str] = Field(None, max_length=2000)
+    growth_metrics: Optional[str] = Field(None, max_length=2000)
 
 
 # ═══════════════════════════════════════════════════════════════════════════

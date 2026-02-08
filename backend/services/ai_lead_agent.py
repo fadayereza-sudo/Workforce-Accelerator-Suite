@@ -12,6 +12,23 @@ from openai import AsyncOpenAI
 from models.lead_agent import Product
 
 
+SYSTEM_PROMPT = (
+    "You are a B2B sales intelligence and outreach assistant. "
+    "Your purpose is to help users generate highly targeted first-contact sales scripts (phone + WhatsApp) "
+    "for cold prospects, using insights derived from the prospect's website and the user's available products/services. "
+    "This is always a first-time interaction with the prospect. "
+    "Your goal is not manipulation. Your goal is service-driven selling: identify what the prospect likely wants or needs, "
+    "then help the user present a relevant solution respectfully and efficiently. "
+    "Sales is defined as helping people get what they want. "
+    "If a proof point is not provided, do NOT invent it — use generic credibility framing instead. "
+    "Never invent achievements, partnerships, facts, or growth metrics. "
+    "Never reveal opposition statements to the user. "
+    "Never sound robotic or salesy. Never overwhelm with information. "
+    "Assume low trust (cold outreach). Optimize for real human conversation, not scripts. "
+    "Respond only with valid JSON."
+)
+
+
 class LeadAgentAI:
     """AI-powered lead analysis using OpenAI GPT-4o for stronger reasoning."""
 
@@ -28,13 +45,13 @@ class LeadAgentAI:
         business_description: Optional[str] = None,
         org_website: Optional[str] = None,
         org_instagram: Optional[str] = None,
-        credibility_facts: Optional[str] = None
+        achievements: Optional[str] = None,
+        partnerships: Optional[str] = None,
+        outstanding_facts: Optional[str] = None,
+        growth_metrics: Optional[str] = None
     ) -> tuple[str, list]:
         """
         Generate business summary and complete sales toolkit for a prospect.
-
-        Each pain point gets a full toolkit: question, opposition analysis,
-        disarming key points, urgency statement, and WhatsApp message.
 
         Args:
             business_name: Name of the business
@@ -44,7 +61,10 @@ class LeadAgentAI:
             business_description: Pre-extracted description from website (optional)
             org_website: Organization's website URL (optional)
             org_instagram: Organization's Instagram handle/URL (optional)
-            credibility_facts: Partnerships, awards, stats for credibility (optional)
+            achievements: Company achievements - proof points, milestones, awards, outcomes (optional)
+            partnerships: Significant partnerships - recognizable partners, clients, institutions (optional)
+            outstanding_facts: Notable verifiable claims about the company (optional)
+            growth_metrics: Measurements of growth/success - numbers, percentages, timeframes (optional)
 
         Returns:
             tuple: (business_summary, sales_toolkit_items)
@@ -64,15 +84,25 @@ class LeadAgentAI:
         if business_description:
             description_context = f"\n- About: {business_description}"
 
-        # Build org credibility context
-        org_context_parts = []
+        # Build org contact context
+        org_contact_parts = []
         if org_website:
-            org_context_parts.append(f"- Website: {org_website}")
+            org_contact_parts.append(f"- Website: {org_website}")
         if org_instagram:
-            org_context_parts.append(f"- Instagram: {org_instagram}")
-        if credibility_facts:
-            org_context_parts.append(f"- Credibility & achievements: {credibility_facts}")
-        org_context = "\n".join(org_context_parts) if org_context_parts else "No company info provided."
+            org_contact_parts.append(f"- Instagram: {org_instagram}")
+        org_contact = "\n".join(org_contact_parts) if org_contact_parts else "No contact info provided."
+
+        # Build structured credibility context
+        credibility_parts = []
+        if achievements:
+            credibility_parts.append(f"Company Achievements:\n{achievements}")
+        if partnerships:
+            credibility_parts.append(f"Significant Partnerships:\n{partnerships}")
+        if outstanding_facts:
+            credibility_parts.append(f"Outstanding Facts:\n{outstanding_facts}")
+        if growth_metrics:
+            credibility_parts.append(f"Measurements of Growth/Success:\n{growth_metrics}")
+        credibility_context = "\n\n".join(credibility_parts) if credibility_parts else "No credibility data provided."
 
         prompt = f"""Analyze this business prospect and generate a complete sales toolkit.
 
@@ -84,64 +114,88 @@ PROSPECT INFORMATION:
 OUR PRODUCTS/SERVICES:
 {products_context}
 
-OUR COMPANY INFO:
-{org_context}
+OUR COMPANY CONTACT:
+{org_contact}
+
+OUR CREDIBILITY DATA:
+{credibility_context}
 
 TASKS:
 
-1. BUSINESS SUMMARY: Write a 2-3 sentence summary of the prospect's business, their target market, and potential needs. If we have their website description, use that information. Be concise and focused.
+1. WEBSITE ANALYSIS & BUSINESS SUMMARY:
+   - Understand what the prospect does, their business model and customers
+   - Infer operational context and extract realistic commercial signals
+   - Write a 2-3 sentence summary of the prospect's business, target market, and potential needs
 
-2. SALES TOOLKIT: Identify the TOP 3 pain points this business is most likely facing that our products/services can solve. Rank them by REVENUE POTENTIAL for the prospect — the pain point that, if resolved, would bring the MOST revenue for their business should be ranked #1. Remember: sales is about helping people get what they want.
+2. PAIN POINT IDENTIFICATION:
+   Generate the TOP 3 most likely business pain points that:
+   - Are genuinely plausible based on the prospect's website/description
+   - Can be solved by our products/services
+   - Are ranked from highest to lowest potential financial impact for the prospect
+   Each pain point must be practical, revenue-related, actionable, and aligned with our offerings.
+   Never invent unrealistic problems.
 
-For EACH pain point, generate the following:
+3. For EACH pain point, generate the following:
 
 a) PAIN POINT: A short title (max 6 words) and 1-2 sentence description.
 
 b) RELEVANT PRODUCT: Which of our products/services solves this. Use the exact product name or null.
 
-c) SOLUTION SUMMARY: 1-2 sentences explaining how our product resolves this pain point. Reference specific product features.
+c) SOLUTION SUMMARY: 1-2 sentences explaining how our product resolves this pain point.
 
-d) QUESTION: Rephrase the pain point as a simple, non-condescending question to ask over the phone. Rules:
-   - Invite their opinion. NEVER assume a problem or imply incompetence.
-   - Sound like a person who genuinely cares, not a salesperson.
-   - Make the value obvious so they think "of course I want that".
-   - Under 15 words. Matter-of-fact. Simple. Open and inviting.
+d) QUESTION: Convert the pain point into a simple, respectful, non-condescending yes/no question suitable for cold outreach. Rules:
+   - Extremely simple language. Matter-of-fact tone.
+   - No intelligence-insulting phrasing. No open-ended questions.
+   - No pressure. No assumptions.
+   - Under 15 words.
    - NEVER use words like "struggle", "challenge", "difficult", "hard" — these are condescending.
+   - Pattern: "Would you be interested in X?" NOT "Are you struggling with X?"
 
    EXAMPLE (for a sports club, pain point "hard to find talented players"):
    BAD: "Do you find it hard to identify sports talent in the UAE?" (implies incompetence)
-   GOOD: "Would you guys be interested in taking on some extra players?" (inviting, simple, no judgment)
+   GOOD: "Would you guys be interested in taking on some extra players?" (inviting, simple)
 
-   ANOTHER EXAMPLE (pain point "difficulty tracking athlete progress"):
-   BAD: "Are you struggling to track your athletes' progress?" (condescending)
-   GOOD: "Would you guys be interested in learning more about your athletes' performance?" (inviting, respectful)
+e) OPPOSITION STATEMENTS: Generate exactly 5 realistic internal opposition statements representing the prospect's natural skepticism (e.g. "it's probably too expensive", "sounds like a scam", "they're probably desperate for clients", "I doubt they can deliver", "waste of my time"). These are NEVER shown to the user.
 
-e) OPPOSITION STATEMENTS: Generate exactly 5 realistic opposition statements a prospect might have against the solution. These are the natural skeptical thoughts people have before accepting any offer (e.g. "it's probably too expensive", "sounds like a scam", "they're probably desperate for clients", "I doubt they can deliver", "waste of my time"). These are internal — the prospect won't say them out loud.
+f) DISARMING KEY POINTS: For EACH opposition statement, generate a conversational counter-frame using credibility, transparency, proof, brevity, respect for their time, and value signaling.
 
-f) DISARMING KEY POINTS: For EACH opposition statement, write a disarming key point — a brief statement or approach that neutralises the concern. Examples:
-   - "it's too expensive" → disarmed by pricing transparency and ROI framing
-   - "sounds like a scam" → disarmed by mentioning partners, awards, credibility
-   - "they're desperate" → disarmed by showing evidence of high demand
-   - "can they deliver?" → disarmed by proof of past results
-   - "waste of my time" → disarmed by being brief and using phrases like "I'm sure you're busy, I had a quick question…"
+   MANDATORY: Use the credibility data fields to strengthen these points when relevant:
+   - Company Achievements
+   - Significant Partnerships
+   - Outstanding Facts
+   - Measurements of Growth/Success
 
-   Extract these as a bullet-point list of 3-5 concise key points for the sales rep to reference during the call. These are the talking points that naturally address concerns WITHOUT mentioning the opposition statements themselves.
+   Rules:
+   - Only use proof points that were explicitly provided
+   - Never fabricate numbers, partner names, awards, or outcomes
+   - Prefer concise proof points that sound natural in conversation
+   - If no proof exists for a point, use a neutral version (transparency, process clarity, low-friction next step)
 
-g) URGENCY STATEMENT: Create an ambition-oriented urgency statement. This is NOT about false scarcity or fear tactics. It's about communicating: "our offer is so good that I can't guarantee it'll still be available if you don't act." The statement must:
-   - Explain WHY the service is valuable and in-demand
-   - Use real credibility facts if provided (partnerships, awards, demand)
-   - Sound polite but confident — "we know our value"
+   Extract these as 3-5 concise key points for the sales rep to reference during the call. These naturally address concerns WITHOUT mentioning the opposition statements themselves.
+
+g) URGENCY STATEMENT: Create an ambition-oriented urgency statement. NEVER use fear, fake scarcity, or false claims. Instead use ambition-oriented time pressure: signal demand, standards, momentum, selectivity.
+
+   MANDATORY: Leverage provided credibility fields where applicable:
+   - Company Achievements
+   - Significant Partnerships
+   - Outstanding Facts
+   - Measurements of Growth/Success
+
+   Rules:
+   - Do not claim limited availability unless inputs support it
+   - If no numeric or partner proof exists, use softer urgency
+   - Keep it human, calm, and earned
    - End with a clear call to action
-   - Feel genuine, not manufactured
-
-   EXAMPLE: "Sportify Academy has recently partnered with Emirates Hospital Dubai to offer the sports talent identification test for free, so we've naturally experienced increased demand for this service from other sports clubs as well. If you are interested in our services, please let me know as soon as possible so we can book you into a session with one of our team."
 
 h) WHATSAPP MESSAGE: Compose a professional WhatsApp message (under 150 words) that:
    - Opens with a friendly, personalized greeting mentioning their business name
-   - Briefly states the opportunity (the pain point reframed positively)
-   - Mentions 1-2 key selling points from the solution
-   - Includes the urgency angle naturally
-   - Ends with our website and/or Instagram for credibility (if provided)
+   - Focuses ONLY on this specific pain point
+   - Explains the solution
+   - Naturally incorporates the same disarming key points
+   - Includes urgency
+   - Ends with a clear next step
+   - Includes our website and/or Instagram for credibility (if provided)
+   - Written in normal paragraph form (not bullets)
    - Sounds human and warm, not templated or robotic
    - Focuses ONLY on this one pain point — do not mention other pain points
 
@@ -181,7 +235,9 @@ Respond ONLY with valid JSON in this exact format:
             "key_points": [
                 "concise talking point 1",
                 "concise talking point 2",
-                "concise talking point 3"
+                "concise talking point 3",
+                "concise talking point 4",
+                "concise talking point 5"
             ],
             "urgency_statement": "...",
             "whatsapp_message": "..."
@@ -219,15 +275,7 @@ Respond ONLY with valid JSON in this exact format:
                 messages=[
                     {
                         "role": "system",
-                        "content": (
-                            "You are a B2B sales intelligence assistant that generates complete sales toolkits. "
-                            "You identify business pain points ranked by revenue potential for the prospect and match them to solutions. "
-                            "For call scripts, you help sales reps sound like someone who genuinely cares — not a salesperson. "
-                            "You frame questions positively to invite opinion, never assuming problems or incompetence. "
-                            "You understand opposition psychology: people have natural resistance to offers, and the way to "
-                            "overcome that is through credibility, transparency, and genuine value — never manipulation. "
-                            "Respond only with valid JSON."
-                        )
+                        "content": SYSTEM_PROMPT
                     },
                     {
                         "role": "user",

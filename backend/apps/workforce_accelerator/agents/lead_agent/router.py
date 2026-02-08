@@ -67,21 +67,34 @@ async def generate_ai_insights_task(
 
         products = [Product(**p) for p in products_result.data]
 
+        # Get org settings for credibility context
+        org_result = db.table("organizations").select("settings").eq(
+            "id", org_id
+        ).single().execute()
+        org_settings = org_result.data.get("settings", {}) if org_result.data else {}
+
         ai = LeadAgentAI(settings.openai_api_key)
 
         with TaskTimer() as timer:
-            summary, pain_points, call_script = await ai.generate_prospect_insights(
+            summary, script_data = await ai.generate_prospect_insights(
                 business_name=prospect_data["business_name"],
                 business_address=prospect_data.get("address"),
                 business_website=prospect_data.get("website"),
                 products=products,
-                business_description=business_description
+                business_description=business_description,
+                org_website=org_settings.get("lead_agent_website"),
+                org_instagram=org_settings.get("lead_agent_instagram"),
+                achievements=org_settings.get("lead_agent_achievements"),
+                partnerships=org_settings.get("lead_agent_partnerships"),
+                outstanding_facts=org_settings.get("lead_agent_outstanding_facts"),
+                growth_metrics=org_settings.get("lead_agent_growth_metrics")
             )
 
+        # Store as a single-element list for JSONB array compatibility
         db.table("lead_agent_prospects").update({
             "business_summary": summary,
-            "pain_points": [pp.dict() for pp in pain_points],
-            "call_script": call_script,
+            "pain_points": [script_data] if script_data else [],
+            "call_script": [],
             "ai_generated_at": datetime.now(timezone.utc).isoformat()
         }).eq("id", prospect_id).execute()
 
@@ -91,8 +104,7 @@ async def generate_ai_insights_task(
             task_type="insights_generated",
             task_detail={
                 "prospect_id": prospect_id,
-                "business_name": prospect_data["business_name"],
-                "pain_points_count": len(pain_points)
+                "business_name": prospect_data["business_name"]
             },
             app_id="workforce-accelerator",
             execution_time_ms=timer.execution_time_ms,
@@ -135,7 +147,36 @@ async def list_prospects(
 
     cards = []
     for p in result.data:
-        pain_points = [PainPoint(**pp) for pp in p.get("pain_points", [])]
+        raw_points = p.get("pain_points", [])
+
+        pain_points = []
+        sales_toolkit = []
+        sales_script = None
+        whatsapp_messages = []
+
+        if raw_points and isinstance(raw_points[0], dict):
+            if raw_points[0].get("type") == "unified_script":
+                # New unified script format
+                sales_script = raw_points[0].get("sales_script", "")
+                whatsapp_messages = raw_points[0].get("whatsapp_messages", [])
+            elif "question" in raw_points[0]:
+                # Old sales toolkit format (backward compat)
+                for item in raw_points:
+                    clean_item = dict(item)
+                    if "opposition_points" in clean_item:
+                        clean_item["opposition_points"] = [
+                            {"disarming_key_point": op.get("disarming_key_point", "")}
+                            for op in clean_item.get("opposition_points", [])
+                        ]
+                    sales_toolkit.append(clean_item)
+            else:
+                # Legacy pain points format
+                for pp in raw_points:
+                    try:
+                        pain_points.append(PainPoint(**pp))
+                    except Exception:
+                        pass
+
         cards.append(ProspectCard(
             id=p["id"],
             business_name=p["business_name"],
@@ -146,6 +187,9 @@ async def list_prospects(
             google_maps_url=p.get("google_maps_url"),
             summary=p.get("business_summary"),
             pain_points=pain_points,
+            sales_toolkit=sales_toolkit,
+            sales_script=sales_script,
+            whatsapp_messages=whatsapp_messages,
             status=p["status"],
             search_query=p.get("search_query"),
             source=p.get("source", "gemini_search"),
@@ -371,64 +415,45 @@ async def get_call_script(
 
     verify_org_member(tg_user.id, org_id)
 
-    call_script = prospect.get("call_script", [])
+    pain_points = prospect.get("pain_points", [])
 
+    # Unified script format — return sales_script directly
+    if pain_points and isinstance(pain_points[0], dict) and pain_points[0].get("type") == "unified_script":
+        return {
+            "business_name": prospect["business_name"],
+            "sales_script": pain_points[0].get("sales_script", ""),
+            "whatsapp_messages": pain_points[0].get("whatsapp_messages", [])
+        }
+
+    # Legacy: return stored call_script if available
+    call_script = prospect.get("call_script", [])
     if call_script:
         return {
             "business_name": prospect["business_name"],
             "script_items": call_script
         }
 
-    pain_points = prospect.get("pain_points", [])
     if not pain_points:
         raise HTTPException(
             status_code=400,
             detail="No pain points available yet. Please wait for AI insights to be generated."
         )
 
-    products_result = db.table("lead_agent_products").select("*").eq(
-        "org_id", org_id
-    ).eq("is_active", True).execute()
+    # Legacy: synthesize script from old sales toolkit format
+    if isinstance(pain_points[0], dict) and "question" in pain_points[0]:
+        script_items = [
+            {"question": pp["question"], "answer": pp.get("solution_summary", "")}
+            for pp in pain_points
+        ]
+        return {
+            "business_name": prospect["business_name"],
+            "script_items": script_items
+        }
 
-    products = [Product(**p) for p in products_result.data] if products_result.data else []
-
-    ai = LeadAgentAI(api_key=settings.openai_api_key)
-
-    with TaskTimer() as script_timer:
-        script_items = await ai.generate_call_script(
-            business_name=prospect["business_name"],
-            pain_points=pain_points,
-            products=products
-        )
-
-    if not script_items:
-        raise HTTPException(
-            status_code=500,
-            detail="Failed to generate call script. Please try again."
-        )
-
-    db.table("lead_agent_prospects").update({
-        "call_script": script_items
-    }).eq("id", prospect_id).execute()
-
-    user_result = db.table("users").select("id").eq("telegram_id", tg_user.id).single().execute()
-    user_id = user_result.data["id"] if user_result.data else None
-
-    TaskLogger.log(
-        org_id=org_id,
-        bot_id="lead-agent",
-        task_type="call_script_created",
-        task_detail={"prospect_id": prospect_id, "business_name": prospect["business_name"]},
-        app_id="workforce-accelerator",
-        triggered_by=user_id,
-        execution_time_ms=script_timer.execution_time_ms,
-        tokens_used=0
+    raise HTTPException(
+        status_code=400,
+        detail="No script available for this prospect format."
     )
-
-    return {
-        "business_name": prospect["business_name"],
-        "script_items": script_items
-    }
 
 
 @router.get("/prospects/{prospect_id}")
@@ -451,8 +476,36 @@ async def get_prospect(
 
     verify_org_member(tg_user.id, prospect["org_id"])
 
-    pain_points = [PainPoint(**pp) for pp in prospect.get("pain_points", [])]
+    raw_points = prospect.get("pain_points", [])
     call_script = prospect.get("call_script", [])
+
+    pain_points = []
+    sales_toolkit = []
+    sales_script = None
+    whatsapp_messages = []
+
+    if raw_points and isinstance(raw_points[0], dict):
+        if raw_points[0].get("type") == "unified_script":
+            # New unified script format
+            sales_script = raw_points[0].get("sales_script", "")
+            whatsapp_messages = raw_points[0].get("whatsapp_messages", [])
+        elif "question" in raw_points[0]:
+            # Old sales toolkit format (backward compat)
+            for item in raw_points:
+                clean_item = dict(item)
+                if "opposition_points" in clean_item:
+                    clean_item["opposition_points"] = [
+                        {"disarming_key_point": op.get("disarming_key_point", "")}
+                        for op in clean_item.get("opposition_points", [])
+                    ]
+                sales_toolkit.append(clean_item)
+        else:
+            # Legacy pain points format
+            for pp in raw_points:
+                try:
+                    pain_points.append(PainPoint(**pp))
+                except Exception:
+                    pass
 
     next_follow_up = None
     notif_result = db.table("lead_agent_scheduled_notifications").select(
@@ -479,6 +532,9 @@ async def get_prospect(
         google_maps_url=prospect.get("google_maps_url"),
         summary=prospect.get("business_summary"),
         pain_points=pain_points,
+        sales_toolkit=sales_toolkit,
+        sales_script=sales_script,
+        whatsapp_messages=whatsapp_messages,
         call_script=call_script,
         ai_overview=prospect.get("ai_overview"),
         next_follow_up=next_follow_up,
@@ -1065,7 +1121,10 @@ async def get_org_settings(
     return {
         "website": settings_data.get("lead_agent_website", ""),
         "instagram": settings_data.get("lead_agent_instagram", ""),
-        "credibility_facts": settings_data.get("lead_agent_credibility_facts", ""),
+        "achievements": settings_data.get("lead_agent_achievements", ""),
+        "partnerships": settings_data.get("lead_agent_partnerships", ""),
+        "outstanding_facts": settings_data.get("lead_agent_outstanding_facts", ""),
+        "growth_metrics": settings_data.get("lead_agent_growth_metrics", ""),
         "currency": settings_data.get("lead_agent_currency", "USD")
     }
 
@@ -1092,8 +1151,14 @@ async def update_org_settings(
         settings_dict["lead_agent_website"] = data.website
     if data.instagram is not None:
         settings_dict["lead_agent_instagram"] = data.instagram
-    if data.credibility_facts is not None:
-        settings_dict["lead_agent_credibility_facts"] = data.credibility_facts
+    if data.achievements is not None:
+        settings_dict["lead_agent_achievements"] = data.achievements
+    if data.partnerships is not None:
+        settings_dict["lead_agent_partnerships"] = data.partnerships
+    if data.outstanding_facts is not None:
+        settings_dict["lead_agent_outstanding_facts"] = data.outstanding_facts
+    if data.growth_metrics is not None:
+        settings_dict["lead_agent_growth_metrics"] = data.growth_metrics
 
     db.table("organizations").update({
         "settings": settings_dict

@@ -1122,6 +1122,109 @@
             background: rgba(0, 0, 0, 0.12);
         }
 
+        /* Toolkit Toggle Buttons */
+        .toolkit-toggle-row {
+            display: flex;
+            gap: var(--space-xs);
+            padding: var(--space-sm) var(--space-md);
+            border-top: 1px solid var(--color-slate-100);
+        }
+
+        .toolkit-toggle-btn {
+            flex: 1;
+            padding: 8px 12px;
+            border: 1px solid var(--color-slate-200);
+            border-radius: var(--radius-sm);
+            background: white;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--color-slate-500);
+            cursor: pointer;
+            text-align: center;
+            transition: all 0.15s ease;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .toolkit-toggle-btn:active {
+            transform: scale(0.97);
+        }
+
+        .toolkit-toggle-btn.active {
+            background: var(--color-slate-800);
+            color: white;
+            border-color: var(--color-slate-800);
+        }
+
+        .toolkit-panel {
+            display: none;
+        }
+
+        .toolkit-panel.visible {
+            display: block;
+        }
+
+        /* Unified Sales Script */
+        .unified-script-card {
+            background: white;
+            border: 1px solid var(--color-slate-200);
+            border-radius: var(--radius-md);
+            padding: var(--space-lg);
+        }
+
+        .unified-script-text {
+            font-size: 14px;
+            line-height: 1.7;
+            color: var(--color-slate-700);
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+
+        .whatsapp-tabs-section {
+            margin-top: var(--space-md);
+        }
+
+        .whatsapp-tab-row {
+            display: flex;
+            gap: var(--space-xs);
+            margin-bottom: var(--space-sm);
+        }
+
+        .whatsapp-tab-btn {
+            flex: 1;
+            padding: 8px 10px;
+            border: 1px solid var(--color-slate-200);
+            border-radius: var(--radius-sm);
+            background: white;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--color-slate-500);
+            cursor: pointer;
+            text-align: center;
+            transition: all 0.15s ease;
+            -webkit-tap-highlight-color: transparent;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .whatsapp-tab-btn:active {
+            transform: scale(0.97);
+        }
+
+        .whatsapp-tab-btn.active {
+            background: #075e54;
+            color: white;
+            border-color: #075e54;
+        }
+
+        .whatsapp-msg-panel {
+            display: none;
+        }
+
+        .whatsapp-msg-panel.visible {
+            display: block;
+        }
+
         /* Org Settings Section */
         .org-settings-section {
             margin-top: var(--space-xl);
@@ -1886,11 +1989,32 @@
                         <input type="text" class="input" id="org-instagram" placeholder="@yourcompany or full URL" maxlength="200" />
                     </div>
                     <div class="form-group">
-                        <label class="input-label">Credibility Facts</label>
-                        <textarea class="input" id="org-credibility" maxlength="2000" rows="4" style="min-height: 80px; resize: vertical; font-family: inherit;"
-                            placeholder="List partnerships, awards, stats, certifications...&#10;e.g. Trusted by 500+ businesses, ISO 9001 certified, Official partner of..."
-                            oninput="document.getElementById('credibility-counter').textContent = this.value.length"></textarea>
-                        <div class="char-counter"><span id="credibility-counter">0</span>/2000</div>
+                        <label class="input-label">Company Achievements</label>
+                        <textarea class="input" id="org-achievements" maxlength="2000" rows="3" style="min-height: 70px; resize: vertical; font-family: inherit;"
+                            placeholder="Awards, milestones, proof points, outcomes...&#10;e.g. Won Best Innovation Award 2024, Served 500+ clients"
+                            oninput="document.getElementById('achievements-counter').textContent = this.value.length"></textarea>
+                        <div class="char-counter"><span id="achievements-counter">0</span>/2000</div>
+                    </div>
+                    <div class="form-group">
+                        <label class="input-label">Significant Partnerships</label>
+                        <textarea class="input" id="org-partnerships" maxlength="2000" rows="3" style="min-height: 70px; resize: vertical; font-family: inherit;"
+                            placeholder="Recognizable partners, clients, institutions...&#10;e.g. Official partner of Emirates Hospital, Trusted by Google"
+                            oninput="document.getElementById('partnerships-counter').textContent = this.value.length"></textarea>
+                        <div class="char-counter"><span id="partnerships-counter">0</span>/2000</div>
+                    </div>
+                    <div class="form-group">
+                        <label class="input-label">Outstanding Facts</label>
+                        <textarea class="input" id="org-outstanding-facts" maxlength="2000" rows="3" style="min-height: 70px; resize: vertical; font-family: inherit;"
+                            placeholder="Notable verifiable claims about your company...&#10;e.g. Only provider of X in the region, ISO 9001 certified"
+                            oninput="document.getElementById('facts-counter').textContent = this.value.length"></textarea>
+                        <div class="char-counter"><span id="facts-counter">0</span>/2000</div>
+                    </div>
+                    <div class="form-group">
+                        <label class="input-label">Measurements of Growth/Success</label>
+                        <textarea class="input" id="org-growth-metrics" maxlength="2000" rows="3" style="min-height: 70px; resize: vertical; font-family: inherit;"
+                            placeholder="Numbers, percentages, timeframes, scale...&#10;e.g. 300% revenue growth in 2 years, 10,000+ users onboarded"
+                            oninput="document.getElementById('growth-counter').textContent = this.value.length"></textarea>
+                        <div class="char-counter"><span id="growth-counter">0</span>/2000</div>
                     </div>
                     <button class="btn btn-primary btn-block" onclick="saveOrgSettings()" id="save-settings-btn">
                         Save Settings
@@ -2592,8 +2716,14 @@
                 state.orgSettings = settings;
                 document.getElementById('org-website').value = settings.website || '';
                 document.getElementById('org-instagram').value = settings.instagram || '';
-                document.getElementById('org-credibility').value = settings.credibility_facts || '';
-                document.getElementById('credibility-counter').textContent = (settings.credibility_facts || '').length;
+                document.getElementById('org-achievements').value = settings.achievements || '';
+                document.getElementById('achievements-counter').textContent = (settings.achievements || '').length;
+                document.getElementById('org-partnerships').value = settings.partnerships || '';
+                document.getElementById('partnerships-counter').textContent = (settings.partnerships || '').length;
+                document.getElementById('org-outstanding-facts').value = settings.outstanding_facts || '';
+                document.getElementById('facts-counter').textContent = (settings.outstanding_facts || '').length;
+                document.getElementById('org-growth-metrics').value = settings.growth_metrics || '';
+                document.getElementById('growth-counter').textContent = (settings.growth_metrics || '').length;
             } catch (error) {
                 console.error('Failed to load org settings:', error);
             }
@@ -2604,7 +2734,10 @@
             const data = {
                 website: document.getElementById('org-website').value.trim() || null,
                 instagram: document.getElementById('org-instagram').value.trim() || null,
-                credibility_facts: document.getElementById('org-credibility').value.trim() || null
+                achievements: document.getElementById('org-achievements').value.trim() || null,
+                partnerships: document.getElementById('org-partnerships').value.trim() || null,
+                outstanding_facts: document.getElementById('org-outstanding-facts').value.trim() || null,
+                growth_metrics: document.getElementById('org-growth-metrics').value.trim() || null
             };
 
             try {
@@ -3111,8 +3244,33 @@
                         <div class="ai-generating">AI insights are being generated...</div>
                     `}
 
-                    ${p.sales_toolkit && p.sales_toolkit.length > 0 ? `
-                        <!-- Sales Toolkit (new format) -->
+                    ${p.sales_script ? `
+                        <!-- Unified Sales Script (new format) -->
+                        <div class="section-title" style="margin-top: var(--space-lg);">Sales Script</div>
+                        <div class="unified-script-card">
+                            <div class="unified-script-text">${p.sales_script}</div>
+                        </div>
+
+                        ${p.whatsapp_messages && p.whatsapp_messages.length > 0 ? `
+                            <div class="whatsapp-tabs-section">
+                                <div class="section-title" style="margin-top: var(--space-lg);">WhatsApp Messages</div>
+                                <div class="whatsapp-tab-row">
+                                    ${p.whatsapp_messages.map((wm, i) => `
+                                        <button class="whatsapp-tab-btn ${i === 0 ? 'active' : ''}" onclick="switchWhatsAppTab(${i})">${wm.label || 'Message ' + (i + 1)}</button>
+                                    `).join('')}
+                                </div>
+                                ${p.whatsapp_messages.map((wm, i) => `
+                                    <div class="whatsapp-msg-panel ${i === 0 ? 'visible' : ''}" data-wa-index="${i}">
+                                        <div class="whatsapp-message-box">
+                                            <div class="whatsapp-text">${wm.message || ''}</div>
+                                            <button class="whatsapp-copy-btn" onclick="copyUnifiedWhatsApp(this, ${i})">Copy</button>
+                                        </div>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        ` : ''}
+                    ` : p.sales_toolkit && p.sales_toolkit.length > 0 ? `
+                        <!-- Sales Toolkit (old format - backward compat) -->
                         <div class="section-title" style="margin-top: var(--space-lg);">Sales Toolkit</div>
                         <div class="sales-toolkit-list">
                             ${p.sales_toolkit.map((item, index) => `
@@ -3127,37 +3285,40 @@
                                         <span class="toolkit-arrow">&#9662;</span>
                                     </div>
                                     <div class="toolkit-body">
-                                        <!-- Solution -->
                                         <div class="toolkit-section">
                                             <div class="toolkit-section-label">Solution</div>
                                             <div class="toolkit-section-text">${item.solution_summary || ''}</div>
                                         </div>
-
-                                        <!-- Sales Script -->
-                                        <div class="toolkit-section toolkit-script">
-                                            <div class="toolkit-section-label">Sales Script</div>
-                                            <div class="script-question-box">
-                                                <span class="cue-card-label cue-card-label-ask">Ask</span>
-                                                <div class="script-question">${item.question}</div>
-                                            </div>
-                                            <div class="script-keypoints">
-                                                <span class="cue-card-label cue-card-label-response">Key Points</span>
-                                                <ul class="keypoints-list">
-                                                    ${(item.key_points || []).map(kp => `<li>${kp}</li>`).join('')}
-                                                </ul>
-                                            </div>
-                                            <div class="script-urgency">
-                                                <span class="urgency-label">Urgency</span>
-                                                <div class="urgency-text">${item.urgency_statement || ''}</div>
+                                        <div class="toolkit-toggle-row">
+                                            <button class="toolkit-toggle-btn" onclick="toggleToolkitPanel(this, 'script', ${index})">Sales Script</button>
+                                            <button class="toolkit-toggle-btn" onclick="toggleToolkitPanel(this, 'whatsapp', ${index})">WhatsApp Message</button>
+                                        </div>
+                                        <div class="toolkit-panel toolkit-panel-script-${index}">
+                                            <div class="toolkit-section toolkit-script">
+                                                <div class="toolkit-section-label">Sales Script</div>
+                                                <div class="script-question-box">
+                                                    <span class="cue-card-label cue-card-label-ask">Ask</span>
+                                                    <div class="script-question">${item.question}</div>
+                                                </div>
+                                                <div class="script-keypoints">
+                                                    <span class="cue-card-label cue-card-label-response">Key Points</span>
+                                                    <ul class="keypoints-list">
+                                                        ${(item.key_points || []).map(kp => `<li>${kp}</li>`).join('')}
+                                                    </ul>
+                                                </div>
+                                                <div class="script-urgency">
+                                                    <span class="urgency-label">Urgency</span>
+                                                    <div class="urgency-text">${item.urgency_statement || ''}</div>
+                                                </div>
                                             </div>
                                         </div>
-
-                                        <!-- WhatsApp Message -->
-                                        <div class="toolkit-section">
-                                            <div class="toolkit-section-label">WhatsApp Message</div>
-                                            <div class="whatsapp-message-box">
-                                                <div class="whatsapp-text">${item.whatsapp_message || ''}</div>
-                                                <button class="whatsapp-copy-btn" onclick="copyWhatsAppMessage(this, ${index})">Copy</button>
+                                        <div class="toolkit-panel toolkit-panel-whatsapp-${index}">
+                                            <div class="toolkit-section">
+                                                <div class="toolkit-section-label">WhatsApp Message</div>
+                                                <div class="whatsapp-message-box">
+                                                    <div class="whatsapp-text">${item.whatsapp_message || ''}</div>
+                                                    <button class="whatsapp-copy-btn" onclick="copyWhatsAppMessage(this, ${index})">Copy</button>
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
@@ -3601,6 +3762,26 @@
             }
         }
 
+        function toggleToolkitPanel(btn, panelType, index) {
+            const card = btn.closest('.toolkit-card');
+            const panel = card.querySelector(`.toolkit-panel-${panelType}-${index}`);
+            const isActive = btn.classList.contains('active');
+
+            // Deactivate all toggles and hide all panels in this card
+            card.querySelectorAll('.toolkit-toggle-btn').forEach(b => b.classList.remove('active'));
+            card.querySelectorAll('.toolkit-panel').forEach(p => p.classList.remove('visible'));
+
+            // If wasn't active, activate this one
+            if (!isActive) {
+                btn.classList.add('active');
+                panel.classList.add('visible');
+            }
+
+            if (window.Telegram?.WebApp?.HapticFeedback) {
+                window.Telegram.WebApp.HapticFeedback.selectionChanged();
+            }
+        }
+
         function copyWhatsAppMessage(button, index) {
             const toolkit = state.currentProspect?.sales_toolkit;
             if (!toolkit || !toolkit[index]) return;
@@ -3616,6 +3797,53 @@
                 }
             }).catch(() => {
                 // Fallback for older browsers
+                const textarea = document.createElement('textarea');
+                textarea.value = text;
+                textarea.style.position = 'fixed';
+                textarea.style.opacity = '0';
+                document.body.appendChild(textarea);
+                textarea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textarea);
+                button.textContent = 'Copied!';
+                setTimeout(() => { button.textContent = 'Copy'; }, 1500);
+            });
+        }
+
+        // ═══════════════════════════════════════════════════════════════
+        // UNIFIED SALES SCRIPT — WHATSAPP TABS
+        // ═══════════════════════════════════════════════════════════════
+
+        function switchWhatsAppTab(index) {
+            const section = document.querySelector('.whatsapp-tabs-section');
+            if (!section) return;
+
+            section.querySelectorAll('.whatsapp-tab-btn').forEach((btn, i) => {
+                btn.classList.toggle('active', i === index);
+            });
+            section.querySelectorAll('.whatsapp-msg-panel').forEach(panel => {
+                panel.classList.toggle('visible', parseInt(panel.dataset.waIndex) === index);
+            });
+
+            if (window.Telegram?.WebApp?.HapticFeedback) {
+                window.Telegram.WebApp.HapticFeedback.selectionChanged();
+            }
+        }
+
+        function copyUnifiedWhatsApp(button, index) {
+            const messages = state.currentProspect?.whatsapp_messages;
+            if (!messages || !messages[index]) return;
+
+            const text = messages[index].message || '';
+            navigator.clipboard.writeText(text).then(() => {
+                const original = button.textContent;
+                button.textContent = 'Copied!';
+                setTimeout(() => { button.textContent = original; }, 1500);
+
+                if (window.Telegram?.WebApp?.HapticFeedback) {
+                    window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
+                }
+            }).catch(() => {
                 const textarea = document.createElement('textarea');
                 textarea.value = text;
                 textarea.style.position = 'fixed';

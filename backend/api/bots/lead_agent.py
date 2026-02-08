@@ -146,7 +146,10 @@ async def generate_ai_insights_task(
                 business_description=business_description,
                 org_website=org_settings.get("lead_agent_website"),
                 org_instagram=org_settings.get("lead_agent_instagram"),
-                credibility_facts=org_settings.get("lead_agent_credibility_facts")
+                achievements=org_settings.get("lead_agent_achievements"),
+                partnerships=org_settings.get("lead_agent_partnerships"),
+                outstanding_facts=org_settings.get("lead_agent_outstanding_facts"),
+                growth_metrics=org_settings.get("lead_agent_growth_metrics")
             )
 
         # Store full sales toolkit in pain_points JSONB (includes opposition_points for internal use)
@@ -1206,7 +1209,10 @@ async def get_org_settings(
     return {
         "website": settings_data.get("lead_agent_website", ""),
         "instagram": settings_data.get("lead_agent_instagram", ""),
-        "credibility_facts": settings_data.get("lead_agent_credibility_facts", ""),
+        "achievements": settings_data.get("lead_agent_achievements", ""),
+        "partnerships": settings_data.get("lead_agent_partnerships", ""),
+        "outstanding_facts": settings_data.get("lead_agent_outstanding_facts", ""),
+        "growth_metrics": settings_data.get("lead_agent_growth_metrics", ""),
         "currency": settings_data.get("lead_agent_currency", "USD")
     }
 
@@ -1233,8 +1239,14 @@ async def update_org_settings(
         settings_dict["lead_agent_website"] = data.website
     if data.instagram is not None:
         settings_dict["lead_agent_instagram"] = data.instagram
-    if data.credibility_facts is not None:
-        settings_dict["lead_agent_credibility_facts"] = data.credibility_facts
+    if data.achievements is not None:
+        settings_dict["lead_agent_achievements"] = data.achievements
+    if data.partnerships is not None:
+        settings_dict["lead_agent_partnerships"] = data.partnerships
+    if data.outstanding_facts is not None:
+        settings_dict["lead_agent_outstanding_facts"] = data.outstanding_facts
+    if data.growth_metrics is not None:
+        settings_dict["lead_agent_growth_metrics"] = data.growth_metrics
 
     db.table("organizations").update({
         "settings": settings_dict
